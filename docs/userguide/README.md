@@ -40,5 +40,8 @@ The language switcher expects both sites to live under `/en/` and `/de/` of the 
 deploying, copy `en/site/` to `<host-root>/en/`, `de/site/` to `<host-root>/de/`, and
 `index.html` (the root redirect to `en/`, English being the default) to `<host-root>/index.html`.
 The release workflow builds both sites and ships them inside the release zip as the offline help
-(`help/en/`, `help/de/`). Neither site is deployed to a web host by CI — that's a deliberate choice
-for now; wire it up later if the project moves to publishing this automatically.
+(`help/en/`, `help/de/`). [`pages.yml`](../../.github/workflows/pages.yml) builds the same two sites
+on every push to `main` that touches `docs/userguide/` and publishes them to GitHub Pages at
+<https://argusloom.github.io/SavegameBunker/>, with `index.html` as the root redirect. Because every
+link is relative (`use_directory_urls = false`), the same build works under the Pages sub-path and
+from `file://`.

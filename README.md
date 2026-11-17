@@ -128,8 +128,10 @@ like Windows; **Switch theme** flips it for the current session.
 
 ## Want more detail?
 
-The user guide walks through every task step by step — in
-[English](docs/userguide/en/docs/index.md) and in [German](docs/userguide/de/docs/index.md).
+The [user guide](https://argusloom.github.io/SavegameBunker/) walks through every task step by
+step — in [English](https://argusloom.github.io/SavegameBunker/en/) and in
+[German](https://argusloom.github.io/SavegameBunker/de/). The same guide ships inside the download
+and opens offline from the **Help** button.
 
 ## For the curious
 

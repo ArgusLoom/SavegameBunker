@@ -1,0 +1,64 @@
+# Publishes the user guide (en + de) to GitHub Pages.
+#
+# Same Zensical build as the offline help pack in release.yml, laid out as
+# <site>/en/, <site>/de/ and the root redirect docs/userguide/index.html.
+# Every link in the guide is relative (use_directory_urls = false), so the
+# site works under the /SavegameBunker/ project-pages path unchanged.
+
+name: pages
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'docs/userguide/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Build user guide (en, de)
+        run: |
+          set -euo pipefail
+          pip install zensical
+          rm -rf _site
+          mkdir -p _site
+          for lang in en de; do
+            (cd "docs/userguide/$lang" && python -m zensical build)
+            mkdir -p "_site/$lang"
+            cp -r "docs/userguide/$lang/site/." "_site/$lang/"
+          done
+          cp docs/userguide/index.html _site/index.html
+          touch _site/.nojekyll
+          test -f _site/en/index.html
+          test -f _site/de/index.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
