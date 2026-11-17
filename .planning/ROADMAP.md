@@ -33,7 +33,7 @@ the unchanged 629-test suite.
 
 **Requirements**: REF-01, REF-02, REF-03, REF-04, REF-05
 **Depends on:** —
-**Plans:** 5/5 plans executed
+**Plans:** 5/5 plans complete
 
 Plans:
 **Wave 1**
