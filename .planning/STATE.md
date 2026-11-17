@@ -5,8 +5,8 @@ milestone_name: Hardening & Refactoring
 current_phase: 01
 current_phase_name: Bugfixing & Refactoring
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-11-17T22:37:26.688Z"
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-11-17T22:52:00.000Z"
 last_activity: 2026-11-17
 last_activity_desc: Phase 01 execution started
 state_head: a9a9baf66e99e1f8df4b0d16cba0d78b31d4345d
@@ -14,7 +14,7 @@ progress:
   total_phases: 1
   completed_phases: 0
   total_plans: 5
-  completed_plans: 1
+  completed_plans: 2
   percent: 0
 ---
 
@@ -30,7 +30,7 @@ See: `.planning/PROJECT.md`
 ## Current Position
 
 Phase: 01 (Bugfixing & Refactoring) — EXECUTING
-Plan: 2 of 5
+Plan: 3 of 5
 Status: Executing Phase 01
 Last activity: 2026-11-17 — Phase 01 execution started
 
@@ -40,6 +40,7 @@ Last activity: 2026-11-17 — Phase 01 execution started
 Full decision history consolidated into `.planning/PROJECT.md`'s Key Decisions table.
 - [Phase 01]: Baseline suite total (629) derived arithmetically from the first full-suite run (630) minus this plan's own first added fact, matching ROADMAP.md's quoted figure exactly
 - [Phase 01]: Branch refactor/v1.1-phase-1 created from main at the baseline commit; all phase commits land there, main is never pushed directly
+- [Phase 01]: REF-04's rename cap is pinned at the code's real boundary — the ladder tries the bare name plus -1…-100, so 101 occupied names fail and 100 still succeed as -100.zip; only the failure message changed
 
 ## Pending Todos
 
@@ -62,8 +63,8 @@ None open. Open limitations and deferred ideas are tracked in `.planning/WISHLIS
 
 ## Session
 
-**Last Date:** 2026-11-17T22:28:33.695Z
-**Stopped At:** Completed 01-02-PLAN.md
+**Last Date:** 2026-11-17T22:52:00.000Z
+**Stopped At:** Completed 01-03-PLAN.md
 **Resume File:** None
 
 ## Operator Next Steps
@@ -75,3 +76,5 @@ None open. Open limitations and deferred ideas are tracked in `.planning/WISHLIS
 | Plan | Duration | Tasks | Files |
 |------|----------|-------|-------|
 | Phase 01 P01 | 25min | 2 tasks | 1 files |
+| Phase 01 P02 | 40min | 2 tasks | 4 files |
+| Phase 01 P03 | 25min | 3 tasks | 6 files |
