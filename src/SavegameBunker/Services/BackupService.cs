@@ -287,9 +287,27 @@ public sealed class BackupService
             // Directory.GetFiles("*.zip") also matches files whose 8.3 short name ends in .zip, so
             // a *.zip.tmp staging file is not guaranteed excluded by the glob alone — the explicit
             // EndsWith is what actually enforces that exclusion.
+            //
+            // The projection is guarded per file (audit A5): the lazy Select ran while the list
+            // was being sorted, so an archive deleted by the user (or another cleanup) between
+            // GetFiles and its FileInfo.Length read threw FileNotFoundException and the bare
+            // catch below misreported the whole folder as unlistable. A file that has vanished
+            // simply drops out of the list.
             return Directory.GetFiles(targetDir, "*.zip")
                 .Where(path => path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
-                .Select(path => new BackupArchive(path, ParseTakenAt(path), new FileInfo(path).Length))
+                .Select(path =>
+                {
+                    try
+                    {
+                        return new BackupArchive(path, ParseTakenAt(path), new FileInfo(path).Length);
+                    }
+                    catch (Exception ex) when (ex is FileNotFoundException or IOException or UnauthorizedAccessException)
+                    {
+                        return null;
+                    }
+                })
+                .Where(b => b is not null)
+                .Select(b => b!)
                 .OrderByDescending(b => b.TakenAt)
                 .ThenByDescending(b => b.FilePath, StringComparer.OrdinalIgnoreCase)
                 .ToList();
