@@ -1101,4 +1101,100 @@ public sealed class BackupServiceTests : IDisposable
     {
         public void Report(T value) => onReport(value);
     }
+
+    /// <summary>
+    /// A game whose display name exercises the non-ASCII path of the failure message the rename
+    /// cap produces — the sentence is composed inline, so it must survive a name outside ASCII.
+    /// </summary>
+    private Game NonAsciiGameWithSaves(string displayName)
+    {
+        var saveDir = Path.Combine(_dir, "saves");
+        Directory.CreateDirectory(saveDir);
+        File.WriteAllText(Path.Combine(saveDir, "save.dat"), "payload");
+
+        return new Game
+        {
+            Id = "test-game",
+            DisplayName = displayName,
+            SaveDirTemplate = saveDir.Replace('\\', '/'),
+        };
+    }
+
+    /// <summary>
+    /// Pre-creates every archive name a five-second window can produce, from the bare
+    /// <c>yyyy-MM-dd_HHmmss.zip</c> through <c>-{maxSuffix}.zip</c>, so the final rename walks
+    /// the entire suffix ladder for whichever second the backup actually stamps. Five seconds
+    /// absorb a slow CI disk (the timestamp is taken after writing and verifying, not before).
+    /// Returns the created paths with the bytes each must keep.
+    /// </summary>
+    private Dictionary<string, byte[]> OccupyNames(string targetDir, int maxSuffix)
+    {
+        Directory.CreateDirectory(targetDir);
+        var occupied = new Dictionary<string, byte[]>();
+        var baseSecond = DateTime.Now;
+
+        for (var offset = -2; offset <= 2; offset++)
+        {
+            var timestamp = baseSecond.AddSeconds(offset).ToString("yyyy-MM-dd_HHmmss");
+            // Suffix "" (the bare name) through -maxSuffix — maxSuffix + 1 names per second.
+            for (var suffix = 0; suffix <= maxSuffix; suffix++)
+            {
+                var name = suffix == 0
+                    ? $"{timestamp}.zip"
+                    : $"{timestamp}-{suffix}.zip";
+                var path = Path.Combine(targetDir, name);
+                var bytes = new byte[] { (byte)(suffix % 251 + 1) };
+                File.WriteAllBytes(path, bytes);
+                occupied[path] = bytes;
+            }
+        }
+
+        return occupied;
+    }
+
+    [Fact]
+    public void Backup_one_name_below_the_rename_retry_limit_still_succeeds_as_the_last_suffix()
+    {
+        var game = GameWithSaves();
+        var backupRoot = Path.Combine(_dir, "backups");
+        var targetDir = Path.Combine(backupRoot, game.Id);
+
+        // 100 occupied names per second (the bare timestamp plus -1 … -99): one below the cap.
+        // The retry ladder still has -100.zip free, so the backup succeeds unchanged.
+        var occupied = OccupyNames(targetDir, maxSuffix: 99);
+
+        var result = _service.Backup(game, backupRoot);
+
+        Assert.True(result.Success, result.Message);
+        // Exactly one new archive, named with the last suffix of the ladder.
+        var archives = Directory.GetFiles(targetDir, "*.zip").Except(occupied.Keys).ToList();
+        Assert.Single(archives);
+        Assert.EndsWith("-100.zip", archives[0], StringComparison.Ordinal);
+        Assert.Empty(Directory.GetFiles(targetDir, "*.zip.tmp"));
+        // Every pre-created file keeps its bytes — nothing was overwritten.
+        Assert.All(occupied, entry => Assert.Equal(entry.Value, File.ReadAllBytes(entry.Key)));
+    }
+
+    [Fact]
+    public void Backup_at_the_rename_retry_limit_reports_the_limit_not_a_generic_disk_error()
+    {
+        var game = NonAsciiGameWithSaves("Ōkami Test");
+        var backupRoot = Path.Combine(_dir, "backups");
+        var targetDir = Path.Combine(backupRoot, game.Id);
+
+        // 101 occupied names per second (the bare timestamp plus -1 … -100): at the cap, the
+        // suffix ladder is exhausted and the backup must fail naming the limit, not a disk error.
+        var occupied = OccupyNames(targetDir, maxSuffix: 100);
+        var zipCountBefore = Directory.GetFiles(targetDir, "*.zip").Length;
+
+        var result = _service.Backup(game, backupRoot);
+
+        Assert.False(result.Success);
+        Assert.StartsWith("Backup failed for Ōkami Test:", result.Message, StringComparison.Ordinal);
+        Assert.Contains("rename retry limit", result.Message, StringComparison.Ordinal);
+        Assert.Empty(Directory.GetFiles(targetDir, "*.zip.tmp"));
+        Assert.Equal(zipCountBefore, Directory.GetFiles(targetDir, "*.zip").Length);
+        // Every pre-existing archive keeps its bytes — no overwrite, no modification.
+        Assert.All(occupied, entry => Assert.Equal(entry.Value, File.ReadAllBytes(entry.Key)));
+    }
 }

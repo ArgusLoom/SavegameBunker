@@ -31,6 +31,16 @@ namespace SavegameBunker.Services;
 /// </remarks>
 public sealed class BackupService
 {
+    /// <summary>
+    /// The number of suffixed names tried after the bare one before the final rename gives up —
+    /// the bare <c>yyyy-MM-dd_HHmmss.zip</c> plus <c>-1</c> through <c>-100</c>. At the limit
+    /// (every one of those 101 names already taken for the stamped second) the backup fails with
+    /// its own "rename retry limit reached" message rather than surfacing the underlying
+    /// <see cref="IOException"/> as a generic disk error, and the already-verified staging file
+    /// is deleted as on every other failure path. The ladder's length is unchanged by naming it.
+    /// </summary>
+    private const int MaxRenameRetries = 100;
+
     /// <param name="backupRoot">
     /// Absolute path of the configured backup folder, already resolved by the caller. Created if
     /// it does not exist yet.
@@ -145,7 +155,8 @@ public sealed class BackupService
                 // overwritten — a same-second collision (two backups of the same game in one
                 // second, or the same wall-clock second recurring across a DST fall-back) used to
                 // make File.Move throw and then delete the already-verified staging file here.
-                // Instead the name is suffixed -1, -2, … and retried: the suffixed name breaks
+                // Instead the name is suffixed -1, -2, … and retried until MaxRenameRetries is
+                // exhausted, where the limit gets its own message below; the suffixed name breaks
                 // ParseTakenAt's bare-timestamp match, whose documented fallback (the file's own
                 // last-write time — the same one a renamed or -pre-restore archive relies on)
                 // keeps a suffixed archive visible in the listing.
@@ -160,11 +171,21 @@ public sealed class BackupService
                         finalPath = candidate;
                         break;
                     }
-                    catch (IOException) when (attempt < 100 && File.Exists(candidate))
+                    catch (IOException) when (attempt < MaxRenameRetries && File.Exists(candidate))
                     {
                         // Candidate pre-exists: try the next suffix. Anything other than a
                         // name collision (disk full, vanished target dir, …) escapes to the
                         // catch below and is reported as before.
+                    }
+                    catch (IOException) when (attempt == MaxRenameRetries && File.Exists(candidate))
+                    {
+                        // The suffix ladder is exhausted — the bare name and every numbered
+                        // variant are taken. Distinguishable from a disk error, so the user is
+                        // told to make room or point the backup somewhere else rather than
+                        // reading a File.Move exception as a failing disk.
+                        TryDelete(tempPath);
+                        return OperationResult.Fail(
+                            $"Backup failed for {game.DisplayName}: rename retry limit reached — {timestamp}{suffix}.zip and every numbered variant up to -{MaxRenameRetries} already exist in {targetDir}.");
                     }
                 }
             }
