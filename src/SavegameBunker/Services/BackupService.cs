@@ -141,12 +141,32 @@ public sealed class BackupService
 
             try
             {
-                // The two-argument Move overload, not a swap-style replace: finalPath is a unique
-                // per-second name that never pre-exists, so a collision (two backups of the same
-                // game in the same second, or the same second recurring across a DST fall-back) is
-                // a clock or logic fault worth surfacing rather than silently overwriting an
-                // archive.
-                File.Move(tempPath, finalPath);
+                // The two-argument Move overload, not a swap-style replace: finalPath is never
+                // overwritten — a same-second collision (two backups of the same game in one
+                // second, or the same wall-clock second recurring across a DST fall-back) used to
+                // make File.Move throw and then delete the already-verified staging file here.
+                // Instead the name is suffixed -1, -2, … and retried: the suffixed name breaks
+                // ParseTakenAt's bare-timestamp match, whose documented fallback (the file's own
+                // last-write time — the same one a renamed or -pre-restore archive relies on)
+                // keeps a suffixed archive visible in the listing.
+                for (var attempt = 0; ; attempt++)
+                {
+                    var candidate = attempt == 0
+                        ? finalPath
+                        : Path.Combine(targetDir, $"{timestamp}{suffix}-{attempt}.zip");
+                    try
+                    {
+                        File.Move(tempPath, candidate);
+                        finalPath = candidate;
+                        break;
+                    }
+                    catch (IOException) when (attempt < 100 && File.Exists(candidate))
+                    {
+                        // Candidate pre-exists: try the next suffix. Anything other than a
+                        // name collision (disk full, vanished target dir, …) escapes to the
+                        // catch below and is reported as before.
+                    }
+                }
             }
             catch (Exception ex)
             {
