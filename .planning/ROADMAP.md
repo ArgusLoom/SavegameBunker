@@ -33,10 +33,23 @@ the unchanged 629-test suite.
 
 **Requirements**: REF-01, REF-02, REF-03, REF-04, REF-05
 **Depends on:** —
-**Plans:** 0 plans
+**Plans:** 5 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 1 to break down)
+**Wave 1**
+- [ ] 01-01-PLAN.md — Baseline pin: tag + branch, Release 0/0, green suite and CI recorded; six guard characterization pins
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 01-02-PLAN.md — Pure helpers (BulkRunRules) + REF-05 reflection-driven never-throw contract test
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 01-03-PLAN.md — BulkBackupCoordinator (bulk backup + bulk restore) + REF-04a rename-retry-limit message
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 01-04-PLAN.md — StatusSweepCoordinator (sweep engine + advisory I/O) + REF-04b per-row unreadable-path warning
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [ ] 01-05-PLAN.md — RowActionsCoordinator + composition-root pass + owner decision on REF-02's ~700-line ceiling
 
 **Execution order is strictly sequential (Plan 01→05):** baseline test pin → pure helpers →
 bulk-backup coordinator → status-sweep coordinator → row-actions service → rest form. Each

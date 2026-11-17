@@ -2,13 +2,18 @@
 gsd_state_version: "1.0"
 milestone: v1.1
 milestone_name: Hardening & Refactoring
+current_phase: 1
+current_phase_name: Bugfixing & Refactoring
 status: planning
-last_updated: "2026-11-17T20:25:10.148Z"
+stopped_at: v1.0 shipped 2026-11-17
+last_updated: "2026-11-17T22:06:57.230Z"
 last_activity: 2026-11-17
+last_activity_desc: Milestone v1.1 started; Phase 1 planned (REQUIREMENTS REF-01..05, roadmap entry, phase dir 01-bugfixing-refactoring)
+state_head: "0bd8d766ac63254a4c86a6802d04ceee5d1fe2a9"
 progress:
-  total_phases: 0
+  total_phases: 1
   completed_phases: 0
-  total_plans: 0
+  total_plans: 5
   completed_plans: 0
   percent: 0
 ---
@@ -24,7 +29,7 @@ See: `.planning/PROJECT.md`
 
 ## Current Position
 
-Phase: 1 — Bugfixing & Refactoring
+Phase: 1 (Bugfixing & Refactoring) — READY TO EXECUTE
 Plan: —
 Status: Planned, not yet planned into plans
 Last activity: 2026-11-17 — Milestone v1.1 started; Phase 1 planned (REQUIREMENTS REF-01..05, roadmap entry, phase dir 01-bugfixing-refactoring)
