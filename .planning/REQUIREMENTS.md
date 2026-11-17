@@ -9,7 +9,7 @@ contract and the Owner's Windows run is the verification of record.
 - [x] **REF-01**: Behavior parity — every observable behavior of v1.0 is preserved exactly; the
       full test suite passes unchanged (no test rewritten except where a test asserts a removed
       defect contract that an R2 fix supersedes, and then only with owner-visible justification).
-- [ ] **REF-02**: `MainViewModel.cs` is reduced to a composition root (observable properties,
+- [x] **REF-02**: `MainViewModel.cs` is reduced to a composition root (observable properties,
       command wrappers, coordinator wiring) of at most ~700 lines; bulk-backup orchestration,
       status-sweep engine and per-row actions each live in their own sealed class with no WPF
       references, matching the Services-layer contract.
@@ -21,7 +21,7 @@ contract and the Owner's Windows run is the verification of record.
 - [ ] **REF-04**: The rename-retry cap (100 collisions) is distinguishable from a disk error in
       the user-facing message, and Scan's status rows surface skipped unreadable paths the same
       way backups do — Scan and Backup can no longer disagree about completeness without saying so.
-- [ ] **REF-05**: The documented never-throw service contract holds without exception: every
+- [x] **REF-05**: The documented never-throw service contract holds without exception: every
       public service entry point returns a failure or warning instead of throwing, verified by a
       contract test pass over the Services surface.
 
