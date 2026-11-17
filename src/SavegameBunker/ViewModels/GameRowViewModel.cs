@@ -167,7 +167,9 @@ public sealed partial class GameRowViewModel : CommunityToolkitObservableObject
 
     /// <summary>
     /// Maps a scan result onto this row's bound properties, using the authored copy from
-    /// <c>Strings.en.xaml</c>.
+    /// <c>Strings.en.xaml</c>. An incompletely readable save folder says so on its row — the same
+    /// fact <see cref="Services.BackupService"/>'s own skip warning already reports — overriding
+    /// the <c>NoSaves</c>/<c>Found</c> branch's own sentence.
     /// </summary>
     public void ApplyStatus(SaveStatus status)
     {
@@ -187,6 +189,12 @@ public sealed partial class GameRowViewModel : CommunityToolkitObservableObject
                 FileCountText = "0";
                 SizeText = "";
                 LastPlayedAt = null;
+                if (status.SkippedPaths.Count > 0)
+                {
+                    GameSeverity = RowSeverity.Warning;
+                    StatusText = Strings.Format(
+                        "str_game_unreadablePaths", status.SkippedPaths.Count, DirectoryWalk.FormatSkippedList(status.SkippedPaths));
+                }
                 break;
 
             case SaveStatusKind.Found:
@@ -197,6 +205,12 @@ public sealed partial class GameRowViewModel : CommunityToolkitObservableObject
                 StatusText = status.Oversized
                     ? Strings.Get("str_game_oversized")
                     : "";
+                if (status.SkippedPaths.Count > 0)
+                {
+                    GameSeverity = RowSeverity.Warning;
+                    StatusText = Strings.Format(
+                        "str_game_unreadablePaths", status.SkippedPaths.Count, DirectoryWalk.FormatSkippedList(status.SkippedPaths));
+                }
                 break;
 
             case SaveStatusKind.Checking:

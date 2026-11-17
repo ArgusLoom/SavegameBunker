@@ -12,6 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - When an archive's timestamp name and all 100 numbered variants are already taken in the game's
   backup folder, the backup error now says the rename retry limit was reached instead of reading
   like a disk failure.
+- A game whose save folder is only partly readable now says so on its row (how many paths, and
+  which), so the file count no longer looks complete while a backup would leave those paths out.
 
 ## [1.0.0] - 2026-11-17
 

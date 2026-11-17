@@ -181,6 +181,68 @@ public sealed class GameRowViewModelTests
     }
 
     [Fact]
+    public void ApplyStatus_found_with_skipped_paths_names_them_with_warning_colour()
+    {
+        var row = MakeRow();
+        var lastModified = new DateTime(2026, 8, 29, 10, 0, 0);
+        var status = SaveStatus.Found(5, 1024, lastModified, oversized: false) with { SkippedPaths = new[] { "locked" } };
+
+        row.ApplyStatus(status);
+
+        Assert.Equal(Strings.Format("str_game_unreadablePaths", 1, "locked"), row.StatusText);
+        Assert.Equal(RowSeverity.Warning, row.GameSeverity);
+    }
+
+    [Fact]
+    public void ApplyStatus_no_saves_with_skipped_paths_names_them_instead_of_no_saves_yet()
+    {
+        var row = MakeRow();
+        var status = SaveStatus.NoSaves() with { SkippedPaths = new[] { "." } };
+
+        row.ApplyStatus(status);
+
+        Assert.Equal(Strings.Format("str_game_unreadablePaths", 1, "."), row.StatusText);
+        Assert.Equal(RowSeverity.Warning, row.GameSeverity);
+        Assert.Equal("0", row.FileCountText);
+    }
+
+    [Fact]
+    public void ApplyStatus_found_oversized_with_skipped_paths_shows_the_skipped_sentence()
+    {
+        var row = MakeRow();
+        var lastModified = new DateTime(2026, 8, 29, 10, 0, 0);
+        var status = SaveStatus.Found(5, 1024, lastModified, oversized: true) with { SkippedPaths = new[] { "locked" } };
+
+        row.ApplyStatus(status);
+
+        Assert.Equal(Strings.Format("str_game_unreadablePaths", 1, "locked"), row.StatusText);
+        Assert.Equal(RowSeverity.Warning, row.GameSeverity);
+    }
+
+    [Fact]
+    public void ApplyStatus_skipped_paths_sentence_names_five_and_counts_the_rest()
+    {
+        var row = MakeRow();
+        var seven = new[] { "a", "b", "c", "d", "e", "f", "g" };
+        var status = SaveStatus.Found(1, 10, null, oversized: false) with { SkippedPaths = seven };
+
+        row.ApplyStatus(status);
+
+        Assert.Equal(Strings.Format("str_game_unreadablePaths", 7, "a, b, c, d, e, and 2 more"), row.StatusText);
+    }
+
+    [Fact]
+    public void ApplyStatus_skipped_paths_sentence_keeps_non_ascii_names_intact()
+    {
+        var row = MakeRow();
+        var status = SaveStatus.Found(1, 10, null, oversized: false) with { SkippedPaths = new[] { "Ōkami/セーブ" } };
+
+        row.ApplyStatus(status);
+
+        Assert.Equal(Strings.Format("str_game_unreadablePaths", 1, "Ōkami/セーブ"), row.StatusText);
+    }
+
+    [Fact]
     public void IsSelected_defaults_to_false_and_round_trips_through_both_values()
     {
         var row = MakeRow();

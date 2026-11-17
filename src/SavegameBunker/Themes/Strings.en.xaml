@@ -88,6 +88,7 @@
     <sys:String x:Key="str_game_pathError">Can't find this game's save folder.</sys:String>
     <sys:String x:Key="str_game_noSaves">No saves yet</sys:String>
     <sys:String x:Key="str_game_oversized">This folder is unusually large — make sure it's the right one</sys:String>
+    <sys:String x:Key="str_game_unreadablePaths">{0} path(s) could not be read and are not counted here or backed up: {1}</sys:String>
 
     <!--  Status cell — BackupComparisonKind branches  -->
     <sys:String x:Key="str_status_upToDate">Up to date</sys:String>

@@ -31,6 +31,7 @@ behaviour; this page is the short version for anyone wondering "why doesn't it j
 | Every restore first takes an automatic safety backup, as an ordinary backup | Restore becomes recoverable through the existing backup path instead of a second mechanism. |
 | Restore order: safety backup → extract to a temp sibling → move the old folder aside → rename the new one in | Deleting the current saves is only defensible because the step before it put them in the backup folder. The order must not change. |
 | Per-row backup/restore is blocked while a bulk operation runs | A row action could otherwise run concurrently with the bulk run on the same files. |
+| A save folder the scan cannot fully read says so on its own row | Backup already warns about unreadable paths; a row whose count silently skips them would let Scan and Backup disagree about completeness. It is a per-game fact, so it goes on the row, not the status line that outcome messages own. |
 
 ## Build and dependencies
 
