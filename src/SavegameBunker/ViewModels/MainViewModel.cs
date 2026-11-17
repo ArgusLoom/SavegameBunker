@@ -26,6 +26,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
     private readonly BackupService _backup = new();
     private readonly GameActions _gameActions;
     private readonly BulkBackupCoordinator _bulk;
+    private readonly StatusSweepCoordinator _sweep;
     private readonly CatalogSession _session;
     private readonly KnownGamesScanner _knownGamesScanner = new();
 
@@ -75,14 +76,6 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
     private int _spaceAdvisoryGeneration;
 
     /// <summary>
-    /// The backup-root reachability the most recent <see cref="StartStatusScan"/> call observed —
-    /// null when no root is configured. Lets that method widen a narrowed scan exactly once, on
-    /// the actual false-to-true flip, instead of re-checking every row's current (possibly stale)
-    /// <see cref="GameRowViewModel.ComparisonKind"/> on every call.
-    /// </summary>
-    private bool? _lastBackupRootReachable;
-
-    /// <summary>
     /// Armed once by <c>App.OnStartup</c> (via <see cref="RequestStartupUnsecuredPrompt"/>) so the
     /// startup prompt can only ever be offered around application start, never by an ordinary
     /// mid-session Refresh's sweep completion. Consumed by the first full sweep that settles
@@ -111,6 +104,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
         _dialog = dialog;
         _gameActions = new GameActions(_backup, _dialog);
         _bulk = new BulkBackupCoordinator(_backup, _gameActions, OnUi);
+        _sweep = new StatusSweepCoordinator(_backup, OnUi);
         StatusMessage = Strings.Get("str_common_ready");
 
         System.Windows.Data.BindingOperations.EnableCollectionSynchronization(Games, _gamesSyncLock);
@@ -423,24 +417,8 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
             .Where(row => BulkRunRules.NeedsBackup(row.ComparisonKind))
             .Select(row => row.Game).ToList();
 
-        var (freeText, selectedText, changedText) = await Task.Run(() =>
-        {
-            string? free = null;
-            if (hasRoot && _backup.TryGetAvailableFreeSpace(root, out var freeBytes))
-                free = Strings.Format("str_freeSpace_available", SizeFormat.Describe(freeBytes));
-
-            string? selected = selectedGames.Count == 0
-                ? null
-                : Strings.Format("str_freeSpace_selectedNeeds",
-                    SizeFormat.Describe(selectedGames.Sum(g => _backup.ComputeSaveDataSize(g))));
-
-            string? changed = changedGames.Count == 0
-                ? null
-                : Strings.Format("str_freeSpace_changedNeeds",
-                    SizeFormat.Describe(changedGames.Sum(g => _backup.ComputeSaveDataSize(g))));
-
-            return (free, selected, changed);
-        });
+        var (freeText, selectedText, changedText) =
+            await _sweep.ComputeAdvisoryAsync(hasRoot, root, selectedGames, changedGames);
 
         // A newer recompute already started — this one's result is stale and must not overwrite
         // it, the identical generation check StartStatusScan's own sweep applies.
@@ -1054,26 +1032,6 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
         !IsAnyRowBusy && !IsBackupRunning && !IsRestoreRunning && !IsBulkBackupRunning;
 
     /// <summary>
-    /// Scans every row's save directory in the background so the window is usable before any
-    /// result lands. Bounded to four concurrent walks: the walk is I/O-bound and
-    /// seek-dominated, so one task per row would start N concurrent recursive walks and be slower
-    /// than sequential on a spinning disk or a network volume, while a small fixed bound still
-    /// overlaps latency. Runs over a snapshot, not the live collection, so it survives a Refresh
-    /// rebuilding <see cref="Games"/> mid-sweep.
-    /// <para>
-    /// Also drives the save-vs-backup comparison: the backup
-    /// folder's reachability is read exactly once here, before the loop, and reused for every row
-    /// — not re-read per row — because thirty rows re-probing a disconnected share thirty
-    /// times would cost the sweep thirty times the latency for a result that cannot change per
-    /// row. When the snapshot is empty there is no row to compare, so the read is skipped
-    /// entirely. That single reachable/root pair, plus each row's own <c>ListBackups</c> result,
-    /// feeds <see cref="BackupComparer.Compare"/>, whose verdict lands on the row exactly like
-    /// <see cref="SaveStatus"/> does — reset to <see cref="BackupComparison.Checking"/> at the top
-    /// of every sweep, alongside the save-status reset, so the two axes always start and settle
-    /// together.
-    /// </para>
-    /// </summary>
-    /// <summary>
     /// Runs <paramref name="action"/> on the UI thread when there is one, and inline when there is
     /// not (a plain xUnit host constructs no <see cref="System.Windows.Application"/>, which is
     /// what keeps this view model testable without a dispatcher).
@@ -1109,26 +1067,16 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
     /// </param>
     private void StartStatusScan(bool announceProgress = false, IReadOnlyList<GameRowViewModel>? only = null)
     {
-        // Each row carries its own scan token, bumped here and captured below. Scans overlap —
-        // Backup, Restore, Add, Refresh and the bulk runs can each start one before an older one's
-        // per-row walks have all returned — and a late result from an older scan must not
-        // overwrite what a newer one already set on that row. The token is per row rather than
-        // per sweep because scans now cover different sets of rows: a newer scan of one row must
-        // not invalidate an older sweep's still-pending results for all the others.
         var isFullSweep = only is null;
-        var snapshot = ((IEnumerable<GameRowViewModel>?)only ?? Games).Select(row => (Row: row, Token: ++row.ScanToken)).ToArray();
-        foreach (var (row, _) in snapshot)
-        {
-            row.ApplyStatus(SaveStatus.Checking());
-            row.ApplyBackupComparison(BackupComparison.Checking());
-        }
+        var snapshot = _sweep.Reset((IEnumerable<GameRowViewModel>?)only ?? Games);
 
-        if (snapshot.Length == 0)
+        if (snapshot.Count == 0)
             return;
 
-        var reachable = false;
         var root = "";
         var hasRoot = _session.TryGetConfiguredBackupRoot(out var resolvedRoot);
+        if (hasRoot)
+            root = resolvedRoot;
 
         var messageBeforeSweep = StatusMessage;
         var sweepMessage = Strings.Get("str_status_checkingSaveFolders");
@@ -1137,71 +1085,12 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
 
         _ = Task.Run(async () =>
         {
-            if (hasRoot)
-            {
-                root = resolvedRoot;
-                reachable = _backup.IsBackupRootReachable(root);
-            }
-
-            // Whether the backup folder can be reached is one fact shared by every row. A
-            // narrowed scan's own reachability read above is still fresh for the rows it visits,
-            // but rows outside `only` keep whatever verdict an earlier sweep gave them — if the
-            // folder was unreachable then and just became reachable now (the first backup into a
-            // folder that did not exist yet creates it), those rows are stuck on
-            // BackupFolderNotAvailable until something widens their scan. Comparing against the
-            // LAST reachability this method itself observed — not every row's current, possibly
-            // stale, ComparisonKind — means that widening only ever fires once, on the actual
-            // flip, instead of forcing every narrowed scan back to a full sweep for as long as any
-            // row happens to still show that verdict.
-            var becameReachable = hasRoot && reachable && _lastBackupRootReachable == false;
-            _lastBackupRootReachable = hasRoot ? reachable : null;
-
-            await Parallel.ForEachAsync(snapshot, new ParallelOptions { MaxDegreeOfParallelism = 4 },
-                async (entry, _) =>
-                {
-                    var (row, token) = entry;
-                    // Scanning stays off the UI thread; APPLYING the result does not. These setters
-                    // raise PropertyChanged, and what hangs off those bindings has WPF thread
-                    // affinity — applying them from a worker threw "The calling thread cannot
-                    // access this object because a different thread owns it" on a plain Refresh.
-                    var status = await Task.Run(() => SaveStatusScanner.Scan(row.Game));
-                    // A newer scan of this row (a backup/restore's own post-outcome rescan, say) may
-                    // already have moved it past "Checking" by the time this one's result comes back —
-                    // applying it here would stomp the newer, more current verdict with a stale one.
-                    // The token check runs INSIDE the dispatcher callback, not before OnUi is
-                    // called: OnUi only schedules the callback, it does not run it, so a check made
-                    // on this worker thread and a newer scan starting on the UI thread before that
-                    // callback actually executes would race — checking where the write itself
-                    // happens is the only way to close that window.
-                    OnUi(() =>
-                    {
-                        if (token == row.ScanToken)
-                            row.ApplyStatus(status);
-                    });
-
-                    var rowReachable = false;
-                    var backups = (IReadOnlyList<BackupArchive>)Array.Empty<BackupArchive>();
-                    if (reachable)
-                    {
-                        (rowReachable, backups) = await Task.Run(() =>
-                        {
-                            var listable = _backup.TryListBackups(root, row.Game.Id, out var found);
-                            return (listable, found);
-                        });
-                    }
-
-                    var comparison = BackupComparer.Compare(status, rowReachable, backups, row.RestoredArchiveTakenAt);
-                    OnUi(() =>
-                    {
-                        if (token == row.ScanToken)
-                            row.ApplyBackupComparison(comparison);
-                    });
-                });
+            var becameReachable = await _sweep.WalkAsync(snapshot, hasRoot, root);
 
             // The folder just came back while this was a narrowed scan: rows outside `only` are
             // still sitting on whatever verdict the last sweep gave them, so one follow-up full
-            // sweep settles them. becameReachable only ever fires on the flip (see above), so this
-            // cannot re-trigger itself on the full sweep it starts.
+            // sweep settles them. becameReachable only ever fires on the flip (see the
+            // coordinator), so this cannot re-trigger itself on the full sweep it starts.
             if (becameReachable && !isFullSweep)
                 OnUi(() => StartStatusScan());
 
