@@ -15,7 +15,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: release-${{ github.ref }}
@@ -28,9 +28,12 @@ jobs:
   release:
     needs: test
     runs-on: ubuntu-latest
+    # Only this job creates the GitHub release, so only it gets write access.
+    permissions:
+      contents: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
 
       # Tag is v<VERSION>, csproj <Version> matches it, and the CHANGELOG has a
       # "## [<VERSION>] - YYYY-MM-DD" section — its date is carried into the notes.
@@ -83,7 +86,7 @@ jobs:
       - name: Build user guide (en, de)
         run: |
           set -euo pipefail
-          pip install zensical
+          pip install zensical==0.1.1
           for lang in en de; do
             (cd "docs/userguide/$lang" && python -m zensical build)
             mkdir -p "publish/help/$lang"

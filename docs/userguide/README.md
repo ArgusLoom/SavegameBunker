@@ -15,7 +15,7 @@ docs/userguide/
 ## Build
 
 ```powershell
-pip install zensical  # CI installs the latest release too
+pip install zensical==0.1.1  # same version CI pins
 cd docs/userguide/en
 python -m zensical build
 cd ../de
