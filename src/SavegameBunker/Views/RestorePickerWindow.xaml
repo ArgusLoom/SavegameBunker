@@ -1,0 +1,82 @@
+<ui:FluentWindow x:Class="SavegameBunker.Views.RestorePickerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:b="clr-namespace:SavegameBunker.Behaviors"
+        Title="{Binding Title}" Height="480" Width="520"
+        WindowStartupLocation="CenterOwner"
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="Mica">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="36"/>  <!-- TitleBar -->
+            <RowDefinition Height="*"/>   <!-- existing DockPanel content -->
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Title="{Binding Title}"/>
+
+        <DockPanel Grid.Row="1" Margin="16">
+            <TextBlock DockPanel.Dock="Top" Text="{Binding HeaderText}" FontSize="14" FontWeight="Bold"
+                       Margin="0,0,0,12"/>
+
+            <!-- lg spacing token (Margin="0,24,0,0"): deliberately differs from
+                 ScanWindow's own 0,16,0,0, which predates the spacing scale. -->
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                        HorizontalAlignment="Right" Margin="0,24,0,0">
+                <ui:Button Content="{DynamicResource str_common_restore}" MinWidth="90" Margin="0,0,8,0"
+                        Appearance="Primary" IsDefault="True" IsEnabled="{Binding CanRestore}" b:DialogResultBehavior.DialogResult="True"/>
+                <ui:Button Content="{DynamicResource str_common_cancel}" MinWidth="90" IsCancel="True"/>
+            </StackPanel>
+
+            <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedBackup, Mode=TwoWay}"
+                     ScrollViewer.VerticalScrollBarVisibility="Auto" BorderThickness="1">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Border Padding="0,8,12,8" ToolTip="{Binding TakenAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}">
+                            <DockPanel>
+                                <ui:Button DockPanel.Dock="Right" Padding="4" VerticalAlignment="Center"
+                                        Command="{Binding DataContext.DeleteArchiveCommand,
+                                                    RelativeSource={RelativeSource AncestorType=Window}}"
+                                        CommandParameter="{Binding}"
+                                        ToolTip="{DynamicResource str_restorePicker_delete}"
+                                        AutomationProperties.Name="{DynamicResource str_restorePicker_delete}">
+                                    <ui:SymbolIcon Symbol="Delete24"/>
+                                </ui:Button>
+                                <TextBlock Text="{Binding SizeText}" DockPanel.Dock="Right" MinWidth="70"
+                                           TextAlignment="Right"/>
+                                <StackPanel Orientation="Horizontal">
+                                    <!-- The exact date and time lead: several backups from one day
+                                         all read "2 days ago", and the time is what tells them apart. -->
+                                    <TextBlock Text="{Binding TakenAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"/>
+                                    <TextBlock Text="  ·  "/>
+                                    <TextBlock Text="{Binding TakenAt, Converter={StaticResource RelTime}}"/>
+                                    <!-- Spacing is the view's job, not the resource's: a leading
+                                         space baked into the string would also indent the tag
+                                         wherever it is reused without a neighbour. Margin matches
+                                         the "  ·  " spacer's visual gap to its left. -->
+                                    <TextBlock Text="{DynamicResource str_restorePicker_safetyTag}"
+                                               Margin="6,0,0,0"
+                                               Visibility="{Binding IsSafetyBackup, Converter={StaticResource BoolToVis}}">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}"/>
+                                                <Style.Triggers>
+                                                    <!-- The muted tag's own grey stays illegible against the
+                                                         selected row's bright accent background; matches the
+                                                         legible text the row itself switches to when selected. -->
+                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
+                                                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorInverseBrush}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </StackPanel>
+                            </DockPanel>
+                        </Border>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </DockPanel>
+    </Grid>
+</ui:FluentWindow>

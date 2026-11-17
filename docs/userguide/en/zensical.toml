@@ -1,0 +1,103 @@
+[project]
+# The help pack ships on file://, which cannot serve index.html for directory
+# URLs — sibling .html pages open directly.
+use_directory_urls = false
+site_name = "SavegameBunker User Guide"
+site_description = "Back up and restore PC game saves with SavegameBunker."
+repo_url = "https://github.com/ArgusLoom/SavegameBunker"
+repo_name = "ArgusLoom/SavegameBunker"
+
+nav = [
+  { "Home" = "index.md" },
+  { "Getting started" = "getting-started.md" },
+  { "How-to" = [
+    { "Back up your saves" = "how-to/back-up-your-saves.md" },
+    { "Restore a save" = "how-to/restore-a-save.md" },
+    { "Add a game Scan doesn't find" = "how-to/add-a-game.md" },
+    { "Change the backup folder" = "how-to/change-the-backup-folder.md" },
+    { "Move to a new PC" = "how-to/move-to-a-new-pc.md" },
+  ] },
+  { "Reference" = [
+    { "Games list file format" = "reference/games-list-format.md" },
+    { "Keyboard shortcuts" = "reference/keyboard-shortcuts.md" },
+    { "What SavegameBunker doesn't do" = "reference/limitations.md" },
+  ] },
+]
+
+[project.theme]
+language = "en"
+# Shared with the de config; overrides partials/alternate.html so the language
+# switcher navigates via JavaScript instead of rendering a path href.
+# The help pack ships on file://, where a root-absolute alternate link like
+# "/de/" resolves to the drive root of the opened file (file:///D:/de/).
+custom_dir = "../overrides"
+features = [
+  "announce.dismiss",
+  "content.code.annotate",
+  "content.code.copy",
+  "content.code.select",
+  "content.footnote.tooltips",
+  "content.tabs.link",
+  "content.tooltips",
+  "navigation.footer",
+  "navigation.indexes",
+  "navigation.instant",
+  "navigation.instant.prefetch",
+  "navigation.path",
+  "navigation.sections",
+  "navigation.tabs",
+  "navigation.top",
+  "navigation.tracking",
+  "search.highlight",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+toggle.icon = "lucide/sun-moon"
+toggle.name = "Switch to light mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Switch to dark mode"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Switch to system preference"
+
+# Kept as switcher metadata (name/lang) for the alternate.html override; no
+# "link" is given, because a root-absolute href would resolve to the drive
+# root under file://. The override navigates via JS instead.
+[[project.extra.alternate]]
+name = "English"
+lang = "en"
+
+[[project.extra.alternate]]
+name = "Deutsch"
+lang = "de"
+
+[project.markdown_extensions]
+abbr = {}
+admonition = {}
+attr_list = {}
+def_list = {}
+footnotes = {}
+md_in_html = {}
+toc.permalink = true
+pymdownx.betterem = {}
+pymdownx.caret = {}
+pymdownx.details = {}
+pymdownx.highlight.anchor_linenums = true
+pymdownx.highlight.line_spans = "__span"
+pymdownx.highlight.pygments_lang_class = true
+pymdownx.inlinehilite = {}
+pymdownx.keys = {}
+pymdownx.mark = {}
+pymdownx.smartsymbols = {}
+pymdownx.tabbed.alternate_style = true
+pymdownx.tabbed.combine_header_slug = true
+pymdownx.tasklist.custom_checkbox = true
+pymdownx.tilde = {}

@@ -1,0 +1,173 @@
+# Builds the Windows release when a v* tag is pushed.
+#
+# Runner is ubuntu-latest: the Windows publish works on Linux via
+# -p:EnableWindowsTargeting (set repo-wide in Directory.Build.props), and Linux
+# runners start faster than Windows ones.
+#
+# The test project targets net10.0-windows and cannot run on Ubuntu, so the full
+# suite runs first in test.yml on windows-latest; the release job needs it to pass.
+
+name: release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    uses: ./.github/workflows/test.yml
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    # Only this job creates the GitHub release, so only it gets write access.
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # Tag is v<VERSION>, csproj <Version> matches it, and the CHANGELOG has a
+      # "## [<VERSION>] - YYYY-MM-DD" section — its date is carried into the notes.
+      - name: Version pre-checks
+        id: version
+        run: |
+          set -euo pipefail
+
+          tag="${GITHUB_REF_NAME}"
+          case "$tag" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *) echo "::error::Tag '$tag' is not in the form vMAJOR.MINOR.PATCH."; exit 1 ;;
+          esac
+          version="${tag#v}"
+
+          csproj_version="$(grep -oP '(?<=<Version>)[^<]+' src/SavegameBunker/SavegameBunker.csproj)"
+          if [ "$csproj_version" != "$version" ]; then
+            echo "::error::csproj <Version> is $csproj_version but tag is $tag. Bump the csproj first."
+            exit 1
+          fi
+
+          section_re="^## \\[$version\\] - ([0-9]{4}-[0-9]{2}-[0-9]{2})$"
+          release_date="$(grep -P "$section_re" CHANGELOG.md | head -1 | grep -oP '[0-9]{4}-[0-9]{2}-[0-9]{2}')"
+          if [ -z "$release_date" ]; then
+            echo "::error::CHANGELOG.md has no '## [$version] - YYYY-MM-DD' section."
+            exit 1
+          fi
+
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "release_date=$release_date" >> "$GITHUB_OUTPUT"
+          echo "Pre-checks passed (version $version, dated $release_date)."
+
+      - name: Build
+        run: dotnet build SavegameBunker.sln
+
+      - name: Publish single-file exe
+        run: |
+          set -euo pipefail
+          rm -rf publish
+          dotnet publish src/SavegameBunker/SavegameBunker.csproj -c Release \
+            -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true \
+            -p:EnableWindowsTargeting=true -p:DebugType=none -p:DebugSymbols=false \
+            -o publish
+          test -f publish/SavegameBunker.exe
+          # The .NET 10 SDK emits portable symbols in Release publish; the app
+          # ships no crash stack traces, so the pdb would only leak build paths.
+          test ! -f publish/SavegameBunker.pdb
+          file publish/SavegameBunker.exe
+
+      - name: Build user guide (en, de)
+        run: |
+          set -euo pipefail
+          pip install zensical==0.1.1
+          for lang in en de; do
+            (cd "docs/userguide/$lang" && python -m zensical build)
+            mkdir -p "publish/help/$lang"
+            cp -r "docs/userguide/$lang/site/." "publish/help/$lang/"
+          done
+          # file:// regression gate for the offline help pack: verify the site
+          # trees (the same content just copied to publish/help/) before zipping.
+          python3 scripts/verify_help_pack_hrefs.py
+          test -f publish/help/en/index.html
+
+      - name: Zip + SHA-256
+        run: |
+          set -euo pipefail
+          version="${{ steps.version.outputs.version }}"
+          zip="SavegameBunker-v${version}-win-x64.zip"
+          # Contents of publish/ at the zip root, not the folder itself, so
+          # unzipping yields SavegameBunker.exe directly.
+          (cd publish && zip -r "../$zip" .)
+          hash="$(sha256sum "$zip" | cut -d' ' -f1)"
+          # sha256sum format: hash, two spaces, bare filename.
+          printf '%s  %s' "$hash" "$zip" > "$zip.sha256"
+          echo "hash=$hash" >> "$GITHUB_ENV"
+          echo "zip=$zip" >> "$GITHUB_ENV"
+          release_date="${{ steps.version.outputs.release_date }}"
+          echo "release_date=$release_date" >> "$GITHUB_ENV"
+
+      - name: Release notes
+        run: |
+          set -euo pipefail
+          version="${{ steps.version.outputs.version }}"
+          zip="${{ env.zip }}"
+          hash="${{ env.hash }}"
+          # Extract the section body: everything after the matching
+          # "## [<version>] - <date>" line up to the next "## [" heading.
+          awk -v ver="$version" '
+            $0 ~ ("^## \\[" ver "\\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$") { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' CHANGELOG.md | sed -e '/./,$!d' > section.md
+          if [ ! -s section.md ]; then
+            echo "::error::CHANGELOG section for $version is empty."
+            exit 1
+          fi
+          {
+            cat section.md
+            echo
+            echo "---"
+            echo
+            echo "**Download:** \`$zip\` below — unzip, run \`SavegameBunker.exe\`. No .NET install needed."
+            echo
+            echo "SHA-256: \`$hash\`"
+          } > notes.md
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          version="${{ steps.version.outputs.version }}"
+          gh release create "v$version" \
+            --title "SavegameBunker v$version" \
+            --notes-file notes.md \
+            "${{ env.zip }}" "${{ env.zip }}.sha256"
+
+      - name: Job summary
+        run: |
+          set -euo pipefail
+          version="${{ steps.version.outputs.version }}"
+          size_mb="$(du -m "${{ env.zip }}" | cut -f1)"
+          {
+            echo "## SavegameBunker v$version released"
+            echo
+            echo "- Zip: \`${{ env.zip }}\` (${size_mb} MB)"
+            echo "- SHA-256: \`${{ env.hash }}\`"
+            echo "- Release: ${{ github.server_url }}/${{ github.repository }}/releases/tag/v$version"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  pages:
+    needs: release
+    uses: ./.github/workflows/pages.yml
+    permissions:
+      contents: read
+      pages: write
+      id-token: write

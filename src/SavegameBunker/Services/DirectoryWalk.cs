@@ -1,0 +1,118 @@
+using System.IO;
+
+namespace SavegameBunker.Services;
+
+/// <summary>
+/// The one-level-at-a-time directory walk <see cref="SaveStatusScanner"/> and
+/// <see cref="BackupService"/> both perform, extracted so the exception handling, reparse-point
+/// rules and symlink skip live in one place instead of two drifting copies.
+/// </summary>
+/// <remarks>
+/// Never throws across its boundary — every exception a locked or vanished subtree can raise is
+/// swallowed and that subtree is simply skipped, matching both callers' never-throw-across-the-
+/// boundary shape. The tree is walked via <see cref="Directory.EnumerateFiles(string)"/>/
+/// <see cref="Directory.EnumerateDirectories(string)"/> rather than the recursive search option:
+/// that lazy recursive enumerator throws from <c>MoveNext</c> partway through a locked subtree and
+/// would abort the whole walk instead of skipping just that subtree. A directory reparse point
+/// (junction or symbolic link) is never followed into, so a self-referencing link cannot make the
+/// walk run forever; a file reparse point is skipped only when
+/// <see cref="FileSystemInfo.LinkTarget"/> proves it is an actual symbolic link, rather than, say,
+/// a OneDrive Files On-Demand placeholder.
+/// </remarks>
+internal static class DirectoryWalk
+{
+    /// <summary>
+    /// Walks <paramref name="rootDir"/>, calling <paramref name="onFile"/> for every real file
+    /// found (never a symlink).
+    /// </summary>
+    /// <param name="excludedDirs">
+    /// Directories to step over — see <see cref="BackupService"/>'s own doc comment on its former
+    /// <c>EnumerateRelativeFiles</c> for why containment in either direction, not an exact match
+    /// alone, is what prunes a subtree.
+    /// </param>
+    public static void ForEachFile(
+        string rootDir, Action<FileInfo> onFile, IReadOnlyCollection<string>? excludedDirs = null)
+    {
+        void Walk(string current)
+        {
+            IEnumerable<string> files;
+            try
+            {
+                files = Directory.EnumerateFiles(current);
+            }
+            catch (UnauthorizedAccessException) { return; }
+            catch (DirectoryNotFoundException) { return; }
+            catch (PathTooLongException) { return; }
+            catch (IOException) { return; }
+
+            foreach (var f in files)
+            {
+                FileInfo info;
+                try
+                {
+                    info = new FileInfo(f);
+                    if (ReparseFile.IsSymlink(info))
+                        continue;
+                }
+                catch (UnauthorizedAccessException) { continue; }
+                catch (PathTooLongException) { continue; }
+                catch (IOException) { continue; }
+
+                onFile(info);
+            }
+
+            IEnumerable<string> subdirs;
+            try
+            {
+                subdirs = Directory.EnumerateDirectories(current);
+            }
+            catch (UnauthorizedAccessException) { return; }
+            catch (DirectoryNotFoundException) { return; }
+            catch (PathTooLongException) { return; }
+            catch (IOException) { return; }
+
+            foreach (var sub in subdirs)
+            {
+                FileAttributes attributes;
+                try
+                {
+                    attributes = File.GetAttributes(sub);
+                }
+                catch (UnauthorizedAccessException) { continue; }
+                catch (IOException) { continue; }
+
+                // A junction or symbolic link back up the tree would otherwise make this
+                // recursion run forever.
+                if (attributes.HasFlag(FileAttributes.ReparsePoint))
+                    continue;
+
+                if (excludedDirs is not null
+                    && excludedDirs.Any(excluded =>
+                        BackupService.IsSameOrInside(sub, excluded) || BackupService.IsSameOrInside(excluded, sub)))
+                {
+                    continue;
+                }
+
+                Walk(sub);
+            }
+        }
+
+        Walk(rootDir);
+    }
+
+    /// <summary>
+    /// Counts the real files under <paramref name="rootDir"/> and sums their length, via
+    /// <see cref="ForEachFile"/> — the shared walk used by every folder-size preview.
+    /// </summary>
+    public static (int Count, long Bytes) CountFiles(string rootDir)
+    {
+        var count = 0;
+        var bytes = 0L;
+        ForEachFile(rootDir, info =>
+        {
+            count++;
+            bytes += info.Length;
+        });
+        return (count, bytes);
+    }
+}

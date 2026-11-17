@@ -1,0 +1,46 @@
+<ui:FluentWindow x:Class="SavegameBunker.Views.ChangeSaveFolderDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:b="clr-namespace:SavegameBunker.Behaviors"
+        Title="{Binding Title}" Height="300" Width="460"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="Mica">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="36"/>  <!-- TitleBar -->
+            <RowDefinition Height="*"/>   <!-- existing DockPanel content -->
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Title="{Binding Title}"/>
+
+        <DockPanel Grid.Row="1" Margin="16">
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                        HorizontalAlignment="Right" Margin="0,24,0,0">
+                <ui:Button x:Name="ConfirmButton" Content="{DynamicResource str_changeSaveFolder_confirm}" MinWidth="110"
+                        Margin="0,0,8,0" Appearance="Primary" IsDefault="True" IsEnabled="{Binding CanConfirm}"
+                        b:DialogResultBehavior.DialogResult="True"/>
+                <ui:Button Content="{DynamicResource str_common_cancel}" MinWidth="80" IsCancel="True"/>
+            </StackPanel>
+
+            <!--
+                No popup, no trimmed label, no fixed-width column in this file — the
+                content below is the folder row (a TextBox with a Browse button docked right) plus
+                one status line, both already MinWidth/content-sized. Nothing else here can clip.
+            -->
+            <StackPanel>
+                <TextBlock Text="{DynamicResource str_common_saveFolderLabel}" Margin="0,0,0,4"/>
+                <DockPanel Margin="0,0,0,16">
+                    <ui:Button x:Name="BrowseButton" Content="{DynamicResource str_common_browse}" DockPanel.Dock="Right"
+                            MinWidth="80" Margin="8,0,0,0" Command="{Binding BrowseCommand}"/>
+                    <TextBox x:Name="FolderBox" Text="{Binding SaveFolder, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="{Binding SaveFolder}"/>
+                </DockPanel>
+
+                <TextBlock x:Name="ResolvedStatusText" Text="{Binding ResolvedStatus}" FontSize="11"
+                           TextWrapping="Wrap"/>
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</ui:FluentWindow>

@@ -1,0 +1,331 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+    <!--
+        The single authored copy of every user-facing sentence in SavegameBunker. Every
+        entry here is bound from XAML through DynamicResource or looked up by a view model through
+        SavegameBunker.Services.Strings — no user-facing literal should live anywhere else. Wording
+        changes are made here and nowhere else.
+        
+        Key names follow str_{surface}_{element}. Composed sentences (counts,
+        names, elapsed times) stay as {0}-style format strings, filled by the view model.
+    -->
+
+    <!--
+        App branding (not part of the UI copy proper, but still routed through here
+        for the single-source rule and so the literal-attribute greps have nothing left to catch).
+    -->
+    <sys:String x:Key="str_app_title">SavegameBunker — Your save games, safely backed up</sys:String>
+    <!--  {0} is the assembly's informational version, filled by MainViewModel.  -->
+    <sys:String x:Key="str_app_titleWithVersion">SavegameBunker {0} — Your save games, safely backed up</sys:String>
+
+    <!--  Toolbar / window-level actions  -->
+    <sys:String x:Key="str_toolbar_addGame">Add game</sys:String>
+    <sys:String x:Key="str_toolbar_findGames">Scan</sys:String>
+    <sys:String x:Key="str_toolbar_refresh">Refresh</sys:String>
+    <sys:String x:Key="str_toolbar_openGamesList">Open the games list</sys:String>
+    <sys:String x:Key="str_toolbar_changeBackupFolder">Change backup folder</sys:String>
+    <sys:String x:Key="str_toolbar_backUpAllChanged">Back up all changed</sys:String>
+    <sys:String x:Key="str_toolbar_backUpSelected">Back up selected</sys:String>
+    <sys:String x:Key="str_toolbar_restoreSelected">Restore selected</sys:String>
+    <sys:String x:Key="str_toolbar_toggleTheme">Switch theme</sys:String>
+
+    <!--
+        Access-key variants of the seven toolbar labels above. Each value is
+        its clean sibling with one leading/mid-word underscore marking the Alt+letter mnemonic;
+        the clean key stays the button's accessible name so a screen reader never hears the
+        underscore. Back up all changed and Switch theme are deliberately excluded.
+    -->
+    <sys:String x:Key="str_toolbar_addGame_access">_Add game</sys:String>
+    <sys:String x:Key="str_toolbar_findGames_access">_Scan</sys:String>
+    <sys:String x:Key="str_toolbar_refresh_access">_Refresh</sys:String>
+    <sys:String x:Key="str_toolbar_openGamesList_access">_Open the games list</sys:String>
+    <sys:String x:Key="str_toolbar_changeBackupFolder_access">_Change backup folder</sys:String>
+    <sys:String x:Key="str_toolbar_backUpSelected_access">_Back up selected</sys:String>
+    <sys:String x:Key="str_toolbar_restoreSelected_access">Res_tore selected</sys:String>
+    <sys:String x:Key="str_toolbar_help">Help</sys:String>
+    <sys:String x:Key="str_toolbar_help_access">_Help</sys:String>
+
+    <!--
+        Toolbar tooltips: one sentence each on what the button does, because a two-word label
+        cannot say what "Scan" scans or what "Refresh" re-reads.
+    -->
+    <sys:String x:Key="str_toolbar_findGames_tip">Look for save folders of known games on this PC and add the ones you pick</sys:String>
+    <sys:String x:Key="str_toolbar_addGame_tip">Add a game by name and save folder — you can also drop a save folder onto this window</sys:String>
+    <sys:String x:Key="str_toolbar_refresh_tip">Re-read the games list file and check every save folder again</sys:String>
+    <sys:String x:Key="str_toolbar_openGamesList_tip">Open the games list file in your editor to change it by hand</sys:String>
+    <sys:String x:Key="str_toolbar_changeBackupFolder_tip">Choose where new backups are written — existing backups are not moved</sys:String>
+    <sys:String x:Key="str_toolbar_backUpAllChanged_tip">Back up every game whose saves changed since its last backup, or that has none yet</sys:String>
+    <sys:String x:Key="str_toolbar_backUpSelected_tip">Back up every game you ticked, including ones hidden by the search</sys:String>
+    <sys:String x:Key="str_toolbar_restoreSelected_tip">Restore every game you ticked from its newest backup — asks before each one</sys:String>
+    <sys:String x:Key="str_toolbar_toggleTheme_tip">Switch between light and dark for this session</sys:String>
+    <sys:String x:Key="str_toolbar_help_tip">Open the offline user guide in your browser</sys:String>
+
+    <!--  Offline user guide outcomes — same shape as the PCGamingWiki ones below.  -->
+    <sys:String x:Key="str_help_opened">Opened the user guide.</sys:String>
+    <sys:String x:Key="str_help_failed">Could not open the user guide: {0}</sys:String>
+    <sys:String x:Key="str_help_missing">The offline user guide was not found next to the SavegameBunker executable.</sys:String>
+
+    <!--  DataGrid column headers  -->
+    <sys:String x:Key="str_grid_game">Game</sys:String>
+    <sys:String x:Key="str_grid_saves">Files</sys:String>
+    <sys:String x:Key="str_grid_size">Size</sys:String>
+    <sys:String x:Key="str_grid_lastPlayed">Last changed</sys:String>
+    <sys:String x:Key="str_grid_status">Status</sys:String>
+    <sys:String x:Key="str_grid_actions">Actions</sys:String>
+
+    <!--  Header (persistent)  -->
+    <sys:String x:Key="str_header_gamesList">Games list: {0}</sys:String>
+    <sys:String x:Key="str_header_backupFolder">Backup folder: {0}</sys:String>
+    <sys:String x:Key="str_header_backupFolderUnset">Backup folder: not set</sys:String>
+
+    <!--  Shared across the Game cell and the Status cell  -->
+    <sys:String x:Key="str_common_checking">Checking…</sys:String>
+
+    <!--  Game cell — SaveStatusKind branches  -->
+    <sys:String x:Key="str_game_pathError">Can't find this game's save folder.</sys:String>
+    <sys:String x:Key="str_game_noSaves">No saves yet</sys:String>
+    <sys:String x:Key="str_game_oversized">This folder is unusually large — make sure it's the right one</sys:String>
+
+    <!--  Status cell — BackupComparisonKind branches  -->
+    <sys:String x:Key="str_status_upToDate">Up to date</sys:String>
+    <sys:String x:Key="str_status_changedSinceBackup">{0} of play not backed up yet</sys:String>
+    <sys:String x:Key="str_status_neverBackedUp">Never backed up</sys:String>
+    <sys:String x:Key="str_status_noSaveDataYet">No save data yet</sys:String>
+    <sys:String x:Key="str_status_noSaveDataRestorable">No save data right now — you can still restore</sys:String>
+    <sys:String x:Key="str_status_backupFolderUnavailable">Backup folder unavailable</sys:String>
+    <sys:String x:Key="str_status_backedUpPrefix" xml:space="preserve">backed up </sys:String>
+
+    <!--  Startup prompt for unsecured games  -->
+    <sys:String x:Key="str_startup_unsecuredPromptOne">'{0}' has changes not backed up yet — back up now?</sys:String>
+    <sys:String x:Key="str_startup_unsecuredPrompt">{0} games have changes not backed up yet — back up now?</sys:String>
+    <sys:String x:Key="str_startup_unsecuredPromptButton">Back up now</sys:String>
+    <sys:String x:Key="str_startup_unsecuredPromptFailed">The unsecured-changes prompt failed: {0}</sys:String>
+
+    <!--  Empty state (E1 empty)  -->
+    <sys:String x:Key="str_emptyState_heading">No games yet</sys:String>
+    <sys:String x:Key="str_emptyState_body">Scan for games automatically, or add one yourself.</sys:String>
+    <sys:String x:Key="str_emptyState_addManually">Add a game manually</sys:String>
+
+    <!--  Real-time name search  -->
+    <sys:String x:Key="str_search_placeholder">Search games…</sys:String>
+    <sys:String x:Key="str_search_noMatchesHeading">No matches found</sys:String>
+    <sys:String x:Key="str_search_noMatchesBody">Try a different name, or clear the search box to see every game.</sys:String>
+
+    <!--
+        Games-list load outcomes (the path lives in the header's
+        tooltip now). The "unchanged, fix and restart" and "were skipped" sentences are single-line
+        entries deliberately: XAML collapses embedded whitespace in element text, so the blank-line
+        separator these two dialogs use is glued on in MainViewModel.ReportLoad, not authored here.
+    -->
+    <sys:String x:Key="str_load_fatalErrorSuffix">The file has been left unchanged. Fix it and restart.</sys:String>
+    <sys:String x:Key="str_write_blockedByFatalError">The games list could not be re-read, so nothing can be saved right now. Fix the file and Refresh first.</sys:String>
+    <sys:String x:Key="str_save_changedOnDisk">The games list changed on disk since it was loaded — possibly by another running copy of SavegameBunker. Nothing was saved. Refresh and try again.</sys:String>
+    <sys:String x:Key="str_load_seeded">No games list found — created {0}. Add a game to get started.</sys:String>
+    <sys:String x:Key="str_load_problemsStatus">Loaded {0} games; {1} entries skipped.</sys:String>
+    <sys:String x:Key="str_load_problemsHeader">These entries in {0} were skipped:</sys:String>
+    <sys:String x:Key="str_load_empty">No games yet.</sys:String>
+    <sys:String x:Key="str_load_loadedOne">Loaded 1 game.</sys:String>
+    <sys:String x:Key="str_load_loaded">Loaded {0} games.</sys:String>
+    <!--  Startup health. Seeded catalogs skip this (first-run template).  -->
+    <sys:String x:Key="str_health_backupRootUnreachable">Backup folder '{0}' is unreachable.</sys:String>
+    <sys:String x:Key="str_health_backupRootUnreachableDetail">The backup folder '{0}' is unreachable. You can still add games and change the backup folder — reconnect the drive, or pick a different folder, before backing up or restoring.</sys:String>
+
+    <!--  Relative timestamps — filled by Converters/RelativeTimeConverter.cs  -->
+    <sys:String x:Key="str_relTime_justNow">just now</sys:String>
+    <sys:String x:Key="str_relTime_minuteAgo">1 minute ago</sys:String>
+    <sys:String x:Key="str_relTime_minutesAgo">{0} minutes ago</sys:String>
+    <sys:String x:Key="str_relTime_hourAgo">1 hour ago</sys:String>
+    <sys:String x:Key="str_relTime_hoursAgo">{0} hours ago</sys:String>
+    <sys:String x:Key="str_relTime_dayAgo">1 day ago</sys:String>
+    <sys:String x:Key="str_relTime_daysAgo">{0} days ago</sys:String>
+
+    <!--  Shared dialog chrome (Cancel is exempted from bespoke wording, not from the single-source rule)  -->
+    <sys:String x:Key="str_common_cancel">Cancel</sys:String>
+    <sys:String x:Key="str_common_browse">Browse…</sys:String>
+    <sys:String x:Key="str_common_saveFolderLabel">Save Folder</sys:String>
+    <sys:String x:Key="str_common_restore">Restore</sys:String>
+    <sys:String x:Key="str_common_added">Added {0}.</sys:String>
+    <sys:String x:Key="str_common_pickBackupFolderTitle">Select the folder SavegameBunker writes backups to</sys:String>
+    <sys:String x:Key="str_common_ready">Ready.</sys:String>
+    <sys:String x:Key="str_common_folderNotFound">Folder does not exist yet</sys:String>
+    <sys:String x:Key="str_common_fileCountOne">1 file, {0}</sys:String>
+    <sys:String x:Key="str_common_fileCount">{0} files, {1}</sys:String>
+    <sys:String x:Key="str_common_browseFolderTitle">Select the game's save folder</sys:String>
+
+    <!--  Row overflow menu and the row's primary action  -->
+    <sys:String x:Key="str_action_backUp">Back up</sys:String>
+    <sys:String x:Key="str_action_backUp_tip">Back up this game's saves now (Ctrl+B)</sys:String>
+    <sys:String x:Key="str_action_restore_tip">Restore this game's saves from a backup you pick (Ctrl+R)</sys:String>
+    <sys:String x:Key="str_overflow_moreActions">More actions</sys:String>
+    <sys:String x:Key="str_overflow_openSaveFolder">Open save folder</sys:String>
+    <sys:String x:Key="str_overflow_changeSaveFolder">Change save folder</sys:String>
+    <sys:String x:Key="str_overflow_removeGame">Remove from list</sys:String>
+    <sys:String x:Key="str_removeGame_confirm">Remove {0} from the list? Saves and backups stay on disk.</sys:String>
+    <sys:String x:Key="str_removeGame_confirmButton">Remove</sys:String>
+    <sys:String x:Key="str_removeGame_cancelled">Remove cancelled.</sys:String>
+    <sys:String x:Key="str_removeGame_done">Removed {0} from the list. Saves and backups were not deleted.</sys:String>
+    <sys:String x:Key="str_removeGame_notFound">That game is no longer in the games list.</sys:String>
+
+    <!--  Change save folder dialog (the repair route for a broken save path)  -->
+    <sys:String x:Key="str_changeSaveFolder_title">Change Save Folder — {0}</sys:String>
+    <sys:String x:Key="str_changeSaveFolder_confirm">Update folder</sys:String>
+    <sys:String x:Key="str_changeSaveFolder_outcome">Save folder updated for {0}.</sys:String>
+    <sys:String x:Key="str_changeSaveFolder_notFound">That game is no longer in the games list.</sys:String>
+
+    <!--  Bulk backup ("Back up all changed")  -->
+    <sys:String x:Key="str_bulkBackup_progress">Backing up {0} of {1} — {2}</sys:String>
+    <sys:String x:Key="str_bulkBackup_one">Backed up {0}.</sys:String>
+    <sys:String x:Key="str_bulkBackup_allSucceeded">Backed up all {0} games.</sys:String>
+    <sys:String x:Key="str_bulkBackup_partialFailure">Backed up {0} of {1}. Failed: {2}.</sys:String>
+
+    <!--
+        Bulk backup ("Back up selected"). No dedicated one-game key: the run of
+        exactly one selected game reuses str_bulkBackup_one above, which already names the game
+        rather than stating a count — a second, identically-worded key would be duplicate wording.
+    -->
+    <sys:String x:Key="str_bulkBackupSelected_allSucceeded">Backed up all {0} selected games.</sys:String>
+    <sys:String x:Key="str_bulkBackupSelected_partialFailure">Backed up {0} of {1} selected. Failed: {2}.</sys:String>
+
+    <!--
+        Bulk restore ("Restore selected"). Progress reuses the bulk-backup counter
+        surface so IsBulkBackupRunning still gates window close; only the sentence changes.
+    -->
+    <sys:String x:Key="str_bulkRestore_progress">Restoring {0} of {1} — {2}</sys:String>
+    <sys:String x:Key="str_bulkRestore_one">Restored {0}.</sys:String>
+    <sys:String x:Key="str_bulkRestoreSelected_allSucceeded">Restored all {0} selected games.</sys:String>
+    <sys:String x:Key="str_bulkRestoreSelected_partialFailure">Restored {0} of {1} selected. Failed: {2}.</sys:String>
+    <sys:String x:Key="str_bulkRestoreSelected_partialSkipped">Restored {0} of {1} selected. Skipped: {2}.</sys:String>
+    <sys:String x:Key="str_restoreSelected_noBackupFolder">Can't restore — no backup folder is set yet. Use Change backup folder to point SavegameBunker at one.</sys:String>
+    <sys:String x:Key="str_restore_noOrdinaryBackup">No restorable backup for {0} — only a safety copy, or none at all.</sys:String>
+
+    <!--
+        Free-space advisory (kept short). Advisory only — never
+        blocks, warns about, confirms or refuses a backup (MainViewModel.RecomputeSpaceAdvisoryAsync's
+        own doc comment, CLAUDE.md's never-refused rule). There is one segment per visible
+        bulk-backup action rather than one merged number: the two possible totals (what a
+        selection needs, what the changed set needs) can be visible at once, and merging them
+        would invent a precedence rule nobody asked for.
+        Each is a labelled fragment, not a sentence — MainViewModel.StatusLine composes them (and
+        the free figure) into one status-bar line, needed totals first, joined by " / ". Each
+        placeholder is filled by SizeFormat.Describe — the one byte-format rule — so this line and
+        the Size column can never describe the same total differently.
+    -->
+    <sys:String x:Key="str_freeSpace_available">{0} free in backup folder</sys:String>
+    <sys:String x:Key="str_freeSpace_selectedNeeds">selected games need {0}</sys:String>
+    <sys:String x:Key="str_freeSpace_changedNeeds">changed games need {0}</sys:String>
+
+    <!--  Add game dialog (drops the Id field)  -->
+    <sys:String x:Key="str_addGame_title">Add game</sys:String>
+    <sys:String x:Key="str_addGame_nameLabel">Name</sys:String>
+    <sys:String x:Key="str_addGame_confirm">Add</sys:String>
+    <sys:String x:Key="str_addGame_unusableName">SavegameBunker couldn't turn that name into a save-folder name — add a letter or number to it.</sys:String>
+    <sys:String x:Key="str_addGame_similarName">A game with a very similar name is already in your list. Try a slightly different name.</sys:String>
+    <sys:String x:Key="str_addGame_cancelled">Add game cancelled.</sys:String>
+    <sys:String x:Key="str_addGame_pcgwLink">Find game on PCGamingWiki</sys:String>
+    <sys:String x:Key="str_addGame_sharedTemplateOne">This save folder is also used by 1 other known game — a backup of this entry will contain its saves too.</sys:String>
+    <sys:String x:Key="str_addGame_sharedTemplateMany">This save folder is also used by {0} other known games — a backup of this entry will contain their saves too.</sys:String>
+    <sys:String x:Key="str_openHttps_refused">SavegameBunker can only open PCGamingWiki in the browser.</sys:String>
+    <sys:String x:Key="str_openHttps_opened">Opened PCGamingWiki.</sys:String>
+    <sys:String x:Key="str_openHttps_failed">Could not open PCGamingWiki: {0}</sys:String>
+
+    <!--  Find games (scan window + MainViewModel's confirm-time write outcomes)  -->
+    <sys:String x:Key="str_scan_headerZero">No known games with save data found on this machine.</sys:String>
+    <sys:String x:Key="str_scan_headerOne">1 folder with save data found</sys:String>
+    <sys:String x:Key="str_scan_headerMany">{0} folders with save data found</sys:String>
+    <sys:String x:Key="str_scan_addLabel">Add ({0})</sys:String>
+    <sys:String x:Key="str_scan_selectAll">All</sys:String>
+    <sys:String x:Key="str_scan_selectNone">None</sys:String>
+    <sys:String x:Key="str_scan_details">Details</sys:String>
+    <sys:String x:Key="str_scan_sharedSkippedOne">1 title skipped: shared folder</sys:String>
+    <sys:String x:Key="str_scan_sharedSkippedMany">{0} titles skipped: shared folder</sys:String>
+    <sys:String x:Key="str_scan_alreadyKnownSkipped">{0} already in your games list</sys:String>
+    <sys:String x:Key="str_findGames_scanning">Scanning…</sys:String>
+    <sys:String x:Key="str_findGames_cancelled">Scan cancelled.</sys:String>
+    <sys:String x:Key="str_findGames_nothingSelected">Nothing selected — nothing added.</sys:String>
+    <sys:String x:Key="str_findGames_allRefused">Nothing added — already in your list: {0}.</sys:String>
+    <sys:String x:Key="str_findGames_addedMany">Added {0} games.</sys:String>
+    <sys:String x:Key="str_findGames_someRefused">{0} Already in your list: {1}.</sys:String>
+
+    <!--  Games-list reload / backup-folder outcomes (MainViewModel)  -->
+    <sys:String x:Key="str_reload_reloading">Reloading…</sys:String>
+    <sys:String x:Key="str_backupRoot_updated">Backup folder updated. Older backups stay in {0}.</sys:String>
+    <sys:String x:Key="str_backupRoot_setTo">Backup folder set to {0}.</sys:String>
+    <sys:String x:Key="str_backup_inProgress">Backing up {0}…</sys:String>
+    <sys:String x:Key="str_backup_cancelledNoFolder">Backup cancelled — no backup folder chosen.</sys:String>
+    <sys:String x:Key="str_restore_cancelled">Restore cancelled.</sys:String>
+    <sys:String x:Key="str_restore_inProgress">Restoring {0}…</sys:String>
+
+    <!--  Restore pre-flight refusals and the restore confirmation (GameActions)  -->
+    <sys:String x:Key="str_restore_noBackupFolder">Can't restore {0} — no backup folder is set yet. Use Change backup folder to point SavegameBunker at one.</sys:String>
+    <sys:String x:Key="str_restore_folderUnreachable">Can't restore {0} — the backup folder isn't available right now ({1}).</sys:String>
+    <sys:String x:Key="str_restore_noBackups">No backups found for {0}. Back it up before you can restore.</sys:String>
+    <sys:String x:Key="str_restore_backupFolderInsideSaveFolder">Can't restore {0} — the backup folder is inside this game's save folder, and restoring replaces that whole folder. Move the backup folder somewhere else first (Change backup folder).</sys:String>
+    <sys:String x:Key="str_restore_archiveTooLarge">Can't restore {0} — this backup is too large to extract safely.</sys:String>
+    <sys:String x:Key="str_open_notFound">That path doesn't exist.</sys:String>
+    <sys:String x:Key="str_open_opened">Opened {0}.</sys:String>
+    <sys:String x:Key="str_open_openedInExplorer">No editor is set up for this file type — opened {0} in Explorer.</sys:String>
+    <sys:String x:Key="str_open_failed">Could not open {0}: {1}</sys:String>
+    <sys:String x:Key="str_open_refused">SavegameBunker won't open this file — it isn't a games list or a folder.</sys:String>
+    <sys:String x:Key="str_open_notAFolder">Can't find this game's save folder.</sys:String>
+    <sys:String x:Key="str_close_operationInProgress">Can't close SavegameBunker while a backup or restore is running — wait for it to finish first.</sys:String>
+    <sys:String x:Key="str_restoreConfirm_opening">Restore {0} from the backup from {1}?</sys:String>
+    <sys:String x:Key="str_restoreConfirm_openingBulk">Restore {0} ({1} of {2}) from the backup from {3}?</sys:String>
+    <sys:String x:Key="str_restoreConfirm_saveFolder">This will replace everything in {0} with that backup.</sys:String>
+    <sys:String x:Key="str_restoreConfirm_safetyTaken">Your current saves were backed up first, just in case.</sys:String>
+    <sys:String x:Key="str_restoreConfirm_safetyNone">There were no current saves to back up first — the save folder is empty right now.</sys:String>
+    <sys:String x:Key="str_restoreConfirm_warning">Warning: the current saves are newer than this backup by {0} — restoring now will undo that play.</sys:String>
+
+    <!--  Restore picker window  -->
+    <sys:String x:Key="str_restorePicker_title">Restore — {0}</sys:String>
+    <sys:String x:Key="str_restorePicker_headerOne">1 backup available</sys:String>
+    <sys:String x:Key="str_restorePicker_headerMany">{0} backups available, newest first</sys:String>
+    <sys:String x:Key="str_restorePicker_safetyTag">· safety backup</sys:String>
+    <sys:String x:Key="str_restorePicker_deleteConfirm">Delete this archive permanently? This deletes the ZIP file on disk.</sys:String>
+    <sys:String x:Key="str_restorePicker_deleteConfirmButton">Delete</sys:String>
+    <sys:String x:Key="str_restorePicker_delete">Delete archive</sys:String>
+
+    <sys:String x:Key="str_progress_rowBusy">Working on this game</sys:String>
+
+    <!--
+        Backup and restore outcomes. The goal is that nothing on screen requires knowing how
+        SavegameBunker stores its data, so the SUCCESS messages name the game and never a stored path —
+        the full path stays on the backup-folder tooltip in the status bar for anyone who wants it.
+        Failure messages deliberately keep their paths: tests pin that wording, and
+        a path is exactly what helps when something has actually gone wrong.
+    -->
+    <sys:String x:Key="str_backup_created">Backed up {0}.</sys:String>
+    <sys:String x:Key="str_backup_exceedsRestoreCap">This archive is larger than SavegameBunker can restore.</sys:String>
+    <sys:String x:Key="str_restore_done">Restored {0} from the backup you picked.</sys:String>
+    <sys:String x:Key="str_status_checkingSaveFolders">Checking save folders…</sys:String>
+
+    <!--
+        Restore's three progress steps. The
+        three stages are contractual, so the denominator is a
+        fact rather than an estimate and nothing here invents a percentage.
+    -->
+    <sys:String x:Key="str_restoreStep_1">Step 1 of 3 — Writing a safety backup</sys:String>
+    <sys:String x:Key="str_restoreStep_2">Step 2 of 3 — Extracting the backup</sys:String>
+    <sys:String x:Key="str_restoreStep_3">Step 3 of 3 — Swapping in the restored saves</sys:String>
+
+    <!--
+        The same three steps cut to what fits under the row's 96px bar; the full sentence above
+        stays on the label's tooltip.
+    -->
+    <sys:String x:Key="str_restoreStepShort_1">1/3 Safety copy</sys:String>
+    <sys:String x:Key="str_restoreStepShort_2">2/3 Extracting</sys:String>
+    <sys:String x:Key="str_restoreStepShort_3">3/3 Replacing</sys:String>
+
+    <!--
+        Unexpected-failure report. {0} names what was happening in the user's terms,
+        {1} carries the failure's own message. It must not claim anything about whether the
+        failed action wrote something — the handler cannot know that.
+    -->
+    <sys:String x:Key="str_crash_unexpected">Something went wrong while {0}.&#x0a;&#x0a;{1}&#x0a;&#x0a;SavegameBunker is still running. Check that the last thing you did came out the way you expected before carrying on.</sys:String>
+    <sys:String x:Key="str_crash_noDetail">No further detail was given.</sys:String>
+    <sys:String x:Key="str_crash_source_action">carrying out that action</sys:String>
+    <sys:String x:Key="str_crash_source_background">finishing something in the background</sys:String>
+
+</ResourceDictionary>

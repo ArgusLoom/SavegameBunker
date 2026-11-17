@@ -1,0 +1,103 @@
+[project]
+# The help pack ships on file://, which cannot serve index.html for directory
+# URLs — sibling .html pages open directly.
+use_directory_urls = false
+site_name = "SavegameBunker Benutzerhandbuch"
+site_description = "Spielstände von PC-Spielen mit SavegameBunker sichern und wiederherstellen."
+repo_url = "https://github.com/ArgusLoom/SavegameBunker"
+repo_name = "ArgusLoom/SavegameBunker"
+
+nav = [
+  { "Start" = "index.md" },
+  { "Erste Schritte" = "getting-started.md" },
+  { "Anleitungen" = [
+    { "Spielstände sichern" = "how-to/back-up-your-saves.md" },
+    { "Einen Spielstand wiederherstellen" = "how-to/restore-a-save.md" },
+    { "Ein Spiel hinzufügen, das Scan nicht findet" = "how-to/add-a-game.md" },
+    { "Den Sicherungsordner ändern" = "how-to/change-the-backup-folder.md" },
+    { "Umzug auf einen neuen PC" = "how-to/move-to-a-new-pc.md" },
+  ] },
+  { "Referenz" = [
+    { "Format der Spieleliste" = "reference/games-list-format.md" },
+    { "Tastenkombinationen" = "reference/keyboard-shortcuts.md" },
+    { "Was SavegameBunker nicht tut" = "reference/limitations.md" },
+  ] },
+]
+
+[project.theme]
+language = "de"
+# Shared with the en config; overrides partials/alternate.html so the language
+# switcher navigates via JavaScript instead of rendering a path href.
+# The help pack ships on file://, where a root-absolute alternate link like
+# "/en/" resolves to the drive root of the opened file (file:///D:/en/).
+custom_dir = "../overrides"
+features = [
+  "announce.dismiss",
+  "content.code.annotate",
+  "content.code.copy",
+  "content.code.select",
+  "content.footnote.tooltips",
+  "content.tabs.link",
+  "content.tooltips",
+  "navigation.footer",
+  "navigation.indexes",
+  "navigation.instant",
+  "navigation.instant.prefetch",
+  "navigation.path",
+  "navigation.sections",
+  "navigation.tabs",
+  "navigation.top",
+  "navigation.tracking",
+  "search.highlight",
+]
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme)"
+toggle.icon = "lucide/sun-moon"
+toggle.name = "Zu hellem Modus wechseln"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: light)"
+scheme = "default"
+toggle.icon = "lucide/sun"
+toggle.name = "Zu dunklem Modus wechseln"
+
+[[project.theme.palette]]
+media = "(prefers-color-scheme: dark)"
+scheme = "slate"
+toggle.icon = "lucide/moon"
+toggle.name = "Zu Systemeinstellung wechseln"
+
+# Kept as switcher metadata (name/lang) for the alternate.html override; no
+# "link" is given, because a root-absolute href would resolve to the drive
+# root under file://. The override navigates via JS instead.
+[[project.extra.alternate]]
+name = "English"
+lang = "en"
+
+[[project.extra.alternate]]
+name = "Deutsch"
+lang = "de"
+
+[project.markdown_extensions]
+abbr = {}
+admonition = {}
+attr_list = {}
+def_list = {}
+footnotes = {}
+md_in_html = {}
+toc.permalink = true
+pymdownx.betterem = {}
+pymdownx.caret = {}
+pymdownx.details = {}
+pymdownx.highlight.anchor_linenums = true
+pymdownx.highlight.line_spans = "__span"
+pymdownx.highlight.pygments_lang_class = true
+pymdownx.inlinehilite = {}
+pymdownx.keys = {}
+pymdownx.mark = {}
+pymdownx.smartsymbols = {}
+pymdownx.tabbed.alternate_style = true
+pymdownx.tabbed.combine_header_slug = true
+pymdownx.tasklist.custom_checkbox = true
+pymdownx.tilde = {}

@@ -1,0 +1,160 @@
+<ui:FluentWindow x:Class="SavegameBunker.Views.ScanWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:b="clr-namespace:SavegameBunker.Behaviors"
+        Title="{DynamicResource str_toolbar_findGames}" Height="520" Width="600"
+        WindowStartupLocation="CenterOwner"
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="Mica">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="36"/>  <!-- TitleBar -->
+            <RowDefinition Height="*"/>   <!-- existing DockPanel content -->
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Title="{DynamicResource str_toolbar_findGames}"/>
+
+        <DockPanel Grid.Row="1" Margin="16">
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                        HorizontalAlignment="Right" Margin="0,16,0,0">
+                <ui:Button x:Name="AddButton" Content="{Binding AddLabel}" MinWidth="90" Margin="0,0,8,0"
+                        Appearance="Primary" IsDefault="True" IsEnabled="{Binding CanAdd}" b:DialogResultBehavior.DialogResult="True"/>
+                <ui:Button Content="{DynamicResource str_common_cancel}" MinWidth="90" IsCancel="True"/>
+            </StackPanel>
+
+            <!-- All/None, the two skipped-count lines and the Details expansion, docked above the
+                 Add/Cancel row so they stay visible regardless of how many rows scroll above them. -->
+            <StackPanel DockPanel.Dock="Bottom" Margin="0,12,0,0">
+                <StackPanel Orientation="Horizontal" Margin="0,0,0,8">
+                    <ui:Button x:Name="SelectAllButton" Content="{DynamicResource str_scan_selectAll}" MinWidth="60" Margin="0,0,8,0"
+                            Command="{Binding SelectAllCommand}"/>
+                    <ui:Button x:Name="SelectNoneButton" Content="{DynamicResource str_scan_selectNone}" MinWidth="60"
+                            Command="{Binding SelectNoneCommand}"/>
+                </StackPanel>
+
+                <!-- This window is user-resizable, so every line outside the scrolling hit list wraps
+                     instead of running past the edge once the window is narrowed. -->
+                <DockPanel Margin="0,0,0,4">
+                    <ui:Button x:Name="DetailsButton" Content="{DynamicResource str_scan_details}" DockPanel.Dock="Right" MinWidth="60"
+                            Command="{Binding ToggleDetailsCommand}" IsEnabled="{Binding HasSharedSkipped}"/>
+                    <TextBlock x:Name="SharedSkippedText" Text="{Binding SharedSkippedText}"
+                               VerticalAlignment="Center" TextWrapping="Wrap"/>
+                </DockPanel>
+
+                <TextBlock x:Name="AlreadyKnownSkippedText" Text="{Binding AlreadyKnownSkippedText}"
+                           Margin="0,0,0,4" TextWrapping="Wrap"/>
+
+                <!-- [Details] expands only the shared-template titles: SkippedAlreadyKnown is a plain
+                     int with no backing list, so there is nothing for an equivalent expansion to show. -->
+                <ItemsControl x:Name="SharedTitlesList" ItemsSource="{Binding SharedTitles}"
+                              Margin="16,0,0,4">
+                    <!-- DataTrigger, not an IValueConverter: plain bindings only for
+                         this window, and a DataTrigger switches Visibility with no resource dictionary
+                         entry, no new file and no NuGet package. Do not "simplify" this into a converter. -->
+                    <ItemsControl.Style>
+                        <Style TargetType="ItemsControl">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding ShowDetails}" Value="True">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ItemsControl.Style>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding}" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}" TextWrapping="Wrap"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </StackPanel>
+
+            <!-- Hidden when there are no hits: EmptyStateText below renders the same HeaderText, so
+                 leaving both visible printed the identical sentence twice — once here in bold and again
+                 greyed in the list area. Both bind HeaderText deliberately (03.5-03 keeps the sentence in
+                 the view model and forbids a literal in this file), so the duplication is resolved by
+                 showing one of the two, not by giving either its own string. Same HasHits DataTrigger
+                 pattern as the ScrollViewer and EmptyStateText below. -->
+            <TextBlock DockPanel.Dock="Top" Text="{Binding HeaderText}" FontSize="14" FontWeight="Bold"
+                       Margin="0,0,0,12" TextWrapping="Wrap">
+                <TextBlock.Style>
+                    <Style TargetType="TextBlock">
+                        <Setter Property="Visibility" Value="Visible"/>
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasHits}" Value="False">
+                                <Setter Property="Visibility" Value="Collapsed"/>
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TextBlock.Style>
+            </TextBlock>
+
+            <Grid>
+                <!-- Row list and empty-state sentence occupy the same area; exactly one is visible,
+                     switched on HasHits by a DataTrigger rather than an IValueConverter (see above). -->
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer.Style>
+                        <Style TargetType="ScrollViewer">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasHits}" Value="False">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ScrollViewer.Style>
+                    <ItemsControl ItemsSource="{Binding Rows}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <Border BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}" BorderThickness="0,0,0,1" Padding="0,8">
+                                    <DockPanel>
+                                        <CheckBox DockPanel.Dock="Left" VerticalAlignment="Top" Margin="0,2,8,0"
+                                                  IsChecked="{Binding IsSelected, Mode=TwoWay}"/>
+                                        <StackPanel>
+                                            <!--
+                                                These two figure columns traded their fixed
+                                                Width for a MinWidth of the same number. The common
+                                                case is unchanged — almost every rendered value is
+                                                narrower than the minimum, so the column still lines
+                                                up — but an unusually wide value now widens its own
+                                                column instead of being cut mid-number.
+                                            -->
+                                            <DockPanel>
+                                                <TextBlock Text="{Binding SizeText}" DockPanel.Dock="Right"
+                                                           Margin="8,0,0,0" HorizontalAlignment="Right" MinWidth="70"
+                                                           TextAlignment="Right"/>
+                                                <TextBlock Text="{Binding FileCountText}" DockPanel.Dock="Right"
+                                                           Margin="8,0,0,0" HorizontalAlignment="Right" MinWidth="60"
+                                                           TextAlignment="Right"/>
+                                                <TextBlock Text="{Binding DisplayName}" FontWeight="Bold"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                            </DockPanel>
+                                            <TextBlock Text="{Binding ResolvedPath}" FontSize="11" Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                                                       TextTrimming="CharacterEllipsis" ToolTip="{Binding ResolvedPath}"/>
+                                        </StackPanel>
+                                    </DockPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
+
+                <TextBlock x:Name="EmptyStateText" Text="{Binding HeaderText}" TextWrapping="Wrap"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" TextAlignment="Center"
+                           Foreground="{DynamicResource TextFillColorSecondaryBrush}">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasHits}" Value="False">
+                                    <Setter Property="Visibility" Value="Visible"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+        </DockPanel>
+    </Grid>
+</ui:FluentWindow>
