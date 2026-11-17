@@ -67,7 +67,7 @@ jobs:
           echo "Pre-checks passed (version $version, dated $release_date)."
 
       - name: Build
-        run: dotnet build SavegameBunker.sln
+        run: dotnet build SavegameBunker.sln -c Release
 
       - name: Publish single-file exe
         run: |
