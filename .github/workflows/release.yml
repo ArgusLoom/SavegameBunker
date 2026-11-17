@@ -91,6 +91,9 @@ jobs:
             (cd "docs/userguide/$lang" && python -m zensical build)
             mkdir -p "publish/help/$lang"
             cp -r "docs/userguide/$lang/site/." "publish/help/$lang/"
+            # 404.html is server-only (Pages), never shipped in the offline
+            # pack — verify_help_pack_hrefs.py exempts it for that reason.
+            rm -f "publish/help/$lang/404.html"
           done
           # file:// regression gate for the offline help pack: verify the site
           # trees (the same content just copied to publish/help/) before zipping.
