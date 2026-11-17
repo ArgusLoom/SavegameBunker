@@ -9,6 +9,10 @@ SavegameBunker is a small Windows app that does one job: copy your game save fol
 and copy them back when you need to. It does not launch games, sync to the cloud, or watch your
 disk for changes. You decide when a backup happens.
 
+!!! note "Names in this guide match the app"
+    This guide refers to every button and menu item exactly by the text it carries in the
+    program — bolded, e.g. **Add game**.
+
 ## Where to start
 
 - New to SavegameBunker? Read [Getting started](getting-started.md).
