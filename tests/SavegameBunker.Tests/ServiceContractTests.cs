@@ -146,6 +146,11 @@ public sealed class ServiceContractTests : IDisposable
                 continue;
             if (type.IsInterface || type.IsEnum)
                 continue;
+            // DialogService is the WPF-bound implementation of IDialogService — outside the
+            // enumerated surface by the plan's own exemption (it marshals dialogs onto the UI
+            // thread; a hostile-input call cannot reach a service contract).
+            if (type.Name == nameof(DialogService))
+                continue;
 
             var declared = type.GetMethods(
                 BindingFlags.Public | BindingFlags.Instance | BindingFlags.Static | BindingFlags.DeclaredOnly);

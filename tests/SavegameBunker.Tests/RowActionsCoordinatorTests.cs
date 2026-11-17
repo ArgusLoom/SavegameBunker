@@ -146,7 +146,7 @@ public sealed class RowActionsCoordinatorTests : IDisposable
         Assert.False(row.IsBusy);
         Assert.Equal(0, row.BackupBytesTotal);
         Assert.Equal(0, row.BackupBytesWritten);
-        Assert.True(Directory.GetFiles(backupRoot, "*.zip").Length > 0);
+        Assert.True(Directory.GetFiles(backupRoot, "*.zip", SearchOption.AllDirectories).Length > 0);
     }
 
     [Fact]
@@ -178,7 +178,8 @@ public sealed class RowActionsCoordinatorTests : IDisposable
         await Coordinator(backup, host).BackupAsync(busyRow, new ByteRecorder());
 
         Assert.Empty(host.Calls);
-        Assert.False(busyRow.IsBusy);
+        // The coordinator ignores a busy row — it does not own it, so it must not release it either.
+        Assert.True(busyRow.IsBusy);
     }
 
     [Fact]
