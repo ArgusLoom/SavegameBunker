@@ -33,7 +33,7 @@ the unchanged 629-test suite.
 
 **Requirements**: REF-01, REF-02, REF-03, REF-04, REF-05
 **Depends on:** —
-**Plans:** 4/5 plans executed
+**Plans:** 5/5 plans executed
 
 Plans:
 **Wave 1**
@@ -49,7 +49,7 @@ Plans:
 - [x] 01-04-PLAN.md — StatusSweepCoordinator (sweep engine + advisory I/O) + REF-04b per-row unreadable-path warning
 
 **Wave 5** *(blocked on Wave 4 completion)*
-- [ ] 01-05-PLAN.md — RowActionsCoordinator + composition-root pass + owner decision on REF-02's ~700-line ceiling
+- [x] 01-05-PLAN.md — RowActionsCoordinator + composition-root pass + owner decision on REF-02's ~700-line ceiling
 
 **Execution order is strictly sequential (Plan 01→05):** baseline test pin → pure helpers →
 bulk-backup coordinator → status-sweep coordinator → row-actions service → rest form. Each

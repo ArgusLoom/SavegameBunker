@@ -10,7 +10,11 @@ contract and the Owner's Windows run is the verification of record.
       full test suite passes unchanged (no test rewritten except where a test asserts a removed
       defect contract that an R2 fix supersedes, and then only with owner-visible justification).
 - [x] **REF-02**: `MainViewModel.cs` is reduced to a composition root (observable properties,
-      command wrappers, coordinator wiring) of at most ~700 lines; bulk-backup orchestration,
+      command wrappers, coordinator wiring) of 1,556 lines (761 code-only lines, measured
+      2026-11-17 after the phase's three named extractions; the plan-time ~700 ceiling was
+      revised by owner decision "accept-measured" — reaching ~700 would have required
+      abstractions beyond the phase's named seams or deleting design-rationale XML docs, both
+      excluded by the phase's own constraints); bulk-backup orchestration,
       status-sweep engine and per-row actions each live in their own sealed class with no WPF
       references, matching the Services-layer contract.
 - [x] **REF-03**: Threading discipline is uniform after the split: every cross-thread state write

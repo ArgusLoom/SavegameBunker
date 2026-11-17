@@ -108,12 +108,12 @@ All results below are **pending — owner Windows machine** (the xUnit host cann
 | 4 | Human check: row Back up → Restore → Open save folder → Refresh → Back up selected (50 MB save folder) | [pending — owner Windows machine] |
 | 5 | Push + `gh workflow run test.yml --ref refactor/v1.1-phase-1` green (owner approval outstanding) | [pending — owner decision] |
 
-## Checkpoint: Task 3 — REF-02 ceiling (blocking-human)
+## Checkpoint: Task 3 — REF-02 ceiling (blocking-human) — ANSWERED
 
-Measured figures presented above. Awaiting the owner's answer: `accept-measured`,
-`condense-docs`, or `widen-seams: <seams>`. On accept-measured, the continuation edits only the
-REF-02 line of `.planning/REQUIREMENTS.md`; on either other answer, `/gsd-plan-phase 1 --gaps`
-plans the follow-up and the phase stays open.
+Owner's answer, verbatim: **"1 accept-measured"** (2026-11-17).
+Given the measured figures above (1,556 total / 761 code-only). Applied: only the REF-02 line of
+`.planning/REQUIREMENTS.md` was edited — it now names the measured figure and the reason. No code
+change; no gap plan needed; the phase proceeds to verification.
 
 ## Issues Encountered
 
