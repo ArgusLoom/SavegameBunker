@@ -19,7 +19,7 @@ no account, nothing to install.
 - 👀 **You see at a glance what needs attention.** Every game shows whether its saves are backed
   up, and how much play you'd lose if they vanished right now.
 - 🔍 **It finds your games for you.** One click on **Scan** looks for save folders of games it
-  knows and offers to add them. Honest caveat: "knows" means a hand-curated table of roughly 280
+  knows and offers to add them. Honest caveat: "knows" means a hand-curated table of
   popular titles, bundled with the app and not updated automatically — anything else you add by
   hand (see below).
 - 💾 **Backing up is one click** — for one game, for the ones you tick, or for everything that
@@ -104,8 +104,8 @@ machine. SavegameBunker always puts the files back faithfully, but it can't make
 - **For real peace of mind, back up to a different drive.** A backup on the same disk as your
   saves protects you from accidents and bad patches, but not from that disk failing.
 - **Removing a game from the list deletes nothing.** Your saves and backups stay where they are.
-- **The built-in game list is hand-maintained, small and never fetched.** It ships as a snapshot
-  of ~280 popular titles inside `SavegameBunker.exe` — there is no online update, so newly released
+- **The built-in game list is hand-maintained, small and never fetched.** It ships as a fixed snapshot inside
+  `SavegameBunker.exe` — there is no online update, so newly released
   games and games that move their save folder are simply not in it until the next release. Scan
   finds only what that table knows; every other game needs **Add game** and its save folder typed
   (or dragged) in by hand. If a table entry looks off, open the **⋯** menu on that row and choose

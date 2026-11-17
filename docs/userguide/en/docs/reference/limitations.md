@@ -12,8 +12,7 @@ These are deliberate choices, not missing features planned for later.
   any other untrusted files.
 - **Not cloud sync and not Steam Cloud.** It copies the save folder you pointed it at, to the
   folder you chose, and nothing else.
-- **The known-games list is a shortcut, not a living database.** It's a hand-maintained snapshot
-  of roughly 280 popular titles bundled with the app — there is no online update, so it is never
+- **The known-games list is a shortcut, not a living database.** It's a hand-maintained snapshot bundled with the app — there is no online update, so it is never
   fetched, never refreshed, and goes stale as games update or move their save folder. Scan only
   ever finds games that are in that table; every other game has to be added by hand. If Scan
   picks the wrong store's path, or a game changed its save location, use

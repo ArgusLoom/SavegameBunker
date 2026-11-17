@@ -14,7 +14,7 @@ Das sind bewusste Entscheidungen, keine für später geplanten fehlenden Funktio
 - **Keine Cloud-Synchronisierung und kein Steam Cloud.** Es kopiert genau den Spielstand-Ordner,
   auf den Sie zeigen, in den gewählten Ordner, und sonst nichts.
 - **Die Liste bekannter Spiele ist eine Abkürzung, keine lebende Datenbank.** Sie ist eine
-  handgepflegte Momentaufnahme von rund 280 populären Titeln, direkt in der App gebündelt — es
+  handgepflegte Momentaufnahme, direkt in der App gebündelt — es
   gibt keine Online-Aktualisierung, sie wird also nie abgerufen oder aufgefrischt und veraltet,
   sobald Spiele aktualisiert werden oder ihren Spielstand-Ordner verschieben. Scan findet
   ausschließlich Spiele aus dieser Tabelle; alles andere müssen Sie von Hand hinzufügen. Wenn

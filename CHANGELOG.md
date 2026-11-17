@@ -13,8 +13,8 @@ nothing to install.
 
 ### Highlights
 
-- **It finds your games for you.** One click on **Scan** checks a hand-curated list of roughly
-  286 popular titles against your PC and shows every game with real save files on it. Tick the
+- **It finds your games for you.** One click on **Scan** checks a hand-curated list
+  against your PC and shows every game with real save files on it. Tick the
   ones you want, add them all at once.
 - **You see at a glance what needs attention.** Every game shows one clear verdict — up to
   date, *3 hours of play not backed up yet*, never backed up, no save data, or backup folder
