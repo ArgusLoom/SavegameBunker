@@ -25,6 +25,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
     private readonly IDialogService _dialog;
     private readonly BackupService _backup = new();
     private readonly GameActions _gameActions;
+    private readonly BulkBackupCoordinator _bulk;
     private readonly CatalogSession _session;
     private readonly KnownGamesScanner _knownGamesScanner = new();
 
@@ -109,6 +110,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
         _session = new CatalogSession(load);
         _dialog = dialog;
         _gameActions = new GameActions(_backup, _dialog);
+        _bulk = new BulkBackupCoordinator(_backup, _gameActions, OnUi);
         StatusMessage = Strings.Get("str_common_ready");
 
         System.Windows.Data.BindingOperations.EnableCollectionSynchronization(Games, _gamesSyncLock);
@@ -1264,9 +1266,8 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
                 row.BackupBytesWritten = 0;
 
                 // Constructed here, on the UI thread, so its callbacks marshal back onto the
-                // dispatcher rather than arriving on the Task.Run thread inside GameActions.BackupAsync
-                // — the same reason RestoreAsync constructs its own Progress<int> here.
-                var progress = new Progress<long>(written => { if (row.BackupBytesTotal > 0) row.BackupBytesWritten = written; });
+                // dispatcher rather than arriving on the Task.Run thread inside GameActions.BackupAsync.
+                var progress = CreateByteProgress(row);
 
                 var result = await _gameActions.BackupAsync(row, root, progress);
                 Report(result);
@@ -1528,11 +1529,51 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
     }
 
     /// <summary>
-    /// Shared body for <see cref="BackupAllChangedAsync"/> and <see cref="BackupSelectedAsync"/> —
-    /// identical mechanics (root resolution, busy-claim, progress surfaces, the backup loop, the
-    /// closing re-sweep and outcome report), differing only in how <paramref name="targets"/> was
-    /// selected and which string keys name a fully- or partially-successful run. The single-target
-    /// success message ("str_bulkBackup_one") is shared by both callers as-is.
+    /// Raises the bulk counters for a starting bulk run — backup or restore, told apart by
+    /// <paramref name="isRestore"/> so <see cref="BulkBackupProgressText"/> picks the right
+    /// sentence. The claim order this participates in (reset to Checking, then these counters,
+    /// then IsBusy) is the re-entrancy guard; see <see cref="BulkBackupCoordinator"/>.
+    /// </summary>
+    private void BeginBulkProgress(int total, string firstGameName, bool isRestore)
+    {
+        _bulkProgressIsRestore = isRestore;
+        BulkBackupTotal = total;
+        BulkBackupCurrent = 0;
+        BulkBackupCurrentGameName = firstGameName;
+    }
+
+    /// <summary>Advances the bulk counters to the game a bulk run just reached.</summary>
+    private void SetBulkProgress(int current, string gameName)
+    {
+        BulkBackupCurrent = current;
+        BulkBackupCurrentGameName = gameName;
+    }
+
+    /// <summary>
+    /// Clears the bulk counters at the end of a bulk run — the restore finally's order (flag
+    /// first, then counters). For a backup the flag write is a no-op, because the flag is only
+    /// ever true inside a restore run, which the bulk gates exclude.
+    /// </summary>
+    private void EndBulkProgress()
+    {
+        _bulkProgressIsRestore = false;
+        BulkBackupTotal = 0;
+        BulkBackupCurrent = 0;
+        BulkBackupCurrentGameName = null;
+    }
+
+    /// <summary>
+    /// The one per-row byte-reporter lambda, shared by the single-row backup and every bulk
+    /// backup target. Constructed on the UI thread, so its callbacks marshal back onto the
+    /// dispatcher rather than arriving on whatever thread runs the write.
+    /// </summary>
+    private static IProgress<long> CreateByteProgress(GameRowViewModel row) =>
+        new Progress<long>(written => { if (row.BackupBytesTotal > 0) row.BackupBytesWritten = written; });
+
+    /// <summary>
+    /// Delegates the bulk-backup loop — root resolution stays here, the claim, the write loop
+    /// and the release live in <see cref="BulkBackupCoordinator.BackupAsync"/> — and reports the
+    /// closing outcome exactly as before.
     /// </summary>
     private async Task RunBulkBackupAsync(
         IReadOnlyList<GameRowViewModel> targets, string allSucceededKey, string partialFailureKey)
@@ -1541,100 +1582,32 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
         if (root is null)
             return; // Either the user cancelled the picker or saving the choice failed — both routes already told the user what happened.
 
-        // Reset to Checking up front: this is both the visible "in progress" state for the rows
-        // this run touches and the re-entrancy guard — IsAnyRowChecking flips true immediately,
-        // disabling this same command until the closing StartStatusScan() settles everything again.
-        foreach (var row in targets)
-            row.ApplyBackupComparison(BackupComparison.Checking());
-
-        BulkBackupTotal = targets.Count;
-        BulkBackupCurrent = 0;
-        BulkBackupCurrentGameName = targets[0].DisplayName;
-
-        // Every target is marked busy for the whole run, not just while its own archive is being
-        // written: the row's own Back up and Restore must not start on a row this loop is going to
-        // write to. Bulk backup touches every selected row, so every selected row is unavailable.
-        foreach (var row in targets)
-            row.IsBusy = true;
-
         var progress = new Progress<(int Index, string Name)>(p =>
         {
             // A report posted before the run ended can arrive after the reset; drop it.
             if (!IsBulkBackupRunning)
                 return;
-            BulkBackupCurrent = p.Index;
-            BulkBackupCurrentGameName = p.Name;
+            SetBulkProgress(p.Index, p.Name);
         });
 
-        // One Progress<long> per target row, constructed here on the UI thread (each closing over
-        // its own row) before the loop below ever runs on a worker thread — the same reason
-        // RestoreAsync's own Progress<int> is constructed on the UI thread.
-        var byteProgress = targets.ToDictionary(row => row, row => new Progress<long>(written => { if (row.BackupBytesTotal > 0) row.BackupBytesWritten = written; }));
+        var byteProgress = targets.ToDictionary(row => row, CreateByteProgress);
 
-        var failed = new List<string>();
-        var failureDetails = new List<string>();
-
-        // The finally is what keeps an unexpected failure inside the loop from leaving every
-        // target row busy and the bulk counter raised — both of which gate closing the window.
-        try
-        {
-            await Task.Run(() =>
+        var run = await _bulk.BackupAsync(
+            targets,
+            root,
+            progress,
+            byteProgress,
+            (total, first) => BeginBulkProgress(total, first, isRestore: false),
+            () =>
             {
-                for (var i = 0; i < targets.Count; i++)
-                {
-                    var row = targets[i];
-                    ((IProgress<(int, string)>)progress).Report((i + 1, row.DisplayName));
-
-                    // Set before this row's write starts, same as the per-row BackupAsync command —
-                    // the determinate-vs-indeterminate decision is made before the first byte.
-                    var size = _backup.ComputeSaveDataSize(row.Game);
-                    OnUi(() =>
-                    {
-                        row.BackupBytesTotal = size;
-                        row.BackupBytesWritten = 0;
-                    });
-
-                    var result = _backup.Backup(row.Game, root, byteProgress[row]);
-                    if (!result.Success)
-                    {
-                        failed.Add(row.DisplayName);
-                        failureDetails.Add(result.Message);
-                    }
-                    else
-                    {
-                        // On the worker thread inside Task.Run — wrapped like every other row
-                        // write in this loop, since the bound row property must not be touched
-                        // off the UI thread (audit A9).
-                        OnUi(() => row.RestoredArchiveTakenAt = null);
-                    }
-
-                    // Cleared the same way the per-row BackupAsync command clears it — the bar never
-                    // outlives this row's own write, whatever the run's overall outcome.
-                    OnUi(() =>
-                    {
-                        row.BackupBytesTotal = 0;
-                        row.BackupBytesWritten = 0;
-                    });
-                }
+                EndBulkProgress();
+                StartStatusScan(only: targets);
             });
-        }
-        finally
-        {
-            foreach (var row in targets)
-            {
-                row.IsBusy = false;
-                row.BackupBytesTotal = 0;
-                row.BackupBytesWritten = 0;
-            }
 
-            BulkBackupTotal = 0;
-            BulkBackupCurrent = 0;
-            BulkBackupCurrentGameName = null;
+        if (run is null)
+            return;
 
-            StartStatusScan(only: targets);
-        }
-
-        Report(BulkRunRules.BackupOutcome(targets, failed, allSucceededKey, partialFailureKey), failureDetails);
+        Report(BulkRunRules.BackupOutcome(targets, run.Failed, allSucceededKey, partialFailureKey), run.FailureDetails);
     }
 
     /// <summary>
