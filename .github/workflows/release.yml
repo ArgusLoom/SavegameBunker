@@ -13,6 +13,10 @@ on:
   push:
     tags:
       - 'v*'
+  # Retrying a failed tag run or dry-running the pipeline: dispatch on a tag ref and
+  # GITHUB_REF_NAME resolves to that tag; a dispatch on a branch ref fails fast at the
+  # version pre-check by design.
+  workflow_dispatch:
 
 permissions:
   contents: read
