@@ -254,12 +254,10 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
 
     /// <summary>
     /// Drives the bulk-backup toolbar button's <c>Visibility</c> — hidden, not
-    /// disabled, when nothing qualifies, so an empty-handed click is impossible. The selection is
-    /// exactly the two kinds that need a backup; the other four are excluded because they cannot or need
-    /// not be backed up.
+    /// disabled, when nothing qualifies, so an empty-handed click is impossible. The two-verdict
+    /// rule itself lives in <see cref="BulkRunRules.NeedsBackup"/> so every bulk path shares it.
     /// </summary>
-    public bool HasBackupTargets => Games.Any(row =>
-        row.ComparisonKind is BackupComparisonKind.SavesChangedSinceBackup or BackupComparisonKind.NeverBackedUp);
+    public bool HasBackupTargets => Games.Any(row => BulkRunRules.NeedsBackup(row.ComparisonKind));
 
     /// <summary>
     /// Drives the bulk-backup toolbar button's enablement — a half-finished status sweep can never
@@ -420,7 +418,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
         var hasRoot = _session.TryGetConfiguredBackupRoot(out var root);
         var selectedGames = Games.Where(row => row.IsSelected).Select(row => row.Game).ToList();
         var changedGames = Games
-            .Where(row => row.ComparisonKind is BackupComparisonKind.SavesChangedSinceBackup or BackupComparisonKind.NeverBackedUp)
+            .Where(row => BulkRunRules.NeedsBackup(row.ComparisonKind))
             .Select(row => row.Game).ToList();
 
         var (freeText, selectedText, changedText) = await Task.Run(() =>
@@ -768,7 +766,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
     /// Internal so the test project can assert the count behind the startup prompt.
     /// </summary>
     internal IReadOnlyList<GameRowViewModel> GetUnsecuredRows() => Games
-        .Where(row => row.ComparisonKind is BackupComparisonKind.SavesChangedSinceBackup or BackupComparisonKind.NeverBackedUp)
+        .Where(row => BulkRunRules.NeedsBackup(row.ComparisonKind))
         .ToList();
 
     /// <summary>
@@ -1521,14 +1519,8 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
     [RelayCommand(CanExecute = nameof(CanBackupAllChanged))]
     private async Task BackupAllChangedAsync()
     {
-        // A row already busy on its own backup or restore — including one still in restore
-        // preflight, before IsRestoreRunning is raised — is excluded rather than re-claimed:
-        // IsAnyRowBusy only gates whether this command can start at all, which does not catch a
-        // row that went busy after the sweep last settled but before this run's own target list is
-        // built.
-        var targets = Games.Where(row =>
-            row.ComparisonKind is BackupComparisonKind.SavesChangedSinceBackup or BackupComparisonKind.NeverBackedUp
-            && !row.IsBusy).ToList();
+        // The busy exclusion and its reasoning live in BulkRunRules.ChangedTargets.
+        var targets = BulkRunRules.ChangedTargets(Games);
         if (targets.Count == 0)
             return;
 
@@ -1642,12 +1634,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
             StartStatusScan(only: targets);
         }
 
-        Report(failed.Count == 0
-            ? OperationResult.Ok(targets.Count == 1
-                ? Strings.Format("str_bulkBackup_one", targets[0].DisplayName)
-                : Strings.Format(allSucceededKey, targets.Count))
-            : OperationResult.Fail(Strings.Format(partialFailureKey, targets.Count - failed.Count, targets.Count, string.Join(", ", failed))),
-            failureDetails);
+        Report(BulkRunRules.BackupOutcome(targets, failed, allSucceededKey, partialFailureKey), failureDetails);
     }
 
     /// <summary>
@@ -1674,9 +1661,8 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
     [RelayCommand(CanExecute = nameof(CanBackupSelected))]
     private async Task BackupSelectedAsync()
     {
-        // Mirrors BackupAllChangedAsync's own exclusion: a row already busy on its own backup or
-        // restore — including one still in restore preflight — is excluded rather than re-claimed.
-        var targets = Games.Where(row => row.IsSelected && !row.IsBusy).ToList();
+        // Mirrors BackupAllChangedAsync's busy exclusion — see BulkRunRules.SelectedTargets.
+        var targets = BulkRunRules.SelectedTargets(Games);
         if (targets.Count == 0)
             return;
 
@@ -1699,7 +1685,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
     [RelayCommand(CanExecute = nameof(CanRestoreSelected))]
     private async Task RestoreSelectedAsync()
     {
-        var targets = Games.Where(row => row.IsSelected && !row.IsBusy).ToList();
+        var targets = BulkRunRules.SelectedTargets(Games);
         if (targets.Count == 0)
             return;
 
@@ -1784,35 +1770,11 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
 
         StartStatusScan(only: targets);
 
-        if (failed.Count == 0 && restored == 0)
-        {
-            Report(OperationResult.Cancel(Strings.Get("str_restore_cancelled")));
-            return;
-        }
-
-        if (failed.Count > 0)
-        {
-            Report(
-                OperationResult.Fail(Strings.Format(
-                    "str_bulkRestoreSelected_partialFailure",
-                    restored, targets.Count, string.Join(", ", failed))),
-                failureDetails);
-            return;
-        }
-
-        // A declined game was not restored, so the run must not claim "all" — it names how many
-        // actually were and which ones the user skipped.
-        if (declined.Count > 0)
-        {
-            Report(OperationResult.Ok(Strings.Format(
-                "str_bulkRestoreSelected_partialSkipped",
-                restored, targets.Count, string.Join(", ", declined))));
-            return;
-        }
-
-        Report(OperationResult.Ok(targets.Count == 1
-            ? Strings.Format("str_bulkRestore_one", targets[0].DisplayName)
-            : Strings.Format("str_bulkRestoreSelected_allSucceeded", targets.Count)));
+        // The four-branch outcome composition lives in BulkRunRules.RestoreOutcome. Passing the
+        // details list on every branch is behavior-identical to the old failure-only branch:
+        // failureDetails gains an entry exactly when failed does, Report ignores an empty details
+        // list, and it returns early for a Cancel result.
+        Report(BulkRunRules.RestoreOutcome(targets, restored, failed, declined), failureDetails);
     }
 
     /// <summary>
