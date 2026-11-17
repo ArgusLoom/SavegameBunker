@@ -2,15 +2,19 @@
 gsd_state_version: "1.0"
 milestone: v1.0.1
 milestone_name: Hardening & Refactoring
-status: planning
-last_updated: "2026-11-17T23:34:30.715Z"
+current_phase: 01
+status: completed
+stopped_at: Phase 01 complete — all phases complete
+last_updated: "2026-11-17T23:27:17.560Z"
 last_activity: 2026-11-17
+last_activity_desc: Phase 01 complete
+state_head: bf6f3b7a989f89fd8f5ea42c438dd660e0de3920
 progress:
-  total_phases: 0
-  completed_phases: 0
-  total_plans: 0
-  completed_plans: 0
-  percent: 0
+  total_phases: 1
+  completed_phases: 1
+  total_plans: 5
+  completed_plans: 5
+  percent: 100
 ---
 
 # Project State
@@ -24,10 +28,10 @@ See: `.planning/PROJECT.md`
 
 ## Current Position
 
-Phase: Not started (defining requirements)
-Plan: —
-Status: Defining requirements
-Last activity: 2026-11-17 — Milestone v1.0.1 started
+Phase: 01
+Plan: Not started
+Status: All phases complete
+Last activity: 2026-11-17 — Phase 01 complete
 
 
 ## Decisions Made
@@ -46,7 +50,7 @@ None. Open ideas and accepted limitations are tracked in `.planning/WISHLIST.md`
 
 ### Roadmap Evolution
 
-- 2026-11-17 — Milestone v1.0.1 (post-release hardening) started (post-release hardening). Phase 1 added: Bugfixing &
+- 2026-11-17 — Milestone v1.0.1 (post-release hardening) started. Phase 1 added: Bugfixing &
   Refactoring — remaining R2 audit defects (rename-cap message, Scan skip-surfacing, service
   never-throw contract) + incremental behavior-locked MainViewModel split (Plans 01→05:
   baseline test pin → pure helpers → bulk-backup coordinator → status-sweep coordinator →
