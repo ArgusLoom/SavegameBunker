@@ -20,13 +20,14 @@ namespace SavegameBunker.ViewModels;
 /// Derives from <see cref="CommunityToolkit.Mvvm.ComponentModel.ObservableObject"/> via the
 /// <c>CommunityToolkitObservableObject</c> alias every view model in this namespace uses.
 /// </remarks>
-public sealed partial class MainViewModel : CommunityToolkitObservableObject
+public sealed partial class MainViewModel : CommunityToolkitObservableObject, IRowActionHost
 {
     private readonly IDialogService _dialog;
     private readonly BackupService _backup = new();
     private readonly GameActions _gameActions;
     private readonly BulkBackupCoordinator _bulk;
     private readonly StatusSweepCoordinator _sweep;
+    private readonly RowActionsCoordinator _rowActions;
     private readonly CatalogSession _session;
     private readonly KnownGamesScanner _knownGamesScanner = new();
 
@@ -105,6 +106,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
         _gameActions = new GameActions(_backup, _dialog);
         _bulk = new BulkBackupCoordinator(_backup, _gameActions, OnUi);
         _sweep = new StatusSweepCoordinator(_backup, OnUi);
+        _rowActions = new RowActionsCoordinator(_backup, _gameActions, _dialog, this);
         StatusMessage = Strings.Get("str_common_ready");
 
         System.Windows.Data.BindingOperations.EnableCollectionSynchronization(Games, _gamesSyncLock);
@@ -1123,63 +1125,12 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
     }
 
     /// <summary>
-    /// Writes a backup and, on success, re-runs the status sweep: a new
-    /// archive can change this row's save-vs-backup verdict, and a failed backup changed nothing
-    /// worth re-scanning for.
+    /// One-line forward: the flow lives in <see cref="RowActionsCoordinator.BackupAsync"/>,
+    /// which receives the row's byte progress built here on the UI thread.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanBackupRow))]
-    private async Task BackupAsync(GameRowViewModel? row)
-    {
-        if (row is null || row.IsBusy)
-            return;
-
-        // row.IsBusy is this row's own re-entrancy guard and is raised immediately, before
-        // EnsureBackupRootAsync's await, so a second click landing before that await returns
-        // (backup root still unset) cannot slip through and start a second backup for this row.
-        row.IsBusy = true;
-        try
-        {
-            var root = await EnsureBackupRootAsync();
-            if (root is null)
-                return; // Either the user cancelled the picker or saving the choice failed — both routes already told the user what happened.
-
-            IsBackupRunning = ++_backupsInFlight > 0;
-            try
-            {
-                StatusMessage = Strings.Format("str_backup_inProgress", row.DisplayName);
-
-                // Set before the write starts so the determinate-vs-indeterminate decision
-                // is already made by the time ArchiveSaveDir writes its first byte. Run off the UI
-                // thread — it is a directory walk.
-                row.BackupBytesTotal = await Task.Run(() => _backup.ComputeSaveDataSize(row.Game));
-                row.BackupBytesWritten = 0;
-
-                // Constructed here, on the UI thread, so its callbacks marshal back onto the
-                // dispatcher rather than arriving on the Task.Run thread inside GameActions.BackupAsync.
-                var progress = CreateByteProgress(row);
-
-                var result = await _gameActions.BackupAsync(row, root, progress);
-                Report(result);
-                if (result.Success)
-                {
-                    row.RestoredArchiveTakenAt = null;
-                    StartStatusScan(only: new[] { row });
-                }
-            }
-            finally
-            {
-                IsBackupRunning = --_backupsInFlight > 0;
-            }
-        }
-        finally
-        {
-            row.IsBusy = false;
-            // The bar never outlives the write — cleared in the same finally as IsBusy,
-            // mirroring how RestoreAsync clears RestoreStep.
-            row.BackupBytesTotal = 0;
-            row.BackupBytesWritten = 0;
-        }
-    }
+    private Task BackupAsync(GameRowViewModel? row) =>
+        _rowActions.BackupAsync(row, row is null ? null : CreateByteProgress(row));
 
     /// <summary>
     /// Keeps a per-row backup from starting on a row a running bulk operation (backup-all-changed,
@@ -1190,77 +1141,12 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
     private bool CanBackupRow(GameRowViewModel? row) => row is not null && !row.IsBusy && !IsBulkBackupRunning;
 
     /// <summary>
-    /// Delegates the pre-flight refusals, the picker, the pre-restore scan and the
-    /// restore itself to <see cref="GameActions"/>, and owns the busy flag, the report and the
-    /// re-sweep around them. <see cref="IsRestoreRunning"/> — the flag other commands gate on —
-    /// is still raised only once a plan is in hand, never before: an unset backup folder here is
-    /// a named error, not a prompt for a destination, and prompting for one is a backup gesture
-    /// whose cancel wording is worded for a backup, not a restore. <c>row.IsBusy</c> is different:
-    /// it is this row's own re-entrancy guard and is raised immediately, before the precondition
-    /// check or the picker dialog run, so a second click on the same row while either is still
-    /// pending cannot slip through and start two restores against the same save directory — the
-    /// app's only destructive operation.
+    /// One-line forward: the flow lives in <see cref="RowActionsCoordinator.RestoreAsync"/>,
+    /// which receives the row's step progress built here on the UI thread.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanRestoreRow))]
-    private async Task RestoreAsync(GameRowViewModel? row)
-    {
-        if (row is null || row.IsBusy)
-            return;
-
-        row.IsBusy = true;
-        try
-        {
-            var hasRoot = _session.TryGetConfiguredBackupRoot(out var root);
-
-            var refusal = await _gameActions.CheckRestorePreconditionsAsync(row, hasRoot ? root : null);
-            if (refusal is not null)
-            {
-                Report(refusal);
-                return;
-            }
-
-            var plan = await _gameActions.PickRestoreAsync(row, root);
-            if (plan is null)
-            {
-                // A cancelled picker is not a failure — no dialog, just the status line, matching
-                // how ChangeBackupRootAsync treats a cancelled folder picker.
-                StatusMessage = Strings.Get("str_restore_cancelled");
-                return;
-            }
-
-            IsRestoreRunning = ++_restoresInFlight > 0;
-            try
-            {
-                // Constructed here, on the UI thread, so its callbacks marshal back onto the
-                // dispatcher rather than arriving on the Task.Run thread inside GameActions.RestoreAsync.
-                var progress = CreateStepProgress(row);
-
-                StatusMessage = Strings.Format("str_restore_inProgress", row.DisplayName);
-                var result = await _gameActions.RestoreAsync(row, plan, progress);
-
-                // Progress and outcome never share a surface: the bar is cleared before the
-                // result reaches the transient one.
-                row.RestoreStep = 0;
-                row.RestoreStepText = "";
-
-                if (result.Success)
-                    row.RestoredArchiveTakenAt = plan.Picked.TakenAt;
-
-                Report(result);
-                StartStatusScan(only: new[] { row });
-            }
-            finally
-            {
-                row.RestoreStep = 0;
-                row.RestoreStepText = "";
-                IsRestoreRunning = --_restoresInFlight > 0;
-            }
-        }
-        finally
-        {
-            row.IsBusy = false;
-        }
-    }
+    private Task RestoreAsync(GameRowViewModel? row) =>
+        _rowActions.RestoreAsync(row, row is null ? null : CreateStepProgress(row));
 
     /// <summary>
     /// Keeps a per-row restore from starting on a row a running bulk operation (backup-all-changed,
@@ -1270,31 +1156,10 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
     private bool CanRestoreRow(GameRowViewModel? row) => row is not null && !row.IsBusy && !IsBulkBackupRunning;
 
     /// <summary>
-    /// Opens the row's resolved save folder in Explorer (row overflow). Reachable only from
-    /// there. An unresolvable template reports the Game cell's own problem sentence rather than a
-    /// second, differently-worded one for the same fact.
+    /// One-line forward: the flow lives in <see cref="RowActionsCoordinator.OpenSaveFolderAsync"/>.
     /// </summary>
     [RelayCommand]
-    private async Task OpenSaveFolderAsync(GameRowViewModel? row)
-    {
-        if (row is null)
-            return;
-
-        if (!PathResolver.TryResolve(row.Game.SaveDirTemplate, null, out var dir, out _))
-        {
-            Report(OperationResult.Fail(Strings.Get("str_game_pathError")));
-            return;
-        }
-
-        if (!Directory.Exists(dir))
-        {
-            Report(OperationResult.Fail(Strings.Get("str_open_notAFolder")));
-            return;
-        }
-
-        var result = await Task.Run(() => _dialog.OpenInEditor(dir));
-        Report(result);
-    }
+    private Task OpenSaveFolderAsync(GameRowViewModel? row) => _rowActions.OpenSaveFolderAsync(row);
 
     /// <summary>
     /// The repair route for a broken save path: shows the Change Save Folder dialog pre-filled with the row's current
@@ -1634,6 +1499,20 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
         OnPropertyChanged(nameof(BackupRootFullPath));
         return picked;
     }
+
+    // The nine IRowActionHost members below exist only for RowActionsCoordinator — implemented
+    // explicitly so no public member is added, and each routes one coordinator touch back onto
+    // the same view-model state the pre-split inline bodies wrote directly.
+
+    async Task<string?> IRowActionHost.EnsureBackupRootAsync() => await EnsureBackupRootAsync();
+    bool IRowActionHost.TryGetConfiguredBackupRoot(out string root) => _session.TryGetConfiguredBackupRoot(out root);
+    void IRowActionHost.SetStatus(string message) => StatusMessage = message;
+    void IRowActionHost.Report(OperationResult result) => Report(result);
+    void IRowActionHost.Rescan(GameRowViewModel row) => StartStatusScan(only: new[] { row });
+    void IRowActionHost.BackupStarted() => IsBackupRunning = ++_backupsInFlight > 0;
+    void IRowActionHost.BackupFinished() => IsBackupRunning = --_backupsInFlight > 0;
+    void IRowActionHost.RestoreStarted() => IsRestoreRunning = ++_restoresInFlight > 0;
+    void IRowActionHost.RestoreFinished() => IsRestoreRunning = --_restoresInFlight > 0;
 
     /// <summary>
     /// Routes an outcome to its message surface: <see cref="StatusMessage"/> is always set
