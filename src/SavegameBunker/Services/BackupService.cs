@@ -515,12 +515,17 @@ public sealed class BackupService
         }
 
         // Deliberately-skipped paths are excluded from the expected set — same comparer as the
-        // dictionary itself, and only relative file names can ever collide (the walk reports
-        // directory paths verbatim, which never match a relative file key).
+        // dictionary itself, and DirectoryWalk reports skips relative to the walk root, which is
+        // the same form EnumerateRelativeFiles keys. A skipped DIRECTORY has no file key: its
+        // relative subtree prefix removes every file that lives under it.
         if (skipped is not null)
         {
             var skippedSet = new HashSet<string>(skipped, StringComparer.OrdinalIgnoreCase);
-            foreach (var key in sourceFiles.Keys.Where(skippedSet.Contains).ToList())
+            var skippedDirs = skippedSet.Where(p => sourceFiles.Keys.All(k => !string.Equals(k, p, StringComparison.OrdinalIgnoreCase))).ToList();
+            foreach (var key in sourceFiles.Keys
+                .Where(k => skippedSet.Contains(k)
+                         || skippedDirs.Any(d => k.StartsWith(d + "/", StringComparison.OrdinalIgnoreCase)))
+                .ToList())
                 sourceFiles.Remove(key);
         }
 
