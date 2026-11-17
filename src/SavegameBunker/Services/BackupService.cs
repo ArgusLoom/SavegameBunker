@@ -126,7 +126,7 @@ public sealed class BackupService
 
             // Success is reported only after the archive is reopened and its entries matched
             // against a fresh walk of the save directory.
-            var verificationFailure = DescribeVerificationFailure(tempPath, saveDir, excludedDirs);
+            var verificationFailure = DescribeVerificationFailure(tempPath, saveDir, excludedDirs, skippedPaths);
             if (verificationFailure is not null)
             {
                 TryDelete(tempPath);
@@ -423,8 +423,16 @@ public sealed class BackupService
     /// never throws. Exposed <c>internal</c> rather than <c>private</c> so tests can drive
     /// it directly.
     /// </summary>
+    /// <param name="skipped">
+    /// Paths deliberately absent from the archive — files the archive pass could not open (audit
+    /// A2) and subtrees the walk could not read (audit A1). Removed from the expected set before
+    /// comparison: those files are reported as a warning on the result, and re-demands them here
+    /// would turn the skip policy back into a hard failure through verification's back door.
+    /// Verification still fails for any OTHER mismatch — a file that vanished, shrank or grew.
+    /// </param>
     internal static string? DescribeVerificationFailure(
-        string archivePath, string sourceDir, IReadOnlyCollection<string>? excludedDirs = null)
+        string archivePath, string sourceDir, IReadOnlyCollection<string>? excludedDirs = null,
+        IReadOnlyCollection<string>? skipped = null)
     {
         Dictionary<string, long> sourceFiles;
         try
@@ -436,6 +444,16 @@ public sealed class BackupService
         catch (Exception ex)
         {
             return $"the save folder could not be re-read ({ex.Message})";
+        }
+
+        // Deliberately-skipped paths are excluded from the expected set — same comparer as the
+        // dictionary itself, and only relative file names can ever collide (the walk reports
+        // directory paths verbatim, which never match a relative file key).
+        if (skipped is not null)
+        {
+            var skippedSet = new HashSet<string>(skipped, StringComparer.OrdinalIgnoreCase);
+            foreach (var key in sourceFiles.Keys.Where(skippedSet.Contains).ToList())
+                sourceFiles.Remove(key);
         }
 
         Dictionary<string, long> archiveFiles;
@@ -550,34 +568,52 @@ public sealed class BackupService
             // Opened before the entry is created, matching ZipFileExtensions.CreateEntryFromFile's
             // own ordering: a file that cannot be opened fails here, before a dangling entry is
             // ever added to the archive. File.OpenRead's mode/access/share are the same ones that
-            // helper used, so a file another process holds open behaves exactly as it does today.
-            using var source = File.OpenRead(fullPath);
-
-            var entry = zip.CreateEntry(relative, CompressionLevel.Optimal);
-
-            // Same clamp the BCL helper applies — the zip timestamp format cannot represent a
-            // year outside 1980-2107.
-            var lastWrite = File.GetLastWriteTime(fullPath);
-            if (lastWrite.Year < 1980 || lastWrite.Year > 2107)
-                lastWrite = new DateTime(1980, 1, 1, 0, 0, 0);
-            entry.LastWriteTime = lastWrite;
-
-            using (var entryStream = entry.Open())
+            // helper used (FileShare.Read first, the write-compatible share), so a file another
+            // process holds open behaves exactly as it does today — except that a file that
+            // cannot be opened at all is now skipped and reported via <paramref name="skipped"/>
+            // instead of aborting the whole backup (audit A2): one locked file must not cost the
+            // user every other file in the archive. The path lands in the same warning the walk's
+            // skipped subtrees produce, so the archive is never mistaken for complete.
+            FileStream source;
+            try
             {
-                long fileWritten = 0;
-                int read;
-                while ((read = source.Read(buffer, 0, buffer.Length)) > 0)
-                {
-                    entryStream.Write(buffer, 0, read);
-                    fileWritten += read;
+                source = File.OpenRead(fullPath);
+            }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException
+                or FileNotFoundException or DirectoryNotFoundException or PathTooLongException)
+            {
+                skipped?.Add(relative);
+                continue;
+            }
 
-                    // The walk's own length is the ceiling within this file — a file that grew
-                    // under the walk cannot push the candidate past what the bar expects.
-                    var candidate = completed + Math.Min(fileWritten, length);
-                    if (candidate - lastReported >= ReportIntervalBytes)
+            using (source)
+            {
+                var entry = zip.CreateEntry(relative, CompressionLevel.Optimal);
+
+                // Same clamp the BCL helper applies — the zip timestamp format cannot represent a
+                // year outside 1980-2107.
+                var lastWrite = File.GetLastWriteTime(fullPath);
+                if (lastWrite.Year < 1980 || lastWrite.Year > 2107)
+                    lastWrite = new DateTime(1980, 1, 1, 0, 0, 0);
+                entry.LastWriteTime = lastWrite;
+
+                using (var entryStream = entry.Open())
+                {
+                    long fileWritten = 0;
+                    int read;
+                    while ((read = source.Read(buffer, 0, buffer.Length)) > 0)
                     {
-                        progress?.Report(candidate);
-                        lastReported = candidate;
+                        entryStream.Write(buffer, 0, read);
+                        fileWritten += read;
+
+                        // The walk's own length is the ceiling within this file — a file that grew
+                        // under the walk cannot push the candidate past what the bar expects.
+                        var candidate = completed + Math.Min(fileWritten, length);
+                        if (candidate - lastReported >= ReportIntervalBytes)
+                        {
+                            progress?.Report(candidate);
+                            lastReported = candidate;
+                        }
                     }
                 }
             }
