@@ -2,16 +2,14 @@
   "model_profile": "balanced",
   "commit_docs": false,
   "search_gitignored": false,
-  "phase_branch_template": "feat/phase-{phase}",
-  "milestone_branch_template": "feat/{milestone}",
-  "quick_branch_template": "fix/{slug}",
   "workflow": {
     "research": true,
     "plan_check": true,
     "verifier": true,
     "nyquist_validation": true,
     "_auto_chain_active": false,
-    "use_worktrees": false
+    "use_worktrees": false,
+    "ai_integration_phase": true
   },
   "parallelization": 1,
   "brave_search": false,
