@@ -8,8 +8,8 @@ aus. SavegameBunker geht dann so vor:
 
 1. Schreibt zuerst eine Sicherheitskopie Ihrer **aktuellen** Spielstände.
 2. Entpackt die gewählte Sicherung in einen temporären Ordner neben Ihren Spielständen.
-3. Entfernt den alten Spielstand-Ordner.
-4. Benennt den neuen Ordner an dessen Stelle um.
+3. Benennt den alten Spielstand-Ordner beiseite.
+4. Benennt den neuen Ordner an dessen Stelle und entfernt danach die beiseitegelegte Kopie.
 
 Diese Reihenfolge ist wichtig: Ihre aktuellen Spielstände werden erst gelöscht, nachdem bereits
 eine Sicherheitskopie davon im Sicherungsordner geschrieben wurde.

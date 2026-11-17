@@ -7,8 +7,8 @@ every backup for that game, newest first. Pick one. SavegameBunker then:
 
 1. Writes a safety backup of your **current** saves first.
 2. Extracts the backup you picked into a temporary folder next to your saves.
-3. Removes the old save folder.
-4. Renames the new one into place.
+3. Renames the old save folder aside.
+4. Renames the new one into place, then removes the renamed-aside copy.
 
 That order matters: your current saves are only ever deleted after a safety copy of them has
 already been written to the backup volume.
