@@ -269,7 +269,16 @@ public sealed class RestoreService
     /// <c>backupRoot</c>-wide walk and never a startup sweep. The save directory's parent can
     /// itself be a relocated known folder on a mapped or slow network drive, and walking it at
     /// every launch to tidy a rare leftover is the wrong trade — the identical reasoning
-    /// <c>CleanStaleTempFiles</c> already records for the backup side. Reports nothing, ever:
+    /// <c>CleanStaleTempFiles</c> already records for the backup side. The sweep is destructive
+    /// by name, and it is safe for two reasons: the
+    /// <c>&lt;leaf-name&gt;.savegamebunker-restore-tmp-&lt;guid&gt;</c> pattern is created only by
+    /// <see cref="Restore"/> itself — no other producer on the machine writes that name, so a
+    /// match can only be this app's own leftover — and the pattern embeds the save directory's
+    /// leaf name, so the sweep cannot reach extraction directories belonging to a different
+    /// game's folder even if one sat in the same parent. A matched directory is also never the
+    /// live save data: the real save path never carries the suffix, and the only other
+    /// rename-aside this class makes (<c>-old-</c>) is deliberately not matched — see the
+    /// remarks below. Reports nothing, ever:
     /// housekeeping the user never knew about is not an event they can act on, and a message
     /// about a directory they never saw reads as a fault.
     /// </summary>
