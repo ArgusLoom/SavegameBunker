@@ -119,8 +119,8 @@ machine. SavegameBunker always puts the files back faithfully, but it can't make
 
 | Keys | What happens |
 |---|---|
-| **Ctrl+B** | Back up the selected row |
-| **Ctrl+R** | Restore the selected row |
+| **Ctrl+B** | Back up the focused row |
+| **Ctrl+R** | Restore the focused row |
 | **Alt**, then the underlined letter | Press any toolbar button |
 
 Everything stays readable at Windows text sizes up to 150%. SavegameBunker starts light or dark,
