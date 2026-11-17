@@ -5,16 +5,18 @@ using SavegameBunker.Services;
 namespace SavegameBunker.ViewModels;
 
 /// <summary>
-/// The bulk backup run <see cref="MainViewModel"/> used to hold inline: "Back up all changed"
-/// and "Back up selected" share this one orchestrator, which claims every target row, runs the
-/// backup loop in one <see cref="Task.Run"/> and releases every target row again in a
+/// The bulk backup and bulk restore runs <see cref="MainViewModel"/> used to hold inline:
+/// "Back up all changed", "Back up selected" and "Restore selected" share this one orchestrator,
+/// which claims every target row, runs the loop (backup in one <see cref="Task.Run"/>, restore
+/// sequentially on the caller's own context) and releases every target row again in a
 /// <c>finally</c>.
 /// </summary>
 /// <remarks>
 /// <c>internal</c> and held only as a private readonly field on <see cref="MainViewModel"/> —
 /// never as a public property — so nothing in XAML can bind a path to it. It references no WPF
 /// type and holds no observable state: <see cref="MainViewModel"/> keeps every bound property
-/// (the bulk counters, each row's progress fields) and constructs every <c>Progress&lt;T&gt;</c>
+/// (the bulk counters, the restore-sentence flag, each row's progress fields) and constructs
+/// every <c>Progress&lt;T&gt;</c>
 /// on the UI thread and hands it in — this class never builds one, so callback ordering matches
 /// the pre-split single-owner behavior exactly.
 /// <para>
@@ -152,6 +154,108 @@ internal sealed class BulkBackupCoordinator
 
         return new BulkBackupRun(failed, failureDetails);
     }
+
+    /// <summary>
+    /// Runs the shared bulk-restore loop over <paramref name="targets"/> in input order,
+    /// sequentially on the caller's own context — never one <see cref="Task.Run"/> around the
+    /// loop, because the per-game restore confirmation needs the dispatcher. Returns the counts
+    /// and per-game failures the closing outcome is composed from; null for an empty target
+    /// list before touching anything.
+    /// </summary>
+    /// <param name="stepProgress">
+    /// One per-row step reporter per target, each constructed by the caller on the UI thread.
+    /// </param>
+    /// <param name="onStarted">
+    /// Called once, after the Checking reset and before any row is claimed — the caller raises
+    /// its bulk counters (with the restore sentence) here.
+    /// </param>
+    /// <param name="onItem">
+    /// Called at the top of each iteration with the 1-based index and the display name, before
+    /// that game's own work starts.
+    /// </param>
+    /// <param name="onFinished">
+    /// Called exactly once from the finally, after every target has been released — the caller
+    /// clears its counters there. The restore finally does not touch the byte counters, as
+    /// today: a restore never writes them.
+    /// </param>
+    public async Task<BulkRestoreRun?> RestoreAsync(
+        IReadOnlyList<GameRowViewModel> targets,
+        string backupRoot,
+        IReadOnlyDictionary<GameRowViewModel, IProgress<int>> stepProgress,
+        Action<int, string> onStarted,
+        Action<int, string> onItem,
+        Action onFinished)
+    {
+        if (targets.Count == 0)
+            return null;
+
+        // The same Checking reset, counter raise (via onStarted) and IsBusy claim order as the
+        // backup path — the re-entrancy guard is one sequence shared by both bulk kinds.
+        foreach (var row in targets)
+            row.ApplyBackupComparison(BackupComparison.Checking());
+
+        onStarted(targets.Count, targets[0].DisplayName);
+
+        foreach (var row in targets)
+            row.IsBusy = true;
+
+        var failed = new List<string>();
+        var failureDetails = new List<string>();
+        var declined = new List<string>();
+        var restored = 0;
+
+        try
+        {
+            // The existing sequential loop, on the caller's own context — never wrapped in one
+            // Task.Run, because the per-game Confirm needs the dispatcher: the confirmation is a
+            // blocking wait for a dialog whose pump lives on the UI thread.
+            for (var i = 0; i < targets.Count; i++)
+            {
+                var row = targets[i];
+                onItem(i + 1, row.DisplayName);
+
+                var (plan, error) = await _gameActions.TryPlanNewestOrdinaryAsync(row, backupRoot);
+                if (error is not null)
+                {
+                    failed.Add(row.DisplayName);
+                    failureDetails.Add(error.Message);
+                    continue;
+                }
+
+                var result = await _gameActions.RestoreAsync(row, plan!, stepProgress[row], i + 1, targets.Count);
+                row.RestoreStep = 0;
+                row.RestoreStepText = "";
+
+                if (result.Cancelled)
+                {
+                    declined.Add(row.DisplayName);
+                    continue;
+                }
+
+                if (result.Success)
+                {
+                    restored++;
+                    row.RestoredArchiveTakenAt = plan!.Picked.TakenAt;
+                }
+                else
+                {
+                    failed.Add(row.DisplayName);
+                    failureDetails.Add(result.Message);
+                }
+            }
+        }
+        finally
+        {
+            // Release before the caller's onFinished, as in the backup path. The restore finally
+            // does not touch the byte counters, as today.
+            foreach (var row in targets)
+                row.IsBusy = false;
+
+            onFinished();
+        }
+
+        return new BulkRestoreRun(restored, failed, failureDetails, declined);
+    }
 }
 
 /// <summary>
@@ -159,3 +263,10 @@ internal sealed class BulkBackupCoordinator
 /// one failure sentence per failed game for the blocking dialog.
 /// </summary>
 internal sealed record BulkBackupRun(IReadOnlyList<string> Failed, IReadOnlyList<string> FailureDetails);
+
+/// <summary>
+/// What one bulk restore run produced: how many games were actually restored, the display names
+/// of the failed and declined games, and one failure sentence per failed game for the blocking
+/// dialog.
+/// </summary>
+internal sealed record BulkRestoreRun(int Restored, IReadOnlyList<string> Failed, IReadOnlyList<string> FailureDetails, IReadOnlyList<string> Declined);

@@ -1344,11 +1344,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
             {
                 // Constructed here, on the UI thread, so its callbacks marshal back onto the
                 // dispatcher rather than arriving on the Task.Run thread inside GameActions.RestoreAsync.
-                var progress = new Progress<int>(step =>
-                {
-                    row.RestoreStep = step;
-                    row.RestoreStepText = Strings.Get($"str_restoreStep_{step}");
-                });
+                var progress = CreateStepProgress(row);
 
                 StatusMessage = Strings.Format("str_restore_inProgress", row.DisplayName);
                 var result = await _gameActions.RestoreAsync(row, plan, progress);
@@ -1571,6 +1567,18 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
         new Progress<long>(written => { if (row.BackupBytesTotal > 0) row.BackupBytesWritten = written; });
 
     /// <summary>
+    /// The one per-row restore-step reporter lambda, shared by the single-row restore and every
+    /// bulk-restore target. Constructed on the UI thread, for the same reason
+    /// <see cref="CreateByteProgress"/> is.
+    /// </summary>
+    private static IProgress<int> CreateStepProgress(GameRowViewModel row) =>
+        new Progress<int>(step =>
+        {
+            row.RestoreStep = step;
+            row.RestoreStepText = Strings.Get($"str_restoreStep_{step}");
+        });
+
+    /// <summary>
     /// Delegates the bulk-backup loop — root resolution stays here, the claim, the write loop
     /// and the release live in <see cref="BulkBackupCoordinator.BackupAsync"/> — and reports the
     /// closing outcome exactly as before.
@@ -1651,9 +1659,9 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
         HasAnySelected && !IsAnyRowChecking && !IsAnyRowBusy && !IsBackupRunning && !IsRestoreRunning && !IsBulkBackupRunning;
 
     /// <summary>
-    /// Restores every checked row from its newest ordinary backup, no picker.
-    /// Sequential <see cref="GameActions.RestoreAsync"/> on this command's async path — never one
-    /// <c>Task.Run</c> around the loop, because Confirm needs the dispatcher.
+    /// Restores every checked row from its newest ordinary backup, no picker. The sequential
+    /// loop — on the command's own context, never one <c>Task.Run</c> around it, because Confirm
+    /// needs the dispatcher — lives in <see cref="BulkBackupCoordinator.RestoreAsync"/>.
     /// </summary>
     [RelayCommand(CanExecute = nameof(CanRestoreSelected))]
     private async Task RestoreSelectedAsync()
@@ -1671,75 +1679,21 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
             return;
         }
 
-        foreach (var row in targets)
-            row.ApplyBackupComparison(BackupComparison.Checking());
+        // One step reporter per target, built up front on the UI thread exactly like the bulk
+        // backup's byte reporters — construction has no side effect, so building them before the
+        // loop instead of per iteration is behavior-identical.
+        var stepProgress = targets.ToDictionary(row => row, CreateStepProgress);
 
-        _bulkProgressIsRestore = true;
-        BulkBackupTotal = targets.Count;
-        BulkBackupCurrent = 0;
-        BulkBackupCurrentGameName = targets[0].DisplayName;
+        var run = await _bulk.RestoreAsync(
+            targets,
+            root,
+            stepProgress,
+            (total, first) => BeginBulkProgress(total, first, isRestore: true),
+            SetBulkProgress,
+            EndBulkProgress);
 
-        foreach (var row in targets)
-            row.IsBusy = true;
-
-        var failed = new List<string>();
-        var failureDetails = new List<string>();
-        var declined = new List<string>();
-        var restored = 0;
-        try
-        {
-            for (var i = 0; i < targets.Count; i++)
-            {
-                var row = targets[i];
-                BulkBackupCurrent = i + 1;
-                BulkBackupCurrentGameName = row.DisplayName;
-
-                var (plan, error) = await _gameActions.TryPlanNewestOrdinaryAsync(row, root);
-                if (error is not null)
-                {
-                    failed.Add(row.DisplayName);
-                    failureDetails.Add(error.Message);
-                    continue;
-                }
-
-                var progress = new Progress<int>(step =>
-                {
-                    row.RestoreStep = step;
-                    row.RestoreStepText = Strings.Get($"str_restoreStep_{step}");
-                });
-
-                var result = await _gameActions.RestoreAsync(row, plan!, progress, i + 1, targets.Count);
-                row.RestoreStep = 0;
-                row.RestoreStepText = "";
-
-                if (result.Cancelled)
-                {
-                    declined.Add(row.DisplayName);
-                    continue;
-                }
-
-                if (result.Success)
-                {
-                    restored++;
-                    row.RestoredArchiveTakenAt = plan!.Picked.TakenAt;
-                }
-                else
-                {
-                    failed.Add(row.DisplayName);
-                    failureDetails.Add(result.Message);
-                }
-            }
-        }
-        finally
-        {
-            foreach (var row in targets)
-                row.IsBusy = false;
-
-            _bulkProgressIsRestore = false;
-            BulkBackupTotal = 0;
-            BulkBackupCurrent = 0;
-            BulkBackupCurrentGameName = null;
-        }
+        if (run is null)
+            return;
 
         StartStatusScan(only: targets);
 
@@ -1747,7 +1701,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
         // details list on every branch is behavior-identical to the old failure-only branch:
         // failureDetails gains an entry exactly when failed does, Report ignores an empty details
         // list, and it returns early for a Cancel result.
-        Report(BulkRunRules.RestoreOutcome(targets, restored, failed, declined), failureDetails);
+        Report(BulkRunRules.RestoreOutcome(targets, run.Restored, run.Failed, run.Declined), run.FailureDetails);
     }
 
     /// <summary>
