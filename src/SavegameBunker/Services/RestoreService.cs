@@ -123,13 +123,14 @@ public sealed class RestoreService
             // opposite direction — this is the round-trip proof. Nothing about the live save
             // path has been touched yet.
             //
-            // This check is deliberately the entry-set-and-uncompressed-length comparison the
-            // backup path already chose, and no stronger one: restoring at a different assurance
-            // level than backing up would be an unexplained asymmetry in one codebase. .NET 10
-            // does not validate an entry's CRC-32 on read (that check arrived in .NET 11), so a
-            // passing verification proves entry-set and length parity only — a bit flip inside an
-            // otherwise structurally valid archive is accepted, not detected, on both sides alike.
-            var verificationFailure = BackupService.DescribeVerificationFailure(archivePath, tempDir);
+            // The entry-set-and-uncompressed-length comparison is shared with the backup path, and
+            // since A3 the verification also hashes every entry's decompressed stream against the
+            // extracted file on disk (verifyContent: true) — .NET 10 does not validate an entry's
+            // CRC-32 on read (that check arrived in .NET 11), and no stored hash sidecar exists,
+            // so hashing both sides is what actually detects a bit flip inside an otherwise
+            // structurally valid archive on either side. Extracted-but-corrupt now fails before
+            // the swap, never after it.
+            var verificationFailure = BackupService.DescribeVerificationFailure(archivePath, tempDir, verifyContent: true);
             if (verificationFailure is not null)
             {
                 TryDeleteDirectory(tempDir);

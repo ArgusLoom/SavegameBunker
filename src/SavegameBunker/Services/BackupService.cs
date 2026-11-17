@@ -2,6 +2,7 @@ using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Security.Cryptography;
 using SavegameBunker.Models;
 
 namespace SavegameBunker.Services;
@@ -110,12 +111,13 @@ public sealed class BackupService
             // listed too for the case where the backup folder IS the save folder.
             var excludedDirs = new[] { NormalizeDir(backupRoot), NormalizeDir(targetDir) };
 
+            Dictionary<string, string> entryHashes;
             try
             {
                 // Own walk, not ZipFile.CreateFromDirectory: that API follows directory junctions
                 // and would archive whatever they point at (Documents, SSH keys, …). The empty-check
                 // and the scanner already skip reparse points; the zip must skip them too.
-                ArchiveSaveDir(saveDir, tempPath, progress, excludedDirs, skippedPaths);
+                entryHashes = ArchiveSaveDir(saveDir, tempPath, progress, excludedDirs, skippedPaths);
             }
             catch (Exception ex)
             {
@@ -126,7 +128,8 @@ public sealed class BackupService
 
             // Success is reported only after the archive is reopened and its entries matched
             // against a fresh walk of the save directory.
-            var verificationFailure = DescribeVerificationFailure(tempPath, saveDir, excludedDirs, skippedPaths);
+            var verificationFailure = DescribeVerificationFailure(
+                tempPath, saveDir, excludedDirs, skippedPaths, entryHashes);
             if (verificationFailure is not null)
             {
                 TryDelete(tempPath);
@@ -418,6 +421,20 @@ public sealed class BackupService
     }
 
     /// <summary>
+    /// The SHA-256 of a stream, buffered with the same buffer size the copy uses. Hex-encoded;
+    /// the comparison is case-insensitive everywhere it happens.
+    /// </summary>
+    private static string ComputeSha256(Stream stream)
+    {
+        using var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256);
+        var buffer = new byte[CopyBufferSize];
+        int read;
+        while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+            hasher.AppendData(buffer, 0, read);
+        return Convert.ToHexString(hasher.GetHashAndReset());
+    }
+
+    /// <summary>
     /// Compares a just-written archive against a fresh walk of its source directory. Returns
     /// <c>null</c> when they match, or a short detail sentence naming the first difference found —
     /// never throws. Exposed <c>internal</c> rather than <c>private</c> so tests can drive
@@ -430,9 +447,22 @@ public sealed class BackupService
     /// would turn the skip policy back into a hard failure through verification's back door.
     /// Verification still fails for any OTHER mismatch — a file that vanished, shrank or grew.
     /// </param>
+    /// <param name="expectedHashes">
+    /// Optional entry-name-to-SHA-256 map recorded during the archive write. When present, each
+    /// entry's decompressed content is re-hashed from the archive and compared — the content
+    /// check that catches a file torn mid-write whose length happens to be intact (audit A3).
+    /// Null keeps the name-and-length-only check.
+    /// </param>
+    /// <param name="verifyContent">
+    /// Used by the restore path (which has no recorded hashes): when true, both the archive
+    /// entry's decompressed content AND the corresponding file on disk are hashed and compared —
+    /// proving the extraction wrote what the archive holds, not merely that lengths agree.
+    /// Ignored when <paramref name="expectedHashes"/> is present.
+    /// </param>
     internal static string? DescribeVerificationFailure(
         string archivePath, string sourceDir, IReadOnlyCollection<string>? excludedDirs = null,
-        IReadOnlyCollection<string>? skipped = null)
+        IReadOnlyCollection<string>? skipped = null,
+        IReadOnlyDictionary<string, string>? expectedHashes = null, bool verifyContent = false)
     {
         Dictionary<string, long> sourceFiles;
         try
@@ -460,11 +490,57 @@ public sealed class BackupService
         try
         {
             using var zip = ZipFile.OpenRead(archivePath);
-            archiveFiles = zip.Entries
+            var realEntries = zip.Entries
                 // Directory placeholder entries are filtered unconditionally — whether
                 // CreateFromDirectory emits one for a nested empty subdirectory is undocumented.
                 .Where(e => !e.FullName.EndsWith('/'))
-                .ToDictionary(e => e.FullName, e => e.Length, StringComparer.OrdinalIgnoreCase);
+                .ToList();
+            archiveFiles = realEntries.ToDictionary(e => e.FullName, e => e.Length, StringComparer.OrdinalIgnoreCase);
+
+            // Content check (audit A3): a torn mid-write file whose length survived is invisible
+            // to the name+length comparison, so each entry's decompressed stream is hashed. With
+            // expectedHashes (backup path) the hash was recorded from the copy stream; with
+            // verifyContent (restore path, which has no recorded hashes) the file on disk is
+            // hashed too. Files with no expected hash — an archive from an older version of this
+            // app, verified here through a call site that passes neither flag — keep the
+            // name+length-only behaviour, so nothing about existing archives is broken.
+            if (expectedHashes is not null || verifyContent)
+            {
+                foreach (var entry in realEntries)
+                {
+                    string entryHash;
+                    try
+                    {
+                        using var entryStream = entry.Open();
+                        entryHash = ComputeSha256(entryStream);
+                    }
+                    catch (Exception ex)
+                    {
+                        return $"\"{entry.FullName}\" could not be read from the archive ({ex.Message})";
+                    }
+
+                    if (expectedHashes is not null)
+                    {
+                        if (!expectedHashes.TryGetValue(entry.FullName, out var expected)
+                            || !string.Equals(expected, entryHash, StringComparison.OrdinalIgnoreCase))
+                            return $"\"{entry.FullName}\" content does not match the source file (hash mismatch)";
+                    }
+                    else if (verifyContent)
+                    {
+                        var fullPath = Path.Combine(sourceDir, entry.FullName.Replace('/', Path.DirectorySeparatorChar));
+                        try
+                        {
+                            using var fileStream = File.OpenRead(fullPath);
+                            if (!string.Equals(ComputeSha256(fileStream), entryHash, StringComparison.OrdinalIgnoreCase))
+                                return $"\"{entry.FullName}\" content differs between the archive and the extracted copy (hash mismatch)";
+                        }
+                        catch (Exception ex)
+                        {
+                            return $"\"{entry.FullName}\" could not be read back from {sourceDir} ({ex.Message})";
+                        }
+                    }
+                }
+            }
         }
         catch (InvalidDataException ex)
         {
@@ -552,10 +628,16 @@ public sealed class BackupService
     /// could not read, reported by the caller on the result so an incomplete archive is never
     /// mistaken for a complete one.
     /// </param>
-    private static void ArchiveSaveDir(
+    /// <returns>
+    /// SHA-256 of every entry's uncompressed content, keyed by entry name — recorded for
+    /// <see cref="DescribeVerificationFailure"/>'s content check, so a file torn mid-write that
+    /// happens to keep its length can no longer pass verification (audit A3).
+    /// </returns>
+    private static Dictionary<string, string> ArchiveSaveDir(
         string saveDir, string tempPath, IProgress<long>? progress, IReadOnlyCollection<string>? excludedDirs = null,
         ICollection<string>? skipped = null)
     {
+        var entryHashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         using var zip = ZipFile.Open(tempPath, ZipArchiveMode.Create);
         var buffer = new byte[CopyBufferSize];
         long completed = 0;
@@ -587,6 +669,7 @@ public sealed class BackupService
             }
 
             using (source)
+            using (var hasher = IncrementalHash.CreateHash(HashAlgorithmName.SHA256))
             {
                 var entry = zip.CreateEntry(relative, CompressionLevel.Optimal);
 
@@ -604,6 +687,7 @@ public sealed class BackupService
                     while ((read = source.Read(buffer, 0, buffer.Length)) > 0)
                     {
                         entryStream.Write(buffer, 0, read);
+                        hasher.AppendData(buffer, 0, read);
                         fileWritten += read;
 
                         // The walk's own length is the ceiling within this file — a file that grew
@@ -616,6 +700,10 @@ public sealed class BackupService
                         }
                     }
                 }
+
+                // Recorded for verification: hashing during the copy stream costs one extra pass
+                // of the hash algorithm only — no second read of the source file.
+                entryHashes[relative] = Convert.ToHexString(hasher.GetHashAndReset());
             }
 
             // The per-file boundary report survives as the floor: even with no intra-file report
@@ -627,6 +715,8 @@ public sealed class BackupService
                 lastReported = completed;
             }
         }
+
+        return entryHashes;
     }
 
     /// <summary>
