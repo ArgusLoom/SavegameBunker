@@ -1,0 +1,674 @@
+<ui:FluentWindow x:Class="SavegameBunker.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:b="clr-namespace:SavegameBunker.Behaviors"
+        Title="{Binding WindowTitle}" Height="500" Width="1000"
+        MinHeight="500" MinWidth="1000"
+        WindowStartupLocation="CenterScreen"
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="Mica"
+        AllowDrop="True"
+        PreviewDragOver="MainWindow_PreviewDragOver"
+        PreviewDragLeave="MainWindow_PreviewDragLeave"
+        PreviewDrop="MainWindow_PreviewDrop"
+        Closing="MainWindow_Closing">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="36"/>  <!-- TitleBar -->
+            <RowDefinition Height="*"/>   <!-- existing DockPanel content -->
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Title="{Binding WindowTitle}">
+            <ui:TitleBar.Icon>
+                <ui:ImageIcon Source="pack://application:,,,/titlebar-icon.png"/>
+            </ui:TitleBar.Icon>
+        </ui:TitleBar>
+
+        <DockPanel Grid.Row="1" Margin="{StaticResource md}">
+
+            <!-- Toolbar: WPF-UI has no ToolBar. A WrapPanel of ui:Button avoids the stock
+                 ToolBar's Aero gripper and overflow strip (always drawn, always light). -->
+            <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8">
+                <!-- Session-only Light/Dark toggle (no settings.json — see App.ToggleTheme). Hidden
+                     under Windows High Contrast, where Light/Dark is not a choice. Docked
+                     right, same size and chrome as the rest of the toolbar. -->
+                <ui:Button x:Name="ThemeToggleButton" Click="ThemeToggleButton_Click"
+                        DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}"
+                        ToolTip="{DynamicResource str_toolbar_toggleTheme_tip}"
+                        AutomationProperties.Name="{DynamicResource str_toolbar_toggleTheme}">
+                    <StackPanel Orientation="Vertical">
+                        <Viewbox Style="{StaticResource ToolbarGlyph}">
+                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Theme}"/>
+                        </Viewbox>
+                        <AccessText Text="{DynamicResource str_toolbar_toggleTheme}" Style="{StaticResource ToolbarButtonLabel}"/>
+                    </StackPanel>
+                </ui:Button>
+                <!-- Docked right, left of the theme toggle: opening the list file is a file-level
+                     action like the toggle beside it, not one of the game actions on the left. -->
+                <ui:Button x:Name="OpenCatalogButton" Command="{Binding OpenCatalogCommand}"
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource ToolbarButton}"
+                        ToolTip="{DynamicResource str_toolbar_openGamesList_tip}"
+                        AutomationProperties.Name="{DynamicResource str_toolbar_openGamesList}">
+                    <StackPanel Orientation="Vertical">
+                        <Viewbox Style="{StaticResource ToolbarGlyph}">
+                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.List}"/>
+                        </Viewbox>
+                        <AccessText Text="{DynamicResource str_toolbar_openGamesList_access}" Style="{StaticResource ToolbarButtonLabel}"/>
+                    </StackPanel>
+                </ui:Button>
+                <!-- Docked right, left of the catalog toggle: opening the guide is a session-level
+                     file-level action like its neighbours, not one of the game actions on the left. -->
+                <ui:Button x:Name="HelpButton" Command="{Binding HelpCommand}"
+                        DockPanel.Dock="Right"
+                        Style="{StaticResource ToolbarButton}"
+                        ToolTip="{DynamicResource str_toolbar_help_tip}"
+                        AutomationProperties.Name="{DynamicResource str_toolbar_help}">
+                    <StackPanel Orientation="Vertical">
+                        <Viewbox Style="{StaticResource ToolbarGlyph}">
+                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Help}"/>
+                        </Viewbox>
+                        <AccessText Text="{DynamicResource str_toolbar_help_access}" Style="{StaticResource ToolbarButtonLabel}"/>
+                    </StackPanel>
+                </ui:Button>
+            <WrapPanel x:Name="MainToolBar">
+                <ui:Button x:Name="FindGamesButton" Command="{Binding FindGamesCommand}"
+                        Style="{StaticResource ToolbarButton}"
+                        ToolTip="{DynamicResource str_toolbar_findGames_tip}"
+                        AutomationProperties.Name="{DynamicResource str_toolbar_findGames}">
+                    <StackPanel Orientation="Vertical">
+                        <Viewbox Style="{StaticResource ToolbarGlyph}">
+                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Scan}"/>
+                        </Viewbox>
+                        <AccessText Text="{DynamicResource str_toolbar_findGames_access}" Style="{StaticResource ToolbarButtonLabel}"/>
+                    </StackPanel>
+                </ui:Button>
+                <ui:Button x:Name="AddGameButton" Command="{Binding AddGameCommand}"
+                        Style="{StaticResource ToolbarButton}"
+                        ToolTip="{DynamicResource str_toolbar_addGame_tip}"
+                        AutomationProperties.Name="{DynamicResource str_toolbar_addGame}">
+                    <StackPanel Orientation="Vertical">
+                        <Viewbox Style="{StaticResource ToolbarGlyph}">
+                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Add}"/>
+                        </Viewbox>
+                        <AccessText Text="{DynamicResource str_toolbar_addGame_access}" Style="{StaticResource ToolbarButtonLabel}"/>
+                    </StackPanel>
+                </ui:Button>
+                <ui:Button x:Name="RefreshButton" Command="{Binding RefreshCommand}"
+                        Style="{StaticResource ToolbarButton}"
+                        ToolTip="{DynamicResource str_toolbar_refresh_tip}"
+                        AutomationProperties.Name="{DynamicResource str_toolbar_refresh}">
+                    <StackPanel Orientation="Vertical">
+                        <Viewbox Style="{StaticResource ToolbarGlyph}">
+                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Refresh}"/>
+                        </Viewbox>
+                        <AccessText Text="{DynamicResource str_toolbar_refresh_access}" Style="{StaticResource ToolbarButtonLabel}"/>
+                    </StackPanel>
+                </ui:Button>
+                <ui:Button x:Name="ChangeBackupRootButton" Command="{Binding ChangeBackupRootCommand}"
+                        Style="{StaticResource ToolbarButton}"
+                        ToolTip="{DynamicResource str_toolbar_changeBackupFolder_tip}"
+                        AutomationProperties.Name="{DynamicResource str_toolbar_changeBackupFolder}">
+                    <StackPanel Orientation="Vertical">
+                        <Viewbox Style="{StaticResource ToolbarGlyph}">
+                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Folder}"/>
+                        </Viewbox>
+                        <AccessText Text="{DynamicResource str_toolbar_changeBackupFolder_access}" Style="{StaticResource ToolbarButtonLabel}"/>
+                    </StackPanel>
+                </ui:Button>
+                <!-- Hidden, not disabled, when nothing qualifies — Visibility on HasBackupTargets,
+                     enablement on IsAnyRowChecking, so a half-finished sweep can never define the set. -->
+                <ui:Button x:Name="BackupAllChangedButton" Command="{Binding BackupAllChangedCommand}"
+                        Style="{StaticResource ToolbarButton}"
+                        ToolTip="{DynamicResource str_toolbar_backUpAllChanged_tip}"
+                        AutomationProperties.Name="{DynamicResource str_toolbar_backUpAllChanged}"
+                        Visibility="{Binding HasBackupTargets, Converter={StaticResource BoolToVis}}">
+                    <StackPanel Orientation="Vertical">
+                        <Viewbox Style="{StaticResource ToolbarGlyph}">
+                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Backup}"/>
+                        </Viewbox>
+                        <AccessText Text="{DynamicResource str_toolbar_backUpAllChanged}" Style="{StaticResource ToolbarButtonLabel}"/>
+                    </StackPanel>
+                </ui:Button>
+                <!-- Same visibility/enablement split as BackupAllChangedButton:
+                     visible on HasAnySelected (a computed flag), enabled on the command's own
+                     CanExecute, so a half-finished sweep or a running operation disables rather
+                     than hides it while a selection exists. -->
+                <ui:Button x:Name="BackupSelectedButton" Command="{Binding BackupSelectedCommand}"
+                        Style="{StaticResource ToolbarButton}"
+                        Visibility="{Binding HasAnySelected, Converter={StaticResource BoolToVis}}"
+                        ToolTip="{DynamicResource str_toolbar_backUpSelected_tip}"
+                        AutomationProperties.Name="{DynamicResource str_toolbar_backUpSelected}">
+                    <StackPanel Orientation="Vertical">
+                        <Viewbox Style="{StaticResource ToolbarGlyph}">
+                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Backup}"/>
+                        </Viewbox>
+                        <AccessText Text="{Binding BackupSelectedLabel}" Style="{StaticResource ToolbarButtonLabel}"/>
+                    </StackPanel>
+                </ui:Button>
+                <ui:Button x:Name="RestoreSelectedButton" Command="{Binding RestoreSelectedCommand}"
+                        Style="{StaticResource ToolbarButton}"
+                        Visibility="{Binding HasAnySelected, Converter={StaticResource BoolToVis}}"
+                        ToolTip="{DynamicResource str_toolbar_restoreSelected_tip}"
+                        AutomationProperties.Name="{DynamicResource str_toolbar_restoreSelected}">
+                    <StackPanel Orientation="Vertical">
+                        <Viewbox Style="{StaticResource ToolbarGlyph}">
+                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Restore}"/>
+                        </Viewbox>
+                        <AccessText Text="{Binding RestoreSelectedLabel}" Style="{StaticResource ToolbarButtonLabel}"/>
+                    </StackPanel>
+                </ui:Button>
+            </WrapPanel>
+            </DockPanel>
+
+            <!-- Real-time name search — its own full-width row above the grid, not
+                 squeezed into the toolbar WrapPanel above. UpdateSourceTrigger is set explicitly:
+                 Text's default trigger is LostFocus, which would silently break the real-time
+                 requirement while still compiling and looking correct. -->
+            <ui:TextBox DockPanel.Dock="Top" Margin="0,0,0,8"
+                        Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                        PlaceholderText="{DynamicResource str_search_placeholder}"/>
+
+            <!--
+                Status bar (persistent). The message sits on the left, and the two
+                context facts the requirement asks for — which games list is loaded, which backup
+                folder is in force — sit on the right, each trimmed to its short name with the full
+                path on hover.
+
+                They used to be a header block under a 20pt "SavegameBunker" heading. The heading merely
+                repeated the title bar, and putting persistent context along the bottom edge is
+                where a desktop application conventionally keeps it — the grid gets that vertical
+                space instead, which is the part of this window that actually needs it.
+            -->
+            <!-- One quiet strip, not three 1px cards. A single hairline on top separates it from
+                 the grid; the three facts stay the same, just without a box around each. -->
+            <Border DockPanel.Dock="Bottom" Margin="0,8,0,0" Padding="0,8,0,0"
+                    BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                    BorderThickness="0,1,0,0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Text="{Binding StatusLine}"
+                               Style="{StaticResource LabelText}"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding StatusLine}"/>
+                    <TextBlock Grid.Column="1" Text="{Binding CatalogDisplay}"
+                               Style="{StaticResource LabelText}"
+                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                               Margin="{StaticResource md}"
+                               ToolTip="{Binding CatalogPath}"/>
+                    <TextBlock x:Name="BackupRootText" Grid.Column="2" Text="{Binding BackupRootDisplay}"
+                               Style="{StaticResource LabelText}"
+                               TextTrimming="CharacterEllipsis" VerticalAlignment="Center"
+                               ToolTip="{Binding BackupRootFullPath}"/>
+                </Grid>
+            </Border>
+
+            <!-- Window-level: bulk backup is the one operation with an honest
+                 denominator — the selected count — so this bar is determinate. Collapsed unless a
+                 bulk run is in flight, and the label is width-bounded with character-ellipsis
+                 trimming so a very long game name cannot push the bar out of the window. -->
+            <Border DockPanel.Dock="Top" Padding="8,6" Margin="{StaticResource sm}"
+                    Visibility="{Binding IsBulkBackupRunning, Converter={StaticResource BoolToVis}}">
+                <StackPanel Orientation="Vertical">
+                    <TextBlock Text="{Binding BulkBackupProgressText}"
+                               MaxWidth="520" HorizontalAlignment="Left"
+                               TextTrimming="CharacterEllipsis"
+                               ToolTip="{Binding BulkBackupProgressText}"
+                               Style="{StaticResource BodyText}"/>
+                    <ProgressBar Minimum="0" Height="4" Margin="{StaticResource xs}"
+                                 Maximum="{Binding BulkBackupTotal, Mode=OneWay}"
+                                 Value="{Binding BulkBackupCurrent, Mode=OneWay}"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Game list. Sorting is off: template columns have no SortMemberPath, and the
+                 numeric columns would sort as strings. A header that looks sortable and is not
+                 is worse than one that does not pretend. -->
+            <Grid>
+                <!-- Hollow grid chrome stays hidden while the empty state is up — a framed empty
+                     table behind the CTA is the opposite of the quiet empty we want. -->
+                <Border BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                        BorderThickness="1" CornerRadius="{StaticResource radiusSurface}"
+                        b:CornerClip.Radius="{StaticResource radiusSurfaceValue}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Visibility" Value="Visible"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasNoGames}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                                <DataTrigger Binding="{Binding HasNoVisibleGames}" Value="True">
+                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border.Style>
+                <!-- EnableRowVirtualization="False" is kept deliberately, but not for the reason it
+                     was originally added under. It was set under a theory that a DataGrid recycling
+                     DataGridRow containers across a GamesView.Refresh() Reset was desyncing the
+                     selection column's cell CheckBox from its row. A direct reproduction
+                     showed that theory was not the cause — the real defect, and its fix, is
+                     on the selection column's cell CheckBox below (SelectionCheckBox_CheckedChanged).
+                     It stays anyway: the catalog is a hand-curated list of tens of entries, so
+                     virtualization buys nothing measurable here, and reverting a harmless attribute
+                     is churn. -->
+                <ui:DataGrid x:Name="GamesGrid" ItemsSource="{Binding GamesView}"
+                          AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
+                          CanUserSortColumns="False"
+                          HeadersVisibility="Column"
+                          EnableRowVirtualization="False"
+                          ColumnHeaderStyle="{StaticResource GridColumnHeaderStyle}"
+                          RowStyle="{StaticResource GridRowStyle}"
+                          CellStyle="{StaticResource GridCellStyle}"
+                          GridLinesVisibility="None" BorderThickness="0" AlternationCount="2">
+                    <!-- WPF's DataGrid reaches for the classic system selection colours, which are
+                         built for a light surface. Pointing those keys at theme brushes is what
+                         keeps a selected row legible instead of near-black on dark. -->
+                    <ui:DataGrid.Resources>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightBrushKey}"
+                                         Color="{DynamicResource ControlFillColorTertiaryColor}"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightBrushKey}"
+                                         Color="{DynamicResource ControlFillColorTertiaryColor}"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.HighlightTextBrushKey}"
+                                         Color="{DynamicResource TextFillColorPrimaryColor}"/>
+                        <SolidColorBrush x:Key="{x:Static SystemColors.InactiveSelectionHighlightTextBrushKey}"
+                                         Color="{DynamicResource TextFillColorPrimaryColor}"/>
+                    </ui:DataGrid.Resources>
+                    <!-- Ctrl+B / Ctrl+R act on the row keyboard focus is on (CurrentItem), never on
+                         the checkbox selection (a different axis). Command is a plain implicit
+                         binding on purpose: a KeyBinding is a Freezable, not a FrameworkElement, so it
+                         has no visual-tree parent for a RelativeSource to walk from, and that shape
+                         resolves to null here. What makes the plain binding work is the inheritance
+                         context WPF gives a Freezable set as another DependencyObject's property
+                         value, which carries GamesGrid's own inherited DataContext in.
+                         CommandParameter does need ElementName, since CurrentItem is the grid's own
+                         property, not the view model's. Neither command needs a CanExecute guard:
+                         BackupAsync/RestoreAsync already return early on a null or busy row. -->
+                    <ui:DataGrid.InputBindings>
+                        <KeyBinding Key="B" Modifiers="Control" Command="{Binding BackupCommand}"
+                                    CommandParameter="{Binding ElementName=GamesGrid, Path=CurrentItem}"/>
+                        <KeyBinding Key="R" Modifiers="Control" Command="{Binding RestoreCommand}"
+                                    CommandParameter="{Binding ElementName=GamesGrid, Path=CurrentItem}"/>
+                    </ui:DataGrid.InputBindings>
+                    <DataGrid.Columns>
+                        <!-- Leftmost selection column. A DataGridColumnHeader's
+                             DataContext is the DataGridColumn it hosts (DataGridColumnHeadersPresenter
+                             generates headers as item containers for the Columns collection), NOT the
+                             DataGrid's own DataContext — a plain {Binding} in a HeaderTemplate resolves
+                             against the column object and silently fails, so the Command below walks up
+                             via RelativeSource to the DataGrid and reads its DataContext (MainViewModel)
+                             explicitly. No IsChecked binding: a RelativeSource-bound IsChecked resolved
+                             once (enough to display correctly at startup) but did not keep re-pulling on
+                             every later HeaderCheckState notification, so per-row selection toggles never
+                             moved the header's displayed state. An exactly-accurate
+                             tri-state display is not worth chasing that further — ToggleHeaderSelection's
+                             own logic always recomputes the true select-all/clear-all direction fresh
+                             from GamesView regardless of what the checkbox visually shows, so the command
+                             is correct either way; the header CheckBox just toggles its own visual state
+                             on click like a plain 2-state box (IsThreeState left off) rather than
+                             tracking partial selection. Padding="0" strips WPF-UI's default ~11px
+                             CheckBox padding (a 120px min-width control by default) so a narrow column
+                             doesn't clip the check glyph. -->
+                        <DataGridTemplateColumn Width="50">
+                            <DataGridTemplateColumn.HeaderTemplate>
+                                <DataTemplate>
+                                    <CheckBox Padding="0"
+                                              Command="{Binding DataContext.ToggleHeaderSelectionCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.HeaderTemplate>
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <CheckBox IsChecked="{Binding IsSelected, Mode=TwoWay}" Padding="0"
+                                              Checked="SelectionCheckBox_CheckedChanged"
+                                              Unchecked="SelectionCheckBox_CheckedChanged"
+                                              HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTemplateColumn Header="{DynamicResource str_grid_game}" Width="*" MinWidth="180">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <TextBlock Text="{Binding DisplayName}"
+                                                   Style="{StaticResource BodyText}"
+                                                   TextTrimming="CharacterEllipsis"
+                                                   ToolTip="{Binding DisplayName}"/>
+                                        <!-- Collapsed when empty so the name sits vertically
+                                             centred in the row (the cell already centres its
+                                             content). Visible for path errors, no-saves,
+                                             oversized, and the Checking… sweep. -->
+                                        <TextBlock Text="{Binding StatusText}" Tag="{Binding GameSeverity}"
+                                                   TextTrimming="CharacterEllipsis">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock" BasedOn="{StaticResource RowSeverityTextStyle}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding StatusText}" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <DataGridTextColumn Header="{DynamicResource str_grid_saves}" Width="64" Binding="{Binding FileCountText}"
+                                            HeaderStyle="{StaticResource GridColumnHeaderStyleRight}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource NumericText}"/>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTextColumn Header="{DynamicResource str_grid_size}" Width="88" Binding="{Binding SizeText}"
+                                            HeaderStyle="{StaticResource GridColumnHeaderStyleRight}">
+                            <DataGridTextColumn.ElementStyle>
+                                <Style TargetType="TextBlock" BasedOn="{StaticResource NumericText}"/>
+                            </DataGridTextColumn.ElementStyle>
+                        </DataGridTextColumn>
+                        <DataGridTemplateColumn Header="{DynamicResource str_grid_lastPlayed}" Width="128">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding LastPlayedAt, Converter={StaticResource RelTime}}"
+                                               ToolTip="{Binding LastPlayedAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}"
+                                               TextTrimming="CharacterEllipsis"/>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <!-- Merged Status cell: replaces the
+                             former Newest Backup + Verdict columns with one icon + sentence + muted
+                             relative-time subline. -->
+                        <DataGridTemplateColumn Header="{DynamicResource str_grid_status}" Width="304">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel ToolTip="{Binding NewestBackupAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}">
+                                        <!-- DockPanel, not a horizontal StackPanel: a StackPanel gives
+                                             its children infinite width, so TextTrimming never fired
+                                             and a long verdict was chopped mid-word by the cell edge
+                                             with no ellipsis to show it had been cut. -->
+                                        <DockPanel>
+                                            <ui:SymbolIcon DockPanel.Dock="Left"
+                                                           Tag="{Binding StatusSeverity}"
+                                                           Margin="0,0,6,0"
+                                                           Style="{StaticResource StatusCellIconStyle}"/>
+                                            <TextBlock Text="{Binding VerdictText}" Tag="{Binding StatusSeverity}"
+                                                       TextTrimming="CharacterEllipsis"
+                                                       ToolTip="{Binding VerdictText}"
+                                                       Style="{StaticResource RowSeverityTextStyle}"/>
+                                        </DockPanel>
+                                        <StackPanel Orientation="Horizontal" Margin="{StaticResource StatusCellLineGap}"
+                                                    Visibility="{Binding HasNewestBackup, Converter={StaticResource BoolToVis}}">
+                                            <TextBlock Text="{DynamicResource str_status_backedUpPrefix}">
+                                                <TextBlock.Style>
+                                                    <Style TargetType="TextBlock" BasedOn="{StaticResource LabelText}">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsUpToDate}" Value="True">
+                                                                <Setter Property="Visibility" Value="Collapsed"/>
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </TextBlock.Style>
+                                            </TextBlock>
+                                            <TextBlock Text="{Binding NewestBackupAt, Converter={StaticResource RelTime}}"
+                                                       Style="{StaticResource LabelText}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                        <!-- Pixel width, not a second star: two Width="*" columns used to share
+                             leftover equally, so this one stayed too narrow (and clipped the
+                             overflow) until the window was huge. Game is the only star. Icons are
+                             32px; 136 covers Back up + Restore + overflow, or the restore bar. -->
+                        <DataGridTemplateColumn Header="{DynamicResource str_grid_actions}" Width="140">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <!-- Enabled regardless of installation status: save data
+                                         outlives an uninstall, and that is when archiving it
+                                         matters most. Icon-only with tooltips — labeled buttons
+                                         overcrowded the row and pushed overflow off-screen. -->
+                                    <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                                        <!-- The indeterminate ring replaces this
+                                             row's Back up button while this row is working, and
+                                             only this row — the window stays live. The ring covers
+                                             a small write, where a determinate bar would flicker
+                                             for a fraction of a second; at or above the 50 MB
+                                             threshold the determinate bar below takes over instead.
+                                            -->
+                                        <ui:Button Command="{Binding DataContext.BackupCommand,
+                                                    RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip="{DynamicResource str_action_backUp_tip}"
+                                                AutomationProperties.Name="{DynamicResource str_action_backUp}">
+                                            <Viewbox Width="18" Height="18">
+                                                <Path Style="{StaticResource ToolbarGlyphPath}"
+                                                      Data="{StaticResource Icon.Backup}"/>
+                                            </Viewbox>
+                                            <ui:Button.Style>
+                                                <Style TargetType="ui:Button" BasedOn="{StaticResource IconActionButton}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ui:Button.Style>
+                                        </ui:Button>
+                                        <ui:ProgressRing IsIndeterminate="True" Width="24" Height="24"
+                                                AutomationProperties.Name="{DynamicResource str_progress_rowBusy}">
+                                            <!-- Backup only, and only a small one —
+                                                 a large backup shows the determinate bar below
+                                                 instead, and a restore shows its own three-step
+                                                 determinate bar; the three are mutually exclusive
+                                                 so showing more than one at once never claims two
+                                                 operations are running. -->
+                                            <ui:ProgressRing.Style>
+                                                <Style TargetType="ui:ProgressRing" BasedOn="{StaticResource {x:Type ui:ProgressRing}}">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsBusy}" Value="True"/>
+                                                                <Condition Binding="{Binding IsRestoring}" Value="False"/>
+                                                                <Condition Binding="{Binding IsLargeBackup}" Value="False"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ui:ProgressRing.Style>
+                                        </ui:ProgressRing>
+                                        <!-- A large backup's determinate bar —
+                                             the exact complement of the ring's own MultiDataTrigger,
+                                             so the two can never show at once. Plain WPF ProgressBar,
+                                             not a ui: control, matching the restore bar below it.
+                                             Same width/height as that bar so the Actions column's
+                                             layout does not shift between a restore and a large
+                                             backup. Right margin: with
+                                             the Backup and Restore buttons both collapsed while this
+                                             bar is visible, it sat flush against the overflow
+                                             DropDownButton with no gap between them. -->
+                                        <ProgressBar Minimum="0" Width="96" Height="4"
+                                                Margin="0,0,4,0"
+                                                Maximum="{Binding BackupBytesTotal, Mode=OneWay}"
+                                                Value="{Binding BackupBytesWritten, Mode=OneWay}"
+                                                AutomationProperties.Name="{DynamicResource str_progress_rowBusy}">
+                                            <ProgressBar.Style>
+                                                <Style TargetType="ProgressBar">
+                                                    <Setter Property="Visibility" Value="Collapsed"/>
+                                                    <Style.Triggers>
+                                                        <MultiDataTrigger>
+                                                            <MultiDataTrigger.Conditions>
+                                                                <Condition Binding="{Binding IsBusy}" Value="True"/>
+                                                                <Condition Binding="{Binding IsRestoring}" Value="False"/>
+                                                                <Condition Binding="{Binding IsLargeBackup}" Value="True"/>
+                                                            </MultiDataTrigger.Conditions>
+                                                            <Setter Property="Visibility" Value="Visible"/>
+                                                        </MultiDataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ProgressBar.Style>
+                                        </ProgressBar>
+                                        <ui:Button Command="{Binding DataContext.RestoreCommand,
+                                                    RelativeSource={RelativeSource AncestorType=Window}}"
+                                                CommandParameter="{Binding}"
+                                                ToolTip="{DynamicResource str_action_restore_tip}"
+                                                AutomationProperties.Name="{DynamicResource str_common_restore}">
+                                            <Viewbox Width="18" Height="18">
+                                                <Path Style="{StaticResource ToolbarGlyphPath}"
+                                                      Data="{StaticResource Icon.Restore}"/>
+                                            </Viewbox>
+                                            <ui:Button.Style>
+                                                <Style TargetType="ui:Button" BasedOn="{StaticResource IconActionButton}">
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                                            <Setter Property="Visibility" Value="Collapsed"/>
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </ui:Button.Style>
+                                        </ui:Button>
+                                        <!-- Overflow chrome is load-bearing: replacing the Style
+                                             attribute with a Style element once cost it the icon
+                                             sizing and left a control too small to hit. -->
+                                        <ui:DropDownButton Style="{StaticResource IconActionButton}"
+                                                Width="32" Height="32"
+                                                ToolTip="{DynamicResource str_overflow_moreActions}"
+                                                AutomationProperties.Name="{DynamicResource str_overflow_moreActions}"
+                                                IsEnabled="{Binding IsBusy, Converter={StaticResource NotBool}}">
+                                            <Viewbox Width="18" Height="18">
+                                                <Path Style="{StaticResource ToolbarGlyphPath}"
+                                                      Data="{StaticResource Icon.More}"/>
+                                            </Viewbox>
+                                            <ui:DropDownButton.Flyout>
+                                                <ContextMenu>
+                                                    <!-- Commands are invoked from MainWindow.xaml.cs Click
+                                                         handlers, not bound here: this ContextMenu (a
+                                                         DropDownButton.Flyout) renders in its own visual-tree
+                                                         root, so RelativeSource/ElementName bindings never
+                                                         reach the window's DataContext and Command resolves
+                                                         to null — the click is silently inert. -->
+                                                    <ui:MenuItem Style="{StaticResource OverflowMenuItem}"
+                                                            Click="OpenSaveFolderMenuItem_Click">
+                                                        <ui:MenuItem.Header>
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <Viewbox Width="16" Height="16" Margin="0,0,8,0">
+                                                                    <Path Style="{StaticResource OverflowMenuGlyphPath}"
+                                                                          Data="{StaticResource Icon.OpenFolder}"/>
+                                                                </Viewbox>
+                                                                <TextBlock Text="{DynamicResource str_overflow_openSaveFolder}"
+                                                                           VerticalAlignment="Center"/>
+                                                            </StackPanel>
+                                                        </ui:MenuItem.Header>
+                                                    </ui:MenuItem>
+                                                    <ui:MenuItem Style="{StaticResource OverflowMenuItem}"
+                                                            Click="ChangeSaveFolderMenuItem_Click">
+                                                        <ui:MenuItem.Header>
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <Viewbox Width="16" Height="16" Margin="0,0,8,0">
+                                                                    <Path Style="{StaticResource OverflowMenuGlyphPath}"
+                                                                          Data="{StaticResource Icon.SaveFolder}"/>
+                                                                </Viewbox>
+                                                                <TextBlock Text="{DynamicResource str_overflow_changeSaveFolder}"
+                                                                           VerticalAlignment="Center"/>
+                                                            </StackPanel>
+                                                        </ui:MenuItem.Header>
+                                                    </ui:MenuItem>
+                                                    <Separator/>
+                                                    <ui:MenuItem Style="{StaticResource OverflowMenuItem}"
+                                                            Click="RemoveGameMenuItem_Click">
+                                                        <ui:MenuItem.Header>
+                                                            <StackPanel Orientation="Horizontal">
+                                                                <Viewbox Width="16" Height="16" Margin="0,0,8,0">
+                                                                    <Path Style="{StaticResource OverflowMenuGlyphPath}"
+                                                                          Data="{StaticResource Icon.Remove}"/>
+                                                                </Viewbox>
+                                                                <TextBlock Text="{DynamicResource str_overflow_removeGame}"
+                                                                           VerticalAlignment="Center"/>
+                                                            </StackPanel>
+                                                        </ui:MenuItem.Header>
+                                                    </ui:MenuItem>
+                                                </ContextMenu>
+                                            </ui:DropDownButton.Flyout>
+                                        </ui:DropDownButton>
+                                        <!-- Restore's three stages are contractual,
+                                            so Maximum is a fact, not an estimate.
+                                             Reported from inside RestoreService, where the stage
+                                             boundaries are actually observable. -->
+                                        <StackPanel Orientation="Vertical" VerticalAlignment="Center"
+                                                Visibility="{Binding IsRestoring,
+                                                    Converter={StaticResource BoolToVis}}">
+                                            <ProgressBar Minimum="0" Maximum="3" Width="96" Height="4"
+                                                    HorizontalAlignment="Left"
+                                                    Value="{Binding RestoreStep, Mode=OneWay}"/>
+                                            <TextBlock Text="{Binding RestoreStepShortText}"
+                                                    Margin="{StaticResource xs}"
+                                                    MaxWidth="96" TextTrimming="CharacterEllipsis"
+                                                    ToolTip="{Binding RestoreStepText}"
+                                                    Style="{StaticResource LabelText}"/>
+                                        </StackPanel>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </ui:DataGrid>
+                </Border>
+
+                <!-- Empty state: replaces the grid area entirely when the catalog has no games.
+                     Leads with Find games rather than Add game / open-the-file-by-hand. -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Visibility="{Binding HasNoGames, Converter={StaticResource BoolToVis}}">
+                    <Image Source="pack://application:,,,/empty-state-icon.png" Width="128" Height="128"
+                           VerticalAlignment="Center" Margin="0,0,24,0" Stretch="Uniform" Opacity="1"/>
+                    <StackPanel Orientation="Vertical" VerticalAlignment="Center" MaxWidth="360">
+                        <TextBlock Text="{DynamicResource str_emptyState_heading}"
+                                   Style="{StaticResource HeadingText}"
+                                   FontSize="18" Margin="0,0,0,4" TextWrapping="Wrap"/>
+                        <TextBlock Text="{DynamicResource str_emptyState_body}"
+                                   Style="{StaticResource BodyText}" TextWrapping="Wrap" Margin="0,0,0,12"/>
+                        <StackPanel Orientation="Horizontal">
+                            <ui:Button Appearance="Primary" Content="{DynamicResource str_toolbar_findGames}"
+                                       Command="{Binding FindGamesCommand}"/>
+                            <ui:HyperlinkButton Content="{DynamicResource str_emptyState_addManually}"
+                                                Command="{Binding AddGameCommand}" Margin="{StaticResource sm}"
+                                                Foreground="{DynamicResource SavegameBunkerLinkBrush}"/>
+                        </StackPanel>
+                    </StackPanel>
+                </StackPanel>
+
+                <!-- Zero-match empty state: same icon/layout shape as the
+                     zero-games state above, mutually exclusive with it (HasNoVisibleGames
+                     requires Games.Count > 0), and with no Find-games/Add-manually row — those
+                     actions do not help someone whose search just needs clearing. -->
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" VerticalAlignment="Center"
+                            Visibility="{Binding HasNoVisibleGames, Converter={StaticResource BoolToVis}}">
+                    <Image Source="pack://application:,,,/empty-state-icon.png" Width="128" Height="128"
+                           VerticalAlignment="Center" Margin="0,0,24,0" Stretch="Uniform" Opacity="1"/>
+                    <StackPanel Orientation="Vertical" VerticalAlignment="Center" MaxWidth="360">
+                        <TextBlock Text="{Binding NoVisibleGamesHeading}"
+                                   Style="{StaticResource HeadingText}"
+                                   FontSize="18" Margin="0,0,0,4" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding NoVisibleGamesBody}"
+                                   Style="{StaticResource BodyText}" TextWrapping="Wrap"/>
+                    </StackPanel>
+                </StackPanel>
+            </Grid>
+        </DockPanel>
+
+        <!-- Light window highlight while a valid folder is dragged over. Hit-test
+             stays off so the overlay cannot steal the drop. -->
+        <Border Grid.Row="0" Grid.RowSpan="2"
+                BorderBrush="{DynamicResource AccentFillColorDefaultBrush}"
+                BorderThickness="3"
+                IsHitTestVisible="False"
+                Visibility="{Binding IsDragFolderOver, Converter={StaticResource BoolToVis}}"/>
+        <ui:ContentDialogHost x:Name="RootDialogHost" Grid.Row="0" Grid.RowSpan="2"/>
+        <ui:SnackbarPresenter x:Name="RootSnackbarPresenter" Grid.Row="0" Grid.RowSpan="2"/>
+    </Grid>
+</ui:FluentWindow>

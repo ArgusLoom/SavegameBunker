@@ -1,0 +1,106 @@
+<ui:FluentWindow x:Class="SavegameBunker.Views.AddGameDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+        xmlns:b="clr-namespace:SavegameBunker.Behaviors"
+        Title="{DynamicResource str_addGame_title}" Height="440" Width="460"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
+        ExtendsContentIntoTitleBar="True"
+        WindowBackdropType="Mica">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="36"/>  <!-- TitleBar -->
+            <RowDefinition Height="*"/>   <!-- existing DockPanel content -->
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Grid.Row="0" Title="{DynamicResource str_addGame_title}"/>
+
+        <DockPanel Grid.Row="1" Margin="16">
+            <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                        HorizontalAlignment="Right" Margin="0,24,0,0">
+                <ui:Button x:Name="AddButton" Content="{DynamicResource str_addGame_confirm}" MinWidth="80" Margin="0,0,8,0"
+                        Appearance="Primary" IsDefault="True" IsEnabled="{Binding CanAdd}" b:DialogResultBehavior.DialogResult="True"/>
+                <ui:Button Content="{DynamicResource str_common_cancel}" MinWidth="80" IsCancel="True"/>
+            </StackPanel>
+
+            <StackPanel>
+                <TextBlock Text="{DynamicResource str_addGame_nameLabel}" Margin="0,0,0,4"/>
+                <DockPanel Margin="0,0,0,16">
+                    <!-- Same 32px IconActionButton chrome as the row Backup/Restore actions. -->
+                    <ui:Button DockPanel.Dock="Right"
+                            Style="{StaticResource IconActionButton}"
+                            Command="{Binding OpenWikiSearchCommand}"
+                            ToolTip="{DynamicResource str_addGame_pcgwLink}"
+                            AutomationProperties.Name="{DynamicResource str_addGame_pcgwLink}"
+                            Margin="8,0,0,0"
+                            VerticalAlignment="Center">
+                        <ui:SymbolIcon Symbol="Globe24" FontSize="18"/>
+                    </ui:Button>
+                    <TextBox x:Name="NameBox" Text="{Binding DisplayName, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="{Binding DisplayName}">
+                        <TextBox.InputBindings>
+                            <KeyBinding Key="Down" Command="{Binding SelectNextSuggestionCommand}"/>
+                            <KeyBinding Key="Up" Command="{Binding SelectPreviousSuggestionCommand}"/>
+                            <KeyBinding Key="Enter" Command="{Binding CommitSuggestionCommand}"/>
+                            <KeyBinding Key="Escape" Command="{Binding DismissSuggestionsCommand}"/>
+                        </TextBox.InputBindings>
+                    </TextBox>
+                </DockPanel>
+                <!--
+                    Left alone deliberately. The ListBox below bounds its scrolling height,
+                    so a taller-rendered list scrolls rather than clips at any Display Scale, and its
+                    Width tracks NameBox.ActualWidth, so widening this dialog widens the popup
+                    automatically — hardcoding a width here would break that tracking.
+                -->
+                <Popup x:Name="SuggestionsPopup" PlacementTarget="{Binding ElementName=NameBox}"
+                       Placement="Bottom" StaysOpen="False" AllowsTransparency="True"
+                       IsOpen="{Binding HasSuggestions, Mode=OneWay}">
+                    <!--
+                        A Popup with AllowsTransparency has no surface of its own, and the Fluent
+                        fill brushes are semi-transparent by design — they are meant to sit over a
+                        window ground. Inside a popup there is nothing behind them, so the list
+                        rendered see-through over whatever was underneath. This Border supplies the
+                        opaque ground the popup itself does not have; the list stays transparent on
+                        top of it so selection and hover chrome still read normally.
+
+                        Both brushes are the Solid* rungs deliberately: the ordinary Fill and Stroke
+                        tokens are single-digit-alpha whites (ControlFillColorSecondary is #15FFFFFF,
+                        ControlStrokeColorDefault #12FFFFFF), which is exactly why the old background
+                        vanished — and the border would have vanished with it.
+                    -->
+                    <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
+                            BorderBrush="{DynamicResource SolidBackgroundFillColorTertiaryBrush}"
+                            BorderThickness="1" CornerRadius="{StaticResource radiusSurface}" Padding="1">
+                        <ListBox x:Name="SuggestionsList" ItemsSource="{Binding Suggestions}"
+                                 SelectedItem="{Binding SelectedSuggestion, Mode=TwoWay}"
+                                 MaxHeight="160" Width="{Binding ElementName=NameBox, Path=ActualWidth}"
+                                 Background="Transparent" BorderThickness="0"
+                                 PreviewMouseLeftButtonUp="SuggestionsList_PreviewMouseLeftButtonUp">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding DisplayName}" TextTrimming="CharacterEllipsis"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Border>
+                </Popup>
+
+                <TextBlock Text="{DynamicResource str_common_saveFolderLabel}" Margin="0,0,0,4"/>
+                <DockPanel Margin="0,0,0,16">
+                    <ui:Button x:Name="BrowseButton" Content="{DynamicResource str_common_browse}" DockPanel.Dock="Right"
+                            MinWidth="80" Margin="8,0,0,0" Command="{Binding BrowseCommand}"/>
+                    <TextBox x:Name="FolderBox" Text="{Binding SaveFolder, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="{Binding SaveFolder}"/>
+                </DockPanel>
+
+                <TextBlock x:Name="ValidationText" Text="{Binding ValidationMessage}"
+                           Foreground="{DynamicResource PaletteRedBrush}" Margin="0,0,0,4"
+                           TextWrapping="Wrap"/>
+                <TextBlock x:Name="ResolvedStatusText" Text="{Binding ResolvedStatus}" FontSize="11"
+                           TextWrapping="Wrap"/>
+                <TextBlock x:Name="SharedTemplateText" Text="{Binding SharedTemplateMessage}"
+                           FontSize="11" TextWrapping="Wrap"/>
+            </StackPanel>
+        </DockPanel>
+    </Grid>
+</ui:FluentWindow>

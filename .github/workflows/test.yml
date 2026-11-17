@@ -1,0 +1,35 @@
+# Builds and runs the full xUnit suite on Windows.
+#
+# The tests target net10.0-windows (WPF), so they need a Windows runner. Runs on
+# every push and pull request to main, and is called by release.yml so a tag
+# cannot produce a release while the suite is red.
+
+name: test
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_call:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up .NET (version from global.json)
+        uses: actions/setup-dotnet@v5
+        with:
+          global-json-file: global.json
+
+      - name: Build
+        run: dotnet build SavegameBunker.sln -c Release
+
+      - name: Test
+        run: dotnet test SavegameBunker.sln -c Release --no-build

@@ -1,0 +1,23 @@
+# Build output
+bin/
+obj/
+/publish/
+
+# Visual Studio / Rider
+.vs/
+.idea/
+*.user
+
+# Personal, project-scoped Claude Code instructions
+CLAUDE.local.md
+
+# GSD planning state: local only, never published
+/.planning/
+/.temp
+/.gsd/
+
+# xUnit/VSTest run artefacts
+TestResults/
+
+# Local user-guide build venv (regenerable; CI installs zensical itself)
+.venv-userguide/

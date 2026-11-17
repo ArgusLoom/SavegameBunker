@@ -1,0 +1,60 @@
+<Application x:Class="SavegameBunker.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+             xmlns:conv="clr-namespace:SavegameBunker.Converters">
+    <Application.Resources>
+        <ResourceDictionary>
+            <!-- Severity colours, contrast-corrected to meet WCAG AA. -->
+            <!-- The fixed accent. Declared here so XAML and App.xaml.cs share one
+                 source of truth; App.OnStartup reads this very colour when it applies the theme. -->
+            <Color x:Key="SavegameBunkerAccentColor">#FF4DD300</Color>
+            <SolidColorBrush x:Key="SavegameBunkerAccentBrush" Color="{StaticResource SavegameBunkerAccentColor}"/>
+            <!-- The Light-theme accent: the full-brightness SavegameBunkerAccentColor is too
+                 light/low-contrast against white (toolbar hover, the empty-state link) — App
+                 .ApplyTheme swaps every accent surface to this darker green instead when Light is
+                 active. Unused on Dark. -->
+            <Color x:Key="SavegameBunkerAccentLightColor">#FF2E8B00</Color>
+            <SolidColorBrush x:Key="SavegameBunkerAccentLightBrush" Color="{StaticResource SavegameBunkerAccentLightColor}"/>
+            <!-- Fixed dark text for content sitting on an accent-green ground (selected-row text) —
+                 legible against the accent in either theme, so it does not need a Light/Dark pair
+                 the way the accent brushes above do. -->
+            <Color x:Key="SavegameBunkerOnAccentTextColor">#FF101010</Color>
+            <SolidColorBrush x:Key="SavegameBunkerOnAccentTextBrush" Color="{StaticResource SavegameBunkerOnAccentTextColor}"/>
+            <!-- Tinted grounds for the accent-driven hover and press chrome the colour scheme
+                 table assigns to the toolbar buttons and the per-row Back up button. Kept low so
+                 the accent stays the 10% role it is declared as, rather than flooding the window. -->
+            <SolidColorBrush x:Key="SavegameBunkerAccentHoverBrush" Color="{StaticResource SavegameBunkerAccentColor}" Opacity="0.16"/>
+            <SolidColorBrush x:Key="SavegameBunkerAccentPressedBrush" Color="{StaticResource SavegameBunkerAccentColor}" Opacity="0.28"/>
+            <!-- What sits ON the hover ground. Normally the accent itself, because the ground is
+                 only a faint tint; under High Contrast App.OnStartup swaps this for the system's
+                 HighlightText, since the ground there is a solid Highlight fill. -->
+            <SolidColorBrush x:Key="SavegameBunkerAccentContrastBrush" Color="{StaticResource SavegameBunkerAccentColor}"/>
+            <!-- The empty-state "Add a game manually" HyperlinkButton's text colour. Set by
+                 App.ApplyTheme alongside every other accent surface — this default only matters
+                 before OnStartup runs. -->
+            <SolidColorBrush x:Key="SavegameBunkerLinkBrush" Color="{StaticResource SavegameBunkerAccentColor}"/>
+
+            <Color x:Key="PaletteRedColor">#FFDC6C64</Color>
+            <SolidColorBrush x:Key="PaletteRedBrush" Color="{StaticResource PaletteRedColor}"/>
+            <Color x:Key="SavegameBunkerCautionColor">#FFDFAD49</Color>
+            <SolidColorBrush x:Key="SavegameBunkerCautionBrush" Color="{StaticResource SavegameBunkerCautionColor}"/>
+
+            <BooleanToVisibilityConverter x:Key="BoolToVis"/>
+
+            <!-- Every timestamp on screen renders through this one instance. -->
+            <conv:RelativeTimeConverter x:Key="RelTime"/>
+            <conv:InverseBooleanConverter x:Key="NotBool"/>
+
+            <ResourceDictionary.MergedDictionaries>
+                <ui:ThemesDictionary Theme="Dark" />
+                <ui:ControlsDictionary />
+                <ResourceDictionary Source="Themes/Styles.xaml" />
+                <ResourceDictionary Source="Icons/SavegameBunkerIcons.xaml" />
+                <!-- SavegameBunker's own dictionaries stay last — the copy contract is the final
+                     word on every string bound above it. -->
+                <ResourceDictionary Source="Themes/Strings.en.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

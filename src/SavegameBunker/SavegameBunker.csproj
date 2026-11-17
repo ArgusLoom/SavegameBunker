@@ -1,0 +1,75 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <RootNamespace>SavegameBunker</RootNamespace>
+    <AssemblyName>SavegameBunker</AssemblyName>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>app.ico</ApplicationIcon>
+    <!-- Shown in the title bar, so a user reporting a problem can say which build they are on. -->
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+
+  <!--
+    The shippable single file. Conditioned on PublishSingleFile so it activates only for
+    the documented publish command — an unconditional self-contained build would change every
+    developer command in CLAUDE.md, and `dotnet build`/`dotnet test` stay framework-dependent
+    exactly as they are today. The self-extract switch below is what collapses the output to one
+    file rather than an .exe beside native .dlls.
+
+    Deliberately no trimming property of any kind is set here: WPF-UI resolves its own resource
+    dictionaries reflectively, and a trimmed build degrades silently at runtime rather than
+    failing loudly at publish time. Size is the cheaper thing to pay.
+  -->
+  <PropertyGroup Condition="'$(PublishSingleFile)' == 'true'">
+    <SelfContained>true</SelfContained>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="games.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- Same file as ApplicationIcon above, but that embeds it as the .exe's Win32 resource only —
+         ui:TitleBar's Icon needs it reachable as a WPF pack resource too. A .png rather than the
+         .ico itself: ImageSource's string TypeConverter handles .ico unreliably. -->
+    <Resource Include="titlebar-icon.png" />
+    <!-- Empty-state illustration shown centered in the main window when the catalog has no games. -->
+    <Resource Include="empty-state-icon.png" />
+    <!-- Toolbar/row geometries merged from App.xaml. Not a Page: a ResourceDictionary
+         loaded by Source=, same pack-resource shape as the PNGs above. -->
+    <Page Remove="Icons\SavegameBunkerIcons.xaml" />
+    <Resource Include="Icons\SavegameBunkerIcons.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The known-games table ships inside the executable rather than beside it. -->
+    <EmbeddedResource Include="Data\known-games.json" />
+    <!-- Second copy of the same file, alongside its Page item, so Services/Strings.cs can load it
+         via XamlReader when a plain xUnit host has no Application instance to resolve a pack URI.
+         WithCulture=false is required: MSBuild's culture-detection would otherwise read the
+         ".en." in the file name as culture "en" and divert this into a satellite resource
+         assembly instead of the main one, where Assembly.GetManifestResourceStream cannot see it. -->
+    <EmbeddedResource Include="Themes\Strings.en.xaml">
+      <LogicalName>SavegameBunker.Themes.Strings.en.xaml</LogicalName>
+      <WithCulture>false</WithCulture>
+    </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- KnownFolders is internal; the test project asserts %SAVEDGAMES% resolves against its
+         real value (no mocking — same approach the %DOCUMENTS% tests already use). -->
+    <InternalsVisibleTo Include="SavegameBunker.Tests" />
+  </ItemGroup>
+
+</Project>

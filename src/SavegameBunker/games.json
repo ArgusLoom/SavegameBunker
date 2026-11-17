@@ -1,0 +1,29 @@
+// SavegameBunker catalog.
+//
+// This file lists the games SavegameBunker knows about and where their backups go.
+// Comments and trailing commas are allowed — but note that adding a game from the
+// application rewrites this file, and comments do not survive that.
+
+{
+  // Where backups are written. A relative path is resolved next to THIS file, so an
+  // executable and its catalog on a USB stick keep working whatever drive letter
+  // Windows assigns them. Leave it out and SavegameBunker asks on the first backup.
+  //
+  // "backupRoot": "SavegameBunkerBackups",
+
+  "games": [
+    // Forward slashes are fine and save you doubling backslashes.
+    //
+    // Path variables: %SAVEDGAMES%, %DOCUMENTS%, %APPDATA%, %LOCALAPPDATA%, %USERPROFILE%.
+    // %SAVEDGAMES% and %DOCUMENTS% are preferred over a profile-relative path: Windows
+    // lets the user move both folders (OneDrive Known Folder Move relocates Documents;
+    // Saved Games can be moved the same way), and a path hardcoded under %USERPROFILE%
+    // stays wrong on any machine where that happened.
+    //
+    // {
+    //   "id": "witcher3",
+    //   "displayName": "The Witcher 3: Wild Hunt",
+    //   "saveDirTemplate": "%DOCUMENTS%/The Witcher 3/gamesaves"
+    // }
+  ]
+}

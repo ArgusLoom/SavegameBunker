@@ -1,0 +1,11 @@
+<Project>
+
+  <PropertyGroup>
+    <!-- Lets `dotnet build`/`dotnet test` resolve the Windows Desktop reference assemblies on a
+         non-Windows SDK (NETSDK1100 otherwise), so the WPF/XAML compile can be checked while
+         developing on Linux. Build-only: the resulting assembly still needs Windows to run or
+         be tested. -->
+    <EnableWindowsTargeting>true</EnableWindowsTargeting>
+  </PropertyGroup>
+
+</Project>
