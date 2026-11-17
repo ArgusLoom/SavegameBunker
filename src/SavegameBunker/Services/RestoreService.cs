@@ -169,17 +169,30 @@ public sealed class RestoreService
             }
             catch (Exception ex)
             {
+                var oldRestored = false;
                 if (oldAsideDir is not null)
                 {
                     try
                     {
                         Directory.Move(oldAsideDir, saveDir);
                         oldAsideDir = null;
+                        oldRestored = true;
                     }
                     catch { /* best effort — see CleanStaleRestoreTemp for why the aside is never auto-deleted */ }
                 }
 
-                return OperationResult.Fail($"Restore failed for {game.DisplayName}: the save folder is in use ({ex.Message}).");
+                // The live save directory is intact again, so the extracted copy is redundant —
+                // the archive it came from still exists. Only the failure that could NOT restore
+                // the old directory keeps tempDir, because then it holds the user's only new-copy
+                // content worth keeping (audit A6).
+                if (oldRestored)
+                    TryDeleteDirectory(tempDir);
+
+                // "The save folder is in use" was the message even when the real cause was
+                // something else entirely (a disk error, a path-length overflow); the actual
+                // exception message is the one the user can act on.
+                return OperationResult.Fail(
+                    $"Restore failed for {game.DisplayName}: the restored folder could not be put in place ({ex.Message}).");
             }
 
             // Best-effort — a failure here changes nothing about correctness. The safety backup
