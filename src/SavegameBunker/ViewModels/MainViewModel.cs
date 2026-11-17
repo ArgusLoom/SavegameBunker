@@ -1610,7 +1610,10 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject
                     }
                     else
                     {
-                        row.RestoredArchiveTakenAt = null;
+                        // On the worker thread inside Task.Run — wrapped like every other row
+                        // write in this loop, since the bound row property must not be touched
+                        // off the UI thread (audit A9).
+                        OnUi(() => row.RestoredArchiveTakenAt = null);
                     }
 
                     // Cleared the same way the per-row BackupAsync command clears it — the bar never
