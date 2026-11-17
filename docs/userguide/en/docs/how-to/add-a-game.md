@@ -1,8 +1,9 @@
 # Add a game Scan doesn't find
 
-**Scan** only recognizes games it already knows about, and that list is a fixed snapshot — it
-goes stale as games update or move their save folder. If Scan misses a game, or a game you
-already track changed its save location, use these instead.
+**Scan** draws on SavegameBunker's built-in library of hand-curated save paths for popular games.
+The library ships with the app and is not updated online, so it goes stale as games update or
+move their save folder. If Scan misses a game, or a game you already track changed its save
+location, use these instead.
 
 ## Add a new game manually
 

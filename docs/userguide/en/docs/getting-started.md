@@ -9,8 +9,8 @@ First launch writes a `games.json` file next to the `.exe` and shows **No games 
 
 ## 2. Find your games
 
-Click **Scan**. SavegameBunker looks for save folders it already recognizes on this PC and lists the
-ones it finds. Review the list and add the ones you want tracked.
+Click **Scan**. SavegameBunker checks its built-in library of hand-curated save paths against
+this PC and lists the games it finds. Review the list and add the ones you want tracked.
 
 Scan won't find everything — some games use a save path SavegameBunker doesn't know, or store saves
 somewhere unusual. For those, use **Add game** (see

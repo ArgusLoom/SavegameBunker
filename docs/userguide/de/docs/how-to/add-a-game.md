@@ -1,9 +1,10 @@
 # Ein Spiel hinzufügen, das Scan nicht findet
 
-**Scan** erkennt nur Spiele, die bereits bekannt sind, und diese Liste ist eine feste
-Momentaufnahme — sie veraltet, sobald Spiele aktualisiert werden oder ihren Spielstand-Ordner
-verschieben. Wenn Scan ein Spiel übersieht, oder sich der Speicherort eines bereits verfolgten
-Spiels geändert hat, nutzen Sie Folgendes.
+**Scan** greift auf die in SavegameBunker eingebaute, handkuratierte Bibliothek der
+Spielstand-Pfade bekannter Spiele zurück. Die Bibliothek wird mit der App ausgeliefert und nicht
+online aktualisiert — sie veraltet also, sobald Spiele aktualisiert werden oder ihren
+Spielstand-Ordner verschieben. Wenn Scan ein Spiel übersieht, oder sich der Speicherort eines
+bereits verfolgten Spiels geändert hat, nutzen Sie Folgendes.
 
 ## Ein neues Spiel manuell hinzufügen
 

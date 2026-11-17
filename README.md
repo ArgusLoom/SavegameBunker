@@ -18,10 +18,11 @@ no account, nothing to install.
 
 - 👀 **You see at a glance what needs attention.** Every game shows whether its saves are backed
   up, and how much play you'd lose if they vanished right now.
-- 🔍 **It finds your games for you.** One click on **Scan** looks for save folders of games it
-  knows and offers to add them. Honest caveat: "knows" means a hand-curated table of
-  popular titles, bundled with the app and not updated automatically — anything else you add by
-  hand (see below).
+- 📚 **A curated save-path library is built in.** We hand-check where popular games keep their
+  saves and ship that library with the app. One click on **Scan** checks it against your PC and
+  offers to add what it finds — ready to back up. Every suggestion is resolved live on your
+  machine before it's saved, so a stale entry can't slip through silently. Games outside the
+  library you add by hand (see below).
 - 💾 **Backing up is one click** — for one game, for the ones you tick, or for everything that
   changed.
 - ↩️ **Restoring is safe.** Before SavegameBunker replaces anything, it makes a safety copy of what's

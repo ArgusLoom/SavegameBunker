@@ -10,9 +10,9 @@ SavegameBunker zeigt **No games yet** an.
 
 ## 2. Spiele finden
 
-Klicken Sie auf **Scan**. SavegameBunker sucht nach Spielstand-Ordnern, die auf diesem PC bereits
-bekannt sind, und listet die gefundenen auf. Prüfen Sie die Liste und fügen Sie die Spiele hinzu,
-die Sie verfolgen möchten.
+Klicken Sie auf **Scan**. SavegameBunker prüft seine eingebaute Bibliothek handkuratierter
+Spielstand-Pfade gegen diesen PC und listet die gefundenen Spiele auf. Prüfen Sie die Liste und
+fügen Sie die Spiele hinzu, die Sie verfolgen möchten.
 
 Scan findet nicht alles — manche Spiele verwenden einen Pfad, den SavegameBunker nicht kennt, oder
 speichern an ungewöhnlicher Stelle. Für diese Fälle nutzen Sie **Add game** (siehe

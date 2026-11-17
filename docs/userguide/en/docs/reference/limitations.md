@@ -12,9 +12,10 @@ These are deliberate choices, not missing features planned for later.
   any other untrusted files.
 - **Not cloud sync and not Steam Cloud.** It copies the save folder you pointed it at, to the
   folder you chose, and nothing else.
-- **The known-games list is a shortcut, not a living database.** It's a hand-maintained snapshot bundled with the app — there is no online update, so it is never
-  fetched, never refreshed, and goes stale as games update or move their save folder. Scan only
-  ever finds games that are in that table; every other game has to be added by hand. If Scan
+- **The built-in games library is curated, not crowd-sourced.** Its save paths are hand-checked
+  and bundled with the app — no account, no cloud, no wiki noise. The flip side of curation:
+  there is no online update, so entries go stale as games update or move their save folder, and
+  Scan only ever finds games in the library; every other game has to be added by hand. If Scan
   picks the wrong store's path, or a game changed its save location, use
   [Add a game](../how-to/add-a-game.md) or **Change save folder** on that row.
 - **Does not touch the Windows registry.** Nothing in SavegameBunker reads install locations or

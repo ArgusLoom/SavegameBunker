@@ -13,13 +13,14 @@ Das sind bewusste Entscheidungen, keine für später geplanten fehlenden Funktio
   oder einen Sicherungsordner wie jede andere nicht vertrauenswürdige Datei.
 - **Keine Cloud-Synchronisierung und kein Steam Cloud.** Es kopiert genau den Spielstand-Ordner,
   auf den Sie zeigen, in den gewählten Ordner, und sonst nichts.
-- **Die Liste bekannter Spiele ist eine Abkürzung, keine lebende Datenbank.** Sie ist eine
-  handgepflegte Momentaufnahme, direkt in der App gebündelt — es
-  gibt keine Online-Aktualisierung, sie wird also nie abgerufen oder aufgefrischt und veraltet,
-  sobald Spiele aktualisiert werden oder ihren Spielstand-Ordner verschieben. Scan findet
-  ausschließlich Spiele aus dieser Tabelle; alles andere müssen Sie von Hand hinzufügen. Wenn
-  Scan den falschen Store-Pfad wählt oder ein Spiel seinen Speicherort geändert hat, nutzen Sie
-  [Add a game](../how-to/add-a-game.md) oder **Change save folder** in der Zeile dieses Spiels.
+- **Die eingebaute Spiele-Bibliothek ist kuratiert, nicht Crowd-sourced.** Ihre Spielstand-Pfade
+  werden von Hand geprüft und mit der App ausgeliefert — kein Konto, keine Cloud, kein
+  Wiki-Rauschen. Der Preis der Kuratierung: Es gibt keine Online-Aktualisierung, Einträge
+  veralten also, sobald Spiele aktualisiert werden oder ihren Spielstand-Ordner verschieben, und
+  Scan findet ausschließlich Spiele aus der Bibliothek; alles andere müssen Sie von Hand
+  hinzufügen. Wenn Scan den falschen Store-Pfad wählt oder ein Spiel seinen Speicherort geändert
+  hat, nutzen Sie [Add a game](../how-to/add-a-game.md) oder **Change save folder** in der Zeile
+  dieses Spiels.
 - **Greift nicht auf die Windows-Registrierung zu.** Nichts in SavegameBunker liest Installationsorte
   oder Deinstallationsbefehle — jede Aktion funktioniert unabhängig davon, ob ein Spiel auf diesem
   PC überhaupt installiert ist.
