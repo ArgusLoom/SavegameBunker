@@ -25,7 +25,9 @@ external drive, a network share, or even the same disk. It remembers your choice
 [Change the backup folder](how-to/change-the-backup-folder.md) for the tradeoffs.
 
 The **Status** column tells you whether a backup is worth doing for each game. **Refresh**
-rechecks status without scanning for new games.
+rechecks status without scanning for new games. If a save folder is only partly readable, the
+game's name cell names the paths that could not be read — those files are not counted and would
+not be backed up.
 
 If games have changed since their last backup, SavegameBunker asks once at startup: "N games have
 changes not backed up yet — back up now?" Saying yes runs the same backup as **Back up all changed**;

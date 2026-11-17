@@ -33,7 +33,9 @@ Wahl wird gemerkt. Siehe [Den Sicherungsordner ändern](how-to/change-the-backup
 Abwägungen.
 
 Die Spalte **Status** zeigt für jedes Spiel an, ob sich eine Sicherung lohnt. **Refresh** prüft
-den Status erneut, ohne nach neuen Spielen zu suchen.
+den Status erneut, ohne nach neuen Spielen zu suchen. Ist ein Spielordner nur teilweise lesbar,
+nennt die Zelle mit dem Spielnamen die Pfade, die nicht gelesen werden konnten — diese Dateien
+werden nicht gezählt und würden nicht gesichert.
 
 ## 4. Die Tastenkombinationen kennen
 
