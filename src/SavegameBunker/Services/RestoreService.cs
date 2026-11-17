@@ -70,6 +70,18 @@ public sealed class RestoreService
             if (BackupService.IsSameOrInside(backupRoot, saveDir))
                 return OperationResult.Fail(Strings.Format("str_restore_backupFolderInsideSaveFolder", game.DisplayName));
 
+            // The archive must live in this game's own backup folder (<backupRoot>/<game.Id>) —
+            // the same containment logic the backup walk uses for exclusions, pointed at the
+            // single archive. Today every caller passes a path straight from
+            // BackupService.ListBackups, which already enforces that layout; this guard exists so
+            // a future caller cannot point restore at an arbitrary zip outside the app's own
+            // archives (audit A11). IsSameOrInside takes files as well as directories — it
+            // compares normalized path prefixes, so "<gameId>/sibling.zip" or any other folder
+            // fails here.
+            if (!BackupService.IsSameOrInside(archivePath, Path.Combine(backupRoot, game.Id)))
+                return OperationResult.Fail(
+                    $"Archive is not a backup of {game.DisplayName} in the configured backup folder: {archivePath}");
+
             var limitFailure = DescribeArchiveLimitFailure(archivePath);
             if (limitFailure is not null)
                 return OperationResult.Fail(Strings.Format("str_restore_archiveTooLarge", game.DisplayName));
