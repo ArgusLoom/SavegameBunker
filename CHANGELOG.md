@@ -7,19 +7,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.1] - 2026-11-18
 
+A maintenance release: two clearer error situations and a lot of work under the hood. Nothing
+about how you use SavegameBunker has changed.
+
 ### Fixed
 
-- When an archive's timestamp name and all 100 numbered variants are already taken in the game's
-  backup folder, the backup error now says the rename retry limit was reached instead of reading
-  like a disk failure.
-- A game whose save folder is only partly readable now says so on its row (how many paths, and
-  which), so the file count no longer looks complete while a backup would leave those paths out.
+- **A full backup folder now says so.** When a game's backup folder already holds an archive with
+  today's name — and every numbered variant of it — the backup error now says exactly that
+  ("rename retry limit reached") instead of reading like a disk failure. Your existing archives
+  were never in danger; only the message was misleading.
+- **A partly unreadable save folder is now visible.** Some save folders contain files Windows
+  won't let SavegameBunker read. The game's row now names those paths and says how many there
+  are, so the file count no longer looks complete while a backup would quietly leave those files
+  out. You can spot the gap before you trust the backup.
 
 ### Changed
 
-- Internal refactoring: the window's code-behind logic is now split into focused components
-  (bulk runs, status scan, per-row actions). No behavior change beyond the two fixes above —
-  every existing behavior is covered by an expanded test suite (629 → 689 checks).
+- Under the hood: the window's logic is now split into focused components (bulk runs, status
+  scan, per-row actions), and the test suite grew from 629 to 689 checks. Every existing
+  behavior is pinned by a test and unchanged.
 
 ## [1.0.0] - 2026-11-17
 
