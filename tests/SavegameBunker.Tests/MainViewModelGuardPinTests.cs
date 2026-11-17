@@ -121,4 +121,164 @@ public sealed class MainViewModelGuardPinTests : IDisposable
         Assert.Equal(3, capturedTotal);
         Assert.Equal("Game 0", capturedCurrentGameName);
     }
+
+    [Fact]
+    public async Task Mid_bulk_backup_every_target_is_checking_and_busy_and_nothing_else_can_start()
+    {
+        var (vm, dialog, backupRoot) = await CreateMultiGameViewModelAsync(3);
+        dialog.FolderToReturn = backupRoot;
+
+        // Rows 0 and 1 are the bulk-backup targets; row 2 is up to date, so it is outside the
+        // run — ticking it proves the bulk-run terms, not the empty-selection term, are what
+        // blocks BackupSelected/RestoreSelected below.
+        vm.Games[0].ApplyBackupComparison(BackupComparison.NeverBackedUp());
+        vm.Games[1].ApplyBackupComparison(BackupComparison.NeverBackedUp());
+        vm.Games[2].ApplyBackupComparison(BackupComparison.UpToDate(DateTime.Now));
+        vm.Games[2].IsSelected = true;
+
+        var captured = false;
+        var capturedKinds = Array.Empty<BackupComparisonKind>();
+        var capturedBusy = Array.Empty<bool>();
+        var capturedIsAnyRowChecking = false;
+        var capturedIsBulkBackupRunning = false;
+        var capturedCanExecute = Array.Empty<bool>();
+
+        // Row 1 is the second (last) target claimed by the reset-then-IsBusy sequence, so its own
+        // IsBusy flip to true is the deterministic point at which both targets are already
+        // Checking and busy — not a timing assumption.
+        vm.Games[1].PropertyChanged += (_, e) =>
+        {
+            if (captured || e.PropertyName != nameof(GameRowViewModel.IsBusy) || !vm.Games[1].IsBusy)
+                return;
+
+            captured = true;
+            capturedKinds = new[] { vm.Games[0].ComparisonKind, vm.Games[1].ComparisonKind };
+            capturedBusy = new[] { vm.Games[0].IsBusy, vm.Games[1].IsBusy };
+            capturedIsAnyRowChecking = vm.IsAnyRowChecking;
+            capturedIsBulkBackupRunning = vm.IsBulkBackupRunning;
+            capturedCanExecute = new[]
+            {
+                vm.BackupSelectedCommand.CanExecute(null),
+                vm.RestoreSelectedCommand.CanExecute(null),
+                vm.RefreshCommand.CanExecute(null),
+                vm.ChangeBackupRootCommand.CanExecute(null),
+                vm.BackupCommand.CanExecute(vm.Games[2]),
+                vm.RestoreCommand.CanExecute(vm.Games[2]),
+            };
+        };
+
+        vm.BackupAllChangedCommand.Execute(null);
+        await WaitForAsync(() => vm.BackupAllChangedCommand.CanExecute(null), timeoutMs: 15000);
+
+        Assert.True(captured);
+        Assert.All(capturedKinds, kind => Assert.Equal(BackupComparisonKind.Checking, kind));
+        Assert.All(capturedBusy, busy => Assert.True(busy));
+        Assert.True(capturedIsAnyRowChecking);
+        Assert.True(capturedIsBulkBackupRunning);
+        Assert.All(capturedCanExecute, canExecute => Assert.False(canExecute));
+    }
+
+    [Fact]
+    public async Task Bulk_restore_resets_targets_and_switches_to_the_restore_sentence_before_claiming_any_row()
+    {
+        var (vm, dialog, backupRoot) = await CreateMultiGameViewModelAsync(3);
+        vm.Games[0].IsSelected = true;
+        vm.Games[1].IsSelected = true;
+
+        var captured = false;
+        var capturedKinds = Array.Empty<BackupComparisonKind>();
+        var capturedTotal = -1;
+        string? capturedProgressText = null;
+
+        vm.Games[0].PropertyChanged += (_, e) =>
+        {
+            if (captured || e.PropertyName != nameof(GameRowViewModel.IsBusy) || !vm.Games[0].IsBusy)
+                return;
+
+            captured = true;
+            capturedKinds = new[] { vm.Games[0].ComparisonKind, vm.Games[1].ComparisonKind };
+            capturedTotal = vm.BulkBackupTotal;
+            capturedProgressText = vm.BulkBackupProgressText;
+        };
+
+        vm.RestoreSelectedCommand.Execute(null);
+
+        // No archives exist for either game, so the run fails both and reports exactly once —
+        // the shared outcome-report call, not one dialog per failed game.
+        await WaitForAsync(() => !vm.IsBulkBackupRunning && dialog.ErrorMessages.Count == 1, timeoutMs: 15000);
+
+        Assert.True(captured);
+        Assert.All(capturedKinds, kind => Assert.Equal(BackupComparisonKind.Checking, kind));
+        Assert.Equal(2, capturedTotal);
+        Assert.Equal(Strings.Format("str_bulkRestore_progress", 0, 2, "Game 0"), capturedProgressText);
+    }
+
+    [Fact]
+    public async Task Bulk_restore_confirms_each_game_in_Games_order()
+    {
+        var (vm, dialog, backupRoot) = await CreateMultiGameViewModelAsync(3);
+        foreach (var row in vm.Games)
+        {
+            var result = new BackupService().Backup(row.Game, backupRoot);
+            Assert.True(result.Success, result.Message);
+        }
+
+        foreach (var row in vm.Games)
+            row.IsSelected = true;
+
+        // Every game is declined, so no save folder is ever swapped.
+        dialog.ConfirmToReturn = false;
+
+        await vm.RestoreSelectedCommand.ExecuteAsync(null);
+        await WaitForAsync(() => !vm.IsBulkBackupRunning);
+
+        Assert.Equal(3, dialog.ConfirmMessages.Count);
+        for (var i = 0; i < 3; i++)
+            Assert.Contains($"Game {i}", dialog.ConfirmMessages[i]);
+    }
+
+    [Fact]
+    public async Task Bulk_commands_on_an_empty_catalog_do_nothing_and_never_prompt()
+    {
+        // The unset backup root means any reach into the backup-folder picker would be visible.
+        var load = new CatalogLoad(
+            Path.Combine(_dir, "games.json"),
+            new Catalog { BackupRoot = null, Games = new List<Game>() },
+            Array.Empty<string>(), false, null);
+        var dialog = new RecordingDialogService();
+        var vm = new MainViewModel(load, dialog);
+
+        var statusBefore = vm.StatusMessage;
+
+        await vm.BackupAllChangedCommand.ExecuteAsync(null);
+        await vm.BackupSelectedCommand.ExecuteAsync(null);
+        await vm.RestoreSelectedCommand.ExecuteAsync(null);
+
+        Assert.Equal(0, dialog.PickFolderCalls);
+        Assert.Empty(dialog.InfoMessages);
+        Assert.Empty(dialog.ErrorMessages);
+        Assert.Empty(dialog.ConfirmMessages);
+        Assert.Equal(0, vm.BulkBackupTotal);
+        Assert.False(vm.IsAnyRowChecking);
+        Assert.Equal(statusBefore, vm.StatusMessage);
+    }
+
+    [Fact]
+    public async Task A_refresh_of_an_empty_catalog_settles_with_no_row_checking_and_the_load_message()
+    {
+        var catalogPath = Path.Combine(_dir, "games.json");
+        await GameCatalog.SaveAsync(catalogPath, new Catalog { BackupRoot = null, Games = new List<Game>() });
+        var load = await GameCatalog.LoadAsync(catalogPath);
+
+        var dialog = new RecordingDialogService();
+        var vm = new MainViewModel(load, dialog);
+        vm.RequestStartupUnsecuredPrompt();
+
+        await vm.RefreshCommand.ExecuteAsync(null);
+
+        Assert.Empty(vm.Games);
+        Assert.False(vm.IsAnyRowChecking);
+        Assert.Equal(Strings.Get("str_load_empty"), vm.StatusMessage);
+        Assert.Empty(dialog.ConfirmMessages);
+    }
 }
