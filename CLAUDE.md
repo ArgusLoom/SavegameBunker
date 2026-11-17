@@ -158,9 +158,9 @@ step before it put that set on the backup volume.
 
 ## Planning workflow
 
-Planning is driven by GSD in a **local-only** `.planning/` directory. It is git-ignored and is not
-part of the repository, so a fresh clone has none of it — nothing in the build, the tests or the
-docs may depend on it. When it exists, it holds:
+Planning is driven by GSD in a **tracked** `.planning/` directory (owner decision 2026-11-17;
+it was previously git-ignored and local-only). Code, tests and shipped docs must still never
+depend on it. It holds:
 
 - `.planning/ROADMAP.md` — milestone history and the active milestone, if any
 - `.planning/STATE.md` — current position, carried-in concerns and triaged defects (Blockers)
