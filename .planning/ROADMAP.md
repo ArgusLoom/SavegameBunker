@@ -33,11 +33,11 @@ the unchanged 629-test suite.
 
 **Requirements**: REF-01, REF-02, REF-03, REF-04, REF-05
 **Depends on:** —
-**Plans:** 5 plans
+**Plans:** 1/5 plans executed
 
 Plans:
 **Wave 1**
-- [ ] 01-01-PLAN.md — Baseline pin: tag + branch, Release 0/0, green suite and CI recorded; six guard characterization pins
+- [x] 01-01-PLAN.md — Baseline pin: tag + branch, Release 0/0, green suite and CI recorded; six guard characterization pins
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 01-02-PLAN.md — Pure helpers (BulkRunRules) + REF-05 reflection-driven never-throw contract test
