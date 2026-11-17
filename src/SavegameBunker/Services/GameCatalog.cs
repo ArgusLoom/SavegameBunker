@@ -211,7 +211,19 @@ public static class GameCatalog
             await File.WriteAllTextAsync(tempPath, json);
 
             if (File.Exists(path))
-                File.Replace(tempPath, path, destinationBackupFileName: null);
+            {
+                try
+                {
+                    File.Replace(tempPath, path, destinationBackupFileName: null);
+                }
+                catch (FileNotFoundException)
+                {
+                    // The existence check above raced an external delete between it and the
+                    // Replace — the same case the Move branch handles below, so handle it the
+                    // same way (audit A7) instead of failing a save that is still publishable.
+                    File.Move(tempPath, path);
+                }
+            }
             else
                 File.Move(tempPath, path); // The catalog was deleted externally since it was loaded.
 
