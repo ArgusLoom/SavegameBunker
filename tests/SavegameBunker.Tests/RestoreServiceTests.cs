@@ -412,7 +412,8 @@ public sealed class RestoreServiceTests : IDisposable
     {
         var game = GameWithSaves();
         var backupRoot = Path.Combine(_dir, "backups");
-        var notAnArchive = Path.Combine(_dir, "fake.zip");
+        var gameBackupDir = Directory.CreateDirectory(BackupDirFor(backupRoot, game));
+        var notAnArchive = Path.Combine(gameBackupDir.FullName, "fake.zip");
         File.WriteAllText(notAnArchive, "not a zip file at all");
 
         var saveDir = SaveDirIn(_dir);
@@ -431,7 +432,8 @@ public sealed class RestoreServiceTests : IDisposable
     {
         var game = GameWithSaves();
         var backupRoot = Path.Combine(_dir, "backups");
-        var zeroByteArchive = Path.Combine(_dir, "empty.zip");
+        var gameBackupDir = Directory.CreateDirectory(BackupDirFor(backupRoot, game));
+        var zeroByteArchive = Path.Combine(gameBackupDir.FullName, "empty.zip");
         File.WriteAllBytes(zeroByteArchive, Array.Empty<byte>());
 
         var saveDir = SaveDirIn(_dir);
@@ -450,7 +452,7 @@ public sealed class RestoreServiceTests : IDisposable
     {
         var game = GameWithSaves();
         var backupRoot = Path.Combine(_dir, "backups");
-        var missingArchive = Path.Combine(_dir, "does-not-exist.zip");
+        var missingArchive = Path.Combine(BackupDirFor(backupRoot, game), "does-not-exist.zip");
 
         var saveDir = SaveDirIn(_dir);
         var snapshot = Snapshot(saveDir);
@@ -473,8 +475,11 @@ public sealed class RestoreServiceTests : IDisposable
         // treats the backslash as a path separator and lands the file at "sub/file.dat" on disk, but
         // DescribeVerificationFailure's archive-side dictionary key is the entry's raw, unnormalized
         // FullName ("sub\file.dat") — the two disagree, deterministically producing a mismatch
-        // without any binary corruption of the archive.
-        var craftedArchive = Path.Combine(_dir, "crafted.zip");
+        // without any binary corruption of the archive. The archive lives in the game's own backup
+        // folder — the provenance guard (audit A11) refuses archives from anywhere else before
+        // verification ever sees them.
+        Directory.CreateDirectory(BackupDirFor(backupRoot, game));
+        var craftedArchive = Path.Combine(BackupDirFor(backupRoot, game), "crafted.zip");
         using (var zip = ZipFile.Open(craftedArchive, ZipArchiveMode.Create))
         {
             var entry = zip.CreateEntry("sub\\file.dat");
