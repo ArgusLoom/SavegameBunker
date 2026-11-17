@@ -116,6 +116,20 @@ jobs:
           release_date="${{ steps.version.outputs.release_date }}"
           echo "release_date=$release_date" >> "$GITHUB_ENV"
 
+      # Upload the zip + checksum as a workflow artifact so the attest job can
+      # attach build provenance to exactly these files. (True Authenticode
+      # signing is out of scope: it needs an owner-held certificate — tracked
+      # as a follow-up.)
+      - name: Upload artifacts for attestation
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: release-binaries
+          path: |
+            ${{ env.zip }}
+            ${{ env.zip }}.sha256
+          if-no-files-found: error
+          retention-days: 1
+
       - name: Release notes
         run: |
           set -euo pipefail
@@ -166,6 +180,28 @@ jobs:
             echo "- SHA-256: \`${{ env.hash }}\`"
             echo "- Release: ${{ github.server_url }}/${{ github.repository }}/releases/tag/v$version"
           } >> "$GITHUB_STEP_SUMMARY"
+
+  attest:
+    needs: release
+    runs-on: ubuntu-latest
+    # Provenance attestation needs OIDC. Only this job writes attestations;
+    # it does not touch the release itself (contents stays read).
+    permissions:
+      contents: read
+      attestations: write
+      id-token: write
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: release-binaries
+
+      - name: Attest build provenance (zip + sha256)
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3.0.0
+        with:
+          subject-path: |
+            SavegameBunker-v*.zip
+            SavegameBunker-v*.zip.sha256
 
   pages:
     needs: release
