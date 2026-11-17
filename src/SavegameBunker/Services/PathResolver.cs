@@ -52,8 +52,17 @@ public static class PathResolver
         // Each pseudo-variable's expensive lookup (a Known Folder read, a shell32 COM call) runs
         // only when its token is actually present — most templates use neither, and this method is
         // called once per catalog entry on every status sweep and known-games scan.
+        //
+        // Substituted only when resolvable, mirroring the %SAVEDGAMES% branch below (audit A10):
+        // GetFolderPath returns "" for an unresolvable Known Folder, and substituting that empty
+        // string used to strip the token and produce a rootless path whose only complaint was
+        // "is not an absolute path" — pointing the user at their template instead of at the
+        // Known Folder Windows could not resolve. Left in place, the unresolved-% guard reports
+        // "unresolved variable %DOCUMENTS%", naming the real cause.
         var withDocuments = template.Contains("%DOCUMENTS%", StringComparison.OrdinalIgnoreCase)
-            ? template.Replace("%DOCUMENTS%", Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), StringComparison.OrdinalIgnoreCase)
+            ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) is { } documents && documents.Length > 0
+                ? template.Replace("%DOCUMENTS%", documents, StringComparison.OrdinalIgnoreCase)
+                : template
             : template;
 
         // Substituted only when resolvable; otherwise the token is left in place so the
