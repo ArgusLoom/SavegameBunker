@@ -41,6 +41,7 @@ behaviour; this page is the short version for anyone wondering "why doesn't it j
 | Self-contained single-file exe, trimming off | "Another Windows 11 user runs it with no setup" is the success metric. WPF-UI resolves resources reflectively, so a trimmed build would fail silently at runtime. |
 | An xUnit suite, although the spec never asked for one | Filesystem flows with hand-rolled path and archive handling cannot be re-checked by hand on every change. It runs on `windows-latest` for every pull request and before every release, which is only built after it passes; plain pushes to `main` are not tested. |
 | Keyboard shortcuts route through the same commands as the buttons | One implementation for keyboard and mouse, so the two cannot drift apart. |
+| MainViewModel is a composition root over sealed coordinators | Bulk runs, the status sweep and per-row backup/restore each live in an internal sealed class with no WPF type, newed in MainViewModel's constructor like GameActions and CatalogSession — no DI container. Bound state and every `Progress<T>` stay in the view model, which runs on the UI thread: a coordinator that built its own `Progress<T>` could report from a worker thread into a bound property. |
 
 ## Open
 

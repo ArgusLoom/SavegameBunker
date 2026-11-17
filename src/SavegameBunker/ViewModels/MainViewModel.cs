@@ -12,9 +12,12 @@ using CommunityToolkitObservableObject = CommunityToolkit.Mvvm.ComponentModel.Ob
 namespace SavegameBunker.ViewModels;
 
 /// <summary>
-/// Root view model: owns the game list, delegating the catalog record to
-/// <see cref="CatalogSession"/> and the per-game backup/restore orchestration to
-/// <see cref="GameActions"/>.
+/// Root view model and composition root: owns the bound state and the commands, and delegates
+/// the catalog record to <see cref="CatalogSession"/>, per-game service calls to
+/// <see cref="GameActions"/>, the bulk runs to <see cref="BulkBackupCoordinator"/>, the status
+/// sweep and the free-space advisory's I/O to <see cref="StatusSweepCoordinator"/>, and the
+/// per-row Back up / Restore / Open save folder flows to <see cref="RowActionsCoordinator"/>
+/// through <see cref="IRowActionHost"/>.
 /// </summary>
 /// <remarks>
 /// Derives from <see cref="CommunityToolkit.Mvvm.ComponentModel.ObservableObject"/> via the
@@ -103,6 +106,11 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     {
         _session = new CatalogSession(load);
         _dialog = dialog;
+        // The four collaborators below are constructed in one consecutive block, in dependency
+        // order: GameActions first (needs _backup and _dialog), then BulkBackupCoordinator and
+        // StatusSweepCoordinator (each needs GameActions/BackupService and OnUi), then
+        // RowActionsCoordinator (needs GameActions, _dialog and this view model as its host).
+        // All four exist before the constructor's closing StartStatusScan().
         _gameActions = new GameActions(_backup, _dialog);
         _bulk = new BulkBackupCoordinator(_backup, _gameActions, OnUi);
         _sweep = new StatusSweepCoordinator(_backup, OnUi);
@@ -262,6 +270,12 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// define the selection, so the action is disabled (not hidden) while any row's comparison is
     /// still <see cref="BackupComparisonKind.Checking"/>.
     /// </summary>
+    /// <remarks>
+    /// The reset to <see cref="BackupComparisonKind.Checking"/> itself now lives where the writes
+    /// happen: <see cref="StatusSweepCoordinator.Reset"/> for every sweep and
+    /// <see cref="BulkBackupCoordinator"/>'s claim for every bulk run. This aggregate stays here —
+    /// it reads the rows, it never writes them.
+    /// </remarks>
     public bool IsAnyRowChecking => Games.Any(row => row.ComparisonKind == BackupComparisonKind.Checking);
 
     /// <summary>
