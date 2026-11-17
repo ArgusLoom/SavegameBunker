@@ -42,7 +42,7 @@ internal static class DirectoryWalk
         string rootDir, Action<FileInfo> onFile, IReadOnlyCollection<string>? excludedDirs = null,
         Action<string>? onSkipped = null)
     {
-        void Skip(string path) => onSkipped?.Invoke(path);
+        void Skip(string path) => onSkipped?.Invoke(Path.GetRelativePath(rootDir, path));
 
         void Walk(string current)
         {
