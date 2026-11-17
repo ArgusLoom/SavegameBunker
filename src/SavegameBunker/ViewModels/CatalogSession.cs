@@ -64,7 +64,21 @@ internal sealed class CatalogSession
     {
         var result = await GameCatalog.SaveAsync(_load.Path, _load.Catalog, _load.LastWriteTimeUtc);
         if (result.Success)
-            _load = _load with { LastWriteTimeUtc = File.GetLastWriteTimeUtc(_load.Path) };
+        {
+            // The stamp read can throw (the just-written file vanished again, a transient share
+            // error) — the save itself already succeeded, so the failure must not escape this
+            // async method into a caller's async-void command path. Keeping the previous stamp
+            // makes the NEXT save fail its own changed-on-disk check — a named refusal, not a
+            // crash (audit A8).
+            try
+            {
+                _load = _load with { LastWriteTimeUtc = File.GetLastWriteTimeUtc(_load.Path) };
+            }
+            catch (Exception)
+            {
+                // Keep the previous stamp.
+            }
+        }
 
         return result;
     }
