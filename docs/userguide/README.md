@@ -36,9 +36,10 @@ both at once.
 
 ## Publishing both languages together
 
-The language switcher expects both sites to live under `/en/` and `/de/` of the same host. When
-deploying, copy `en/site/` to `<host-root>/en/`, `de/site/` to `<host-root>/de/`, and
-`index.html` (the root redirect to `en/`, English being the default) to `<host-root>/index.html`.
+The language switcher swaps the `/en/` or `/de/` segment of the current path, so both sites must sit
+side by side in one folder (a host root or a sub-path such as GitHub Pages' `/SavegameBunker/`).
+Copy `en/site/` to `<root>/en/`, `de/site/` to `<root>/de/`, and `index.html` (the redirect to `en/`,
+English being the default) to `<root>/index.html`.
 The release workflow builds both sites and ships them inside the release zip as the offline help
 (`help/en/`, `help/de/`). [`pages.yml`](../../.github/workflows/pages.yml) builds the same two sites
 on every push to `main` that touches `docs/userguide/` and publishes them to GitHub Pages at
