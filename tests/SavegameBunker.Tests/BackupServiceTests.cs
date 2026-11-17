@@ -210,7 +210,7 @@ public sealed class BackupServiceTests : IDisposable
     }
 
     [Fact]
-    public void Backup_of_a_locked_source_file_fails_and_leaves_no_zip_or_tmp_behind()
+    public void Backup_of_a_locked_source_file_succeeds_without_it_and_names_the_skipped_path()
     {
         var game = GameWithSaves();
         var backupRoot = Path.Combine(_dir, "backups");
@@ -220,11 +220,16 @@ public sealed class BackupServiceTests : IDisposable
         {
             var result = _service.Backup(game, backupRoot);
 
-            Assert.False(result.Success);
+            // Since audit A2 a locked file is skipped with a warning instead of aborting the
+            // whole backup: the archive exists, but the message says the locked path is NOT in it.
+            Assert.True(result.Success, result.Message);
+            Assert.Contains("NOT in this backup", result.Message);
+            Assert.Contains("save.dat", result.Message);
         }
 
         var targetDir = BackupDirFor(backupRoot, game);
-        Assert.Empty(Directory.GetFiles(targetDir, "*.zip*"));
+        Assert.NotEmpty(Directory.GetFiles(targetDir, "*.zip"));
+        Assert.Empty(Directory.GetFiles(targetDir, "*.zip.tmp"));
     }
 
     [Fact]
@@ -509,27 +514,28 @@ public sealed class BackupServiceTests : IDisposable
     }
 
     [Fact]
-    public void Backup_cleans_up_the_staging_file_when_the_final_rename_collides()
+    public void Backup_survives_a_final_rename_collision_by_suffixing_the_archive()
     {
         var game = GameWithSaves();
         var backupRoot = Path.Combine(_dir, "backups");
         var targetDir = Path.Combine(backupRoot, game.Id);
         Directory.CreateDirectory(targetDir);
 
-        // Pre-creates the exact file name Backup is about to produce, forcing the two-argument
-        // File.Move (never overwrite) to throw. The name's second-granularity and the backup call
-        // below completing in well under a second make this collide reliably.
+        // Pre-creates the exact file name Backup is about to produce, so the final File.Move
+        // collides. Since audit A4 the verified staging file is NOT cleaned up and the backup
+        // does NOT fail: the archive is retried under a -1 suffix (the two-argument Move never
+        // overwrites, so the colliding name's content survives untouched).
         var collidingPath = Path.Combine(targetDir, $"{DateTime.Now:yyyy-MM-dd_HHmmss}.zip");
         File.WriteAllBytes(collidingPath, new byte[] { 9 });
 
         var result = _service.Backup(game, backupRoot);
 
-        Assert.False(result.Success);
-        // The already-verified staging file must not be left for CleanStaleTempFiles to find on
-        // some later, unrelated backup.
+        Assert.True(result.Success, result.Message);
+        // The suffixed archive exists and carries the payload; no staging file is left behind.
+        var archives = Directory.GetFiles(targetDir, "*.zip");
+        Assert.Equal(2, archives.Length);
+        Assert.Contains(archives, a => a.EndsWith("-1.zip") && File.Exists(Path.Combine(Path.GetDirectoryName(a)!, Path.GetFileName(a))));
         Assert.Empty(Directory.GetFiles(targetDir, "*.zip.tmp"));
-        // The two-argument Move never overwrites — the pre-existing archive at the colliding name
-        // survives untouched.
         Assert.Equal(new byte[] { 9 }, File.ReadAllBytes(collidingPath));
     }
 
