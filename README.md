@@ -34,8 +34,6 @@ no account, nothing to install.
 
 ## Get started in a minute
 
-Version 1.0.0 · Windows 11, 64-bit
-
 1. **[Download the latest release](https://github.com/ArgusLoom/SavegameBunker/releases/latest)**,
    unzip it, and run `SavegameBunker.exe`. That's all — no installer and nothing else to download.
 
