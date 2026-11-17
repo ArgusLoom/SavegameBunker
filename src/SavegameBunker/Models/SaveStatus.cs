@@ -37,6 +37,16 @@ public sealed record SaveStatus(
     bool Oversized,
     string? Error)
 {
+    /// <summary>
+    /// Paths (relative to the save folder, <c>"."</c> for the folder itself) the scan could not
+    /// read — the same unreadable subtrees <see cref="SavegameBunker.Services.BackupService"/>'s
+    /// own walk already reports. Empty when the walk was complete. Set only on
+    /// <see cref="Found"/> and <see cref="NoSaves"/> results; deliberately not a positional
+    /// parameter so the four factories and every existing caller are unchanged, and a complete
+    /// scan still compares equal to the factory's own value.
+    /// </summary>
+    public IReadOnlyList<string> SkippedPaths { get; init; } = Array.Empty<string>();
+
     public static SaveStatus Checking() =>
         new(SaveStatusKind.Checking, 0, 0, null, false, null);
 

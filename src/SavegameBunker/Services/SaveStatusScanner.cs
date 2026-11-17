@@ -20,7 +20,10 @@ namespace SavegameBunker.Services;
 /// symbolic link rather than, say, a OneDrive Files On-Demand placeholder — matching what
 /// <see cref="BackupService"/> actually archives. The scan reads
 /// directory metadata only — entry names, lengths and write times; it opens no file for its data
-/// and creates, moves or removes nothing under the save directory.
+/// and creates, moves or removes nothing under the save directory. An unreadable subtree is still
+/// skipped, not a failure — but is now carried on the result's <see cref="SaveStatus.SkippedPaths"/>
+/// instead of silently dropped, through the same <see cref="DirectoryWalk.ForEachFile"/>
+/// <c>onSkipped</c> channel <see cref="BackupService"/> already uses.
 /// </remarks>
 public static class SaveStatusScanner
 {
@@ -47,6 +50,10 @@ public static class SaveStatusScanner
             long fileCount = 0;
             long totalBytes = 0;
             DateTime? newest = null;
+            // Collected the same way BackupService collects its own skip list: a skip is
+            // silently absent from the walk's totals, so without this the row's count could look
+            // complete while a path it could not read is missing from it.
+            var skipped = new List<string>();
 
             DirectoryWalk.ForEachFile(dir, info =>
             {
@@ -54,12 +61,13 @@ public static class SaveStatusScanner
                 totalBytes += info.Length;
                 if (newest is null || info.LastWriteTime > newest)
                     newest = info.LastWriteTime;
-            });
+            }, onSkipped: skipped.Add);
 
             if (fileCount == 0)
-                return SaveStatus.NoSaves();
+                return skipped.Count == 0 ? SaveStatus.NoSaves() : SaveStatus.NoSaves() with { SkippedPaths = skipped };
 
-            return SaveStatus.Found(fileCount, totalBytes, newest, IsOversized(fileCount, totalBytes));
+            var found = SaveStatus.Found(fileCount, totalBytes, newest, IsOversized(fileCount, totalBytes));
+            return skipped.Count == 0 ? found : found with { SkippedPaths = skipped };
         }
         catch (Exception ex)
         {

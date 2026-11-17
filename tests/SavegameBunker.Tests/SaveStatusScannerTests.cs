@@ -170,4 +170,75 @@ public sealed class SaveStatusScannerTests : IDisposable
         Assert.Equal(first.TotalBytes, second.TotalBytes);
         Assert.Equal(first.LastModified, second.LastModified);
     }
+
+    [Fact]
+    public void An_unreadable_subdirectory_is_reported_as_a_skipped_path_alongside_the_readable_totals()
+    {
+        WriteFile("readable.dat", 10);
+
+        var lockedDir = Path.Combine(_dir, "locked");
+        Directory.CreateDirectory(lockedDir);
+        File.WriteAllBytes(Path.Combine(lockedDir, "hidden.dat"), new byte[10]);
+
+        if (!TestFileSystem.TryDenyAccess(lockedDir))
+            return; // Environment cannot apply the ACL — see TestFileSystem.TryDenyAccess.
+
+        var status = SaveStatusScanner.Scan(GameFor(_dir));
+
+        Assert.Equal(SaveStatusKind.Found, status.Kind);
+        Assert.Equal(1, status.FileCount);
+        Assert.Equal(new[] { "locked" }, status.SkippedPaths);
+    }
+
+    [Fact]
+    public void A_fully_readable_directory_reports_no_skipped_paths()
+    {
+        WriteFile("a.dat", 10);
+
+        var status = SaveStatusScanner.Scan(GameFor(_dir));
+
+        Assert.Equal(SaveStatusKind.Found, status.Kind);
+        Assert.Empty(status.SkippedPaths);
+    }
+
+    [Fact]
+    public void Scanning_twice_reports_the_same_unreadable_path_both_times()
+    {
+        WriteFile("readable.dat", 10);
+
+        var lockedDir = Path.Combine(_dir, "locked");
+        Directory.CreateDirectory(lockedDir);
+        File.WriteAllBytes(Path.Combine(lockedDir, "hidden.dat"), new byte[10]);
+
+        if (!TestFileSystem.TryDenyAccess(lockedDir))
+            return; // Environment cannot apply the ACL — see TestFileSystem.TryDenyAccess.
+
+        var first = SaveStatusScanner.Scan(GameFor(_dir));
+        var second = SaveStatusScanner.Scan(GameFor(_dir));
+
+        Assert.Equal(new[] { "locked" }, first.SkippedPaths);
+        Assert.Equal(new[] { "locked" }, second.SkippedPaths);
+    }
+
+    [Fact]
+    public void An_unreadable_save_folder_root_reports_no_saves_with_the_root_as_the_skipped_path()
+    {
+        if (!TestFileSystem.TryDenyAccess(_dir))
+            return; // Environment cannot apply the ACL — see TestFileSystem.TryDenyAccess.
+
+        var status = SaveStatusScanner.Scan(GameFor(_dir));
+
+        Assert.Equal(SaveStatusKind.NoSaves, status.Kind);
+        Assert.Equal(new[] { "." }, status.SkippedPaths);
+    }
+
+    [Fact]
+    public void FormatSkippedList_names_five_and_counts_the_rest()
+    {
+        var seven = new[] { "a", "b", "c", "d", "e", "f", "g" };
+        Assert.Equal("a, b, c, d, e, and 2 more", DirectoryWalk.FormatSkippedList(seven));
+
+        var two = new[] { "a", "b" };
+        Assert.Equal("a, b", DirectoryWalk.FormatSkippedList(two));
+    }
 }

@@ -1,4 +1,5 @@
 using System.IO;
+using System.Linq;
 
 namespace SavegameBunker.Services;
 
@@ -132,5 +133,18 @@ internal static class DirectoryWalk
             bytes += info.Length;
         });
         return (count, bytes);
+    }
+
+    /// <summary>
+    /// The one display shape for a skipped-path list, shared by <see cref="BackupService"/>'s own
+    /// warning and the scan row's — so the two surfaces cannot drift apart. Names the first five,
+    /// comma-joined, and counts the rest (<c>", and {n} more"</c>) when there are more than five.
+    /// </summary>
+    public static string FormatSkippedList(IReadOnlyCollection<string> skippedPaths)
+    {
+        var shown = string.Join(", ", skippedPaths.Take(5));
+        if (skippedPaths.Count > 5)
+            shown += $", and {skippedPaths.Count - 5} more";
+        return shown;
     }
 }

@@ -219,13 +219,8 @@ public sealed class BackupService
     /// skipped paths so the user can act on them, and says plainly that they are absent from the
     /// archive rather than leaving "created" to imply completeness it does not have.
     /// </summary>
-    private static string DescribeSkippedPathsWarning(IReadOnlyCollection<string> skippedPaths)
-    {
-        var shown = string.Join(", ", skippedPaths.Take(5));
-        if (skippedPaths.Count > 5)
-            shown += $", and {skippedPaths.Count - 5} more";
-        return $" Warning: {skippedPaths.Count} path(s) could not be read and are NOT in this backup: {shown}";
-    }
+    private static string DescribeSkippedPathsWarning(IReadOnlyCollection<string> skippedPaths) =>
+        $" Warning: {skippedPaths.Count} path(s) could not be read and are NOT in this backup: {DirectoryWalk.FormatSkippedList(skippedPaths)}";
 
     /// <summary>
     /// Warns when the archive just written exceeds <see cref="RestoreService"/>'s own zip-bomb
