@@ -9,8 +9,9 @@ namespace SavegameBunker.Services;
 /// </summary>
 /// <remarks>
 /// Never throws across its boundary — every exception a locked or vanished subtree can raise is
-/// swallowed and that subtree is simply skipped, matching both callers' never-throw-across-the-
-/// boundary shape. The tree is walked via <see cref="Directory.EnumerateFiles(string)"/>/
+/// swallowed and that subtree is simply skipped — optionally reported via the callback — matching
+/// both callers' never-throw-across-the-boundary shape. The tree is walked via
+/// <see cref="Directory.EnumerateFiles(string)"/>/
 /// <see cref="Directory.EnumerateDirectories(string)"/> rather than the recursive search option:
 /// that lazy recursive enumerator throws from <c>MoveNext</c> partway through a locked subtree and
 /// would abort the whole walk instead of skipping just that subtree. A directory reparse point
@@ -30,9 +31,19 @@ internal static class DirectoryWalk
     /// <c>EnumerateRelativeFiles</c> for why containment in either direction, not an exact match
     /// alone, is what prunes a subtree.
     /// </param>
+    /// <param name="onSkipped">
+    /// Optional: called with the path of every subtree or file the walk could not read — a
+    /// directory whose listing threw, a file whose attributes threw. Deliberate skips (reparse
+    /// points, excluded directories) are never reported: those are rules, not failures. Null
+    /// keeps the original silent-skip behaviour for callers that have no channel to report
+    /// through.
+    /// </param>
     public static void ForEachFile(
-        string rootDir, Action<FileInfo> onFile, IReadOnlyCollection<string>? excludedDirs = null)
+        string rootDir, Action<FileInfo> onFile, IReadOnlyCollection<string>? excludedDirs = null,
+        Action<string>? onSkipped = null)
     {
+        void Skip(string path) => onSkipped?.Invoke(path);
+
         void Walk(string current)
         {
             IEnumerable<string> files;
@@ -40,10 +51,11 @@ internal static class DirectoryWalk
             {
                 files = Directory.EnumerateFiles(current);
             }
-            catch (UnauthorizedAccessException) { return; }
-            catch (DirectoryNotFoundException) { return; }
-            catch (PathTooLongException) { return; }
-            catch (IOException) { return; }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or DirectoryNotFoundException or PathTooLongException or IOException)
+            {
+                Skip(current);
+                return;
+            }
 
             foreach (var f in files)
             {
@@ -54,9 +66,11 @@ internal static class DirectoryWalk
                     if (ReparseFile.IsSymlink(info))
                         continue;
                 }
-                catch (UnauthorizedAccessException) { continue; }
-                catch (PathTooLongException) { continue; }
-                catch (IOException) { continue; }
+                catch (Exception ex) when (ex is UnauthorizedAccessException or PathTooLongException or IOException)
+                {
+                    Skip(f);
+                    continue;
+                }
 
                 onFile(info);
             }
@@ -66,10 +80,11 @@ internal static class DirectoryWalk
             {
                 subdirs = Directory.EnumerateDirectories(current);
             }
-            catch (UnauthorizedAccessException) { return; }
-            catch (DirectoryNotFoundException) { return; }
-            catch (PathTooLongException) { return; }
-            catch (IOException) { return; }
+            catch (Exception ex) when (ex is UnauthorizedAccessException or DirectoryNotFoundException or PathTooLongException or IOException)
+            {
+                Skip(current);
+                return;
+            }
 
             foreach (var sub in subdirs)
             {
@@ -78,8 +93,11 @@ internal static class DirectoryWalk
                 {
                     attributes = File.GetAttributes(sub);
                 }
-                catch (UnauthorizedAccessException) { continue; }
-                catch (IOException) { continue; }
+                catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+                {
+                    Skip(sub);
+                    continue;
+                }
 
                 // A junction or symbolic link back up the tree would otherwise make this
                 // recursion run forever.

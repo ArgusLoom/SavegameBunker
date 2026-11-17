@@ -97,6 +97,13 @@ public sealed class BackupService
             // save-vs-backup heuristic read "changed since backup" on a backup that just succeeded).
             var tempPath = Path.Combine(targetDir, $".{Guid.NewGuid():N}.zip.tmp");
 
+            // Collected from the archive walk: every path the walk could not read. A skipped path
+            // is silently absent from the archive, and the verification walk skips it the same way
+            // — so without this list an incomplete archive would verify clean. Reported on the
+            // result below; a hard failure on any unreadable path would turn a locked junk file
+            // into a refused backup, so incompleteness is surfaced as a warning instead.
+            var skippedPaths = new List<string>();
+
             // A backup folder the user placed inside this game's own save folder is honoured like
             // any other destination — but the walk must step over it, or every backup would pack
             // all earlier archives (and trip over its own half-written staging file). targetDir is
@@ -108,7 +115,7 @@ public sealed class BackupService
                 // Own walk, not ZipFile.CreateFromDirectory: that API follows directory junctions
                 // and would archive whatever they point at (Documents, SSH keys, …). The empty-check
                 // and the scanner already skip reparse points; the zip must skip them too.
-                ArchiveSaveDir(saveDir, tempPath, progress, excludedDirs);
+                ArchiveSaveDir(saveDir, tempPath, progress, excludedDirs, skippedPaths);
             }
             catch (Exception ex)
             {
@@ -149,6 +156,8 @@ public sealed class BackupService
             archivePath = finalPath;
 
             var createdMessage = Strings.Format("str_backup_created", game.DisplayName);
+            if (skippedPaths.Count > 0)
+                createdMessage += DescribeSkippedPathsWarning(skippedPaths);
             var oversizedWarning = DescribeOversizedArchiveWarning(finalPath);
             return OperationResult.Ok(oversizedWarning is null
                 ? createdMessage
@@ -158,6 +167,20 @@ public sealed class BackupService
         {
             return OperationResult.Fail($"Backup failed for {game.DisplayName}: {ex.Message}");
         }
+    }
+
+    /// <summary>
+    /// The warning appended to a backup's success message when its walk had to skip paths —
+    /// unreadable subtrees, files whose attributes could not be stat'ed. Names up to five of the
+    /// skipped paths so the user can act on them, and says plainly that they are absent from the
+    /// archive rather than leaving "created" to imply completeness it does not have.
+    /// </summary>
+    private static string DescribeSkippedPathsWarning(IReadOnlyCollection<string> skippedPaths)
+    {
+        var shown = string.Join(", ", skippedPaths.Take(5));
+        if (skippedPaths.Count > 5)
+            shown += $", and {skippedPaths.Count - 5} more";
+        return $" Warning: {skippedPaths.Count} path(s) could not be read and are NOT in this backup: {shown}";
     }
 
     /// <summary>
@@ -459,8 +482,13 @@ public sealed class BackupService
     /// archive directories are subtrees of the walked save folder without equalling either
     /// exclusion, and only the containment rule keeps them out of the archive.
     /// </param>
+    /// <param name="skipped">
+    /// Optional collector for the paths this walk could not read, forwarded to
+    /// <see cref="DirectoryWalk.ForEachFile"/>'s own skip reporter — the archive path uses it to
+    /// surface an incomplete walk instead of silently verifying a possibly-incomplete archive.
+    /// </param>
     private static Dictionary<string, long> EnumerateRelativeFiles(
-        string rootDir, IReadOnlyCollection<string>? excludedDirs = null)
+        string rootDir, IReadOnlyCollection<string>? excludedDirs = null, ICollection<string>? skipped = null)
     {
         var result = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
 
@@ -468,7 +496,7 @@ public sealed class BackupService
         {
             var relative = Path.GetRelativePath(rootDir, info.FullName).Replace(Path.DirectorySeparatorChar, '/');
             result[relative] = info.Length;
-        }, excludedDirs);
+        }, excludedDirs, skipped is null ? null : skipped.Add);
 
         return result;
     }
@@ -501,15 +529,21 @@ public sealed class BackupService
     /// <see cref="ComputeSaveDataSize"/>. One intentional consequence: a zero-byte file no longer
     /// emits its own boundary report, because its cumulative value did not move.
     /// </param>
+    /// <param name="skipped">
+    /// Optional collector forwarded to <see cref="EnumerateRelativeFiles"/> — paths the walk
+    /// could not read, reported by the caller on the result so an incomplete archive is never
+    /// mistaken for a complete one.
+    /// </param>
     private static void ArchiveSaveDir(
-        string saveDir, string tempPath, IProgress<long>? progress, IReadOnlyCollection<string>? excludedDirs = null)
+        string saveDir, string tempPath, IProgress<long>? progress, IReadOnlyCollection<string>? excludedDirs = null,
+        ICollection<string>? skipped = null)
     {
         using var zip = ZipFile.Open(tempPath, ZipArchiveMode.Create);
         var buffer = new byte[CopyBufferSize];
         long completed = 0;
         long lastReported = 0;
 
-        foreach (var (relative, length) in EnumerateRelativeFiles(saveDir, excludedDirs))
+        foreach (var (relative, length) in EnumerateRelativeFiles(saveDir, excludedDirs, skipped))
         {
             var fullPath = Path.Combine(saveDir, relative.Replace('/', Path.DirectorySeparatorChar));
 
