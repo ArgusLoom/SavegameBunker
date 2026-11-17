@@ -18,7 +18,7 @@ contract and the Owner's Windows run is the verification of record.
       (`IsAnyRowChecking`, reset-to-Checking) are preserved and documented where they now live.
 
 ### Bugfixing (remaining R2 audit defects)
-- [ ] **REF-04**: The rename-retry cap (100 collisions) is distinguishable from a disk error in
+- [x] **REF-04**: The rename-retry cap (100 collisions) is distinguishable from a disk error in
       the user-facing message, and Scan's status rows surface skipped unreadable paths the same
       way backups do — Scan and Backup can no longer disagree about completeness without saying so.
 - [x] **REF-05**: The documented never-throw service contract holds without exception: every
