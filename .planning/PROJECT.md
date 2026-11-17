@@ -18,7 +18,7 @@ see at a glance whether either action is worth doing right now.
 
 ## Current Milestone
 
-**v1.1 — Hardening & Refactoring — in progress.**
+**v1.0.1 — Hardening & Refactoring — released.**
 
 Behavior-locked hardening: close the remaining R2 audit defects and split `MainViewModel.cs`
 into sealed coordinators. The 629-test suite is the regression contract; the Owner's Windows

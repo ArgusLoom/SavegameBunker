@@ -1,9 +1,9 @@
-# Requirements: v1.1 — Hardening & Refactoring
+# Requirements: v1.0.1 — Hardening & Refactoring
 
 Behavior-locked hardening. Nothing observable changes; the 629-test suite is the regression
 contract and the Owner's Windows run is the verification of record.
 
-## v1.1 Requirements
+## v1.0.1 Requirements
 
 ### Code Quality (refactoring)
 - [x] **REF-01**: Behavior parity — every observable behavior of v1.0 is preserved exactly; the
@@ -32,7 +32,7 @@ contract and the Owner's Windows run is the verification of record.
 ## Future Requirements (deferred)
 
 - Opt-in games-library update from GitHub (SHA-256-pinned, default off) + "Suggest a game"
-  issue template — decided against for v1.1 scope; revisit when the curated list matures.
+  issue template — decided against for v1.0.1 scope; revisit when the curated list matures.
 - Authenticode signing of release binaries (needs an owner-held certificate).
 
 ## Out of Scope

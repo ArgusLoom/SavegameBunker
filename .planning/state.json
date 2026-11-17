@@ -1,12 +1,12 @@
 {
   "contract": "1.0.0",
   "flavor": "core",
-  "milestone": "v1.1 — Hardening & Refactoring",
+  "milestone": "v1.0.1 — Hardening & Refactoring",
   "phases": [],
   "next": {
-    "command": "/gsd-new-milestone",
-    "label": "Start a new milestone",
-    "reason": "All phases complete — start a new milestone"
+    "command": "/gsd-discuss-phase",
+    "label": "Discuss the first phase",
+    "reason": "Project initialized — plan your first phase"
   },
-  "updated_at": "2026-11-17T23:27:17.573Z"
+  "updated_at": "2026-11-17T23:34:30.720Z"
 }

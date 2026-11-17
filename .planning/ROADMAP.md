@@ -3,7 +3,7 @@
 ## Milestones
 
 - ✅ **v1.0 — Initial Release** — shipped 2026-11-17
-- 🔄 **v1.1 — Hardening & Refactoring** — in progress
+- ✅ **v1.0.1 — Hardening & Refactoring** — released
 
 ## v1.0 — Initial Release
 
@@ -12,7 +12,7 @@ chooses and restores it again: catalog management, a known-games scan, bulk back
 selection and search, startup health checks, and keyboard/text-scaling accessibility. Full detail
 in `CHANGELOG.md`'s `[1.0.0]` entry.
 
-## v1.1 — Hardening & Refactoring
+## v1.0.1 — Hardening & Refactoring
 
 Behavior-preserving hardening of the v1.0 codebase: the post-release audit rounds (R1/R2,
 2026-11-17) produced a fix batch already merged; this milestone completes the remaining
