@@ -1,4 +1,3 @@
-using System.IO;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using SavegameBunker.Services;
@@ -56,13 +55,11 @@ public sealed partial class ChangeSaveFolderDialogViewModel : CommunityToolkitOb
     public bool CanConfirm => !string.IsNullOrWhiteSpace(SaveFolder);
 
     [RelayCommand]
-    private Task BrowseAsync()
+    private void Browse()
     {
         var picked = _dialog.PickFolder(Strings.Get("str_common_browseFolderTitle"), null);
         if (picked is not null)
             SaveFolder = PathResolver.ToTemplate(picked);
-
-        return Task.CompletedTask;
     }
 
     /// <summary>
@@ -81,23 +78,9 @@ public sealed partial class ChangeSaveFolderDialogViewModel : CommunityToolkitOb
 
     private async Task ReportResolveAsync(string folder, int token)
     {
-        var result = await Task.Run(() => ResolveFolder(folder));
+        var result = await Task.Run(() => SaveFolderPreview.Describe(folder));
 
         if (token == _resolveToken)
             ResolvedStatus = result;
-    }
-
-    private static string ResolveFolder(string folder)
-    {
-        if (!PathResolver.TryResolve(folder, null, out var dir, out var error))
-            return error!;
-
-        if (!Directory.Exists(dir))
-            return Strings.Get("str_common_folderNotFound");
-
-        var (count, bytes) = DirectoryWalk.CountFiles(dir);
-        return count == 1
-            ? Strings.Format("str_common_fileCountOne", SizeFormat.Describe(bytes))
-            : Strings.Format("str_common_fileCount", count, SizeFormat.Describe(bytes));
     }
 }
