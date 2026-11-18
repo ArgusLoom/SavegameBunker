@@ -146,7 +146,9 @@ public sealed class BackupService
                 return OperationResult.Fail($"Backup verification failed for {game.DisplayName}: {verificationFailure}.");
             }
 
-            var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HHmmss");
+            // Invariant, matching ParseTakenAt: the user's culture may default to a non-Gregorian
+            // calendar (th-TH, fa-IR, ar-SA) and would name the archive in that calendar's year.
+            var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HHmmss", CultureInfo.InvariantCulture);
             var finalPath = Path.Combine(targetDir, $"{timestamp}{suffix}.zip");
 
             try

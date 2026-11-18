@@ -125,6 +125,35 @@ public sealed class BackupServiceTests : IDisposable
         Assert.Equal("save.dat", entry.FullName);
     }
 
+    // The archive name is the timestamp ListBackups parses back with InvariantCulture. Written in
+    // the user's culture, a non-Gregorian default calendar (th-TH: Buddhist, year + 543) put the
+    // backup centuries in the future, so BackupComparer reported "up to date" forever.
+    [Theory]
+    [InlineData("th-TH")]
+    [InlineData("fa-IR")]
+    [InlineData("ar-SA")]
+    public void Backup_names_the_archive_with_a_gregorian_timestamp_in_any_culture(string culture)
+    {
+        var game = GameWithSaves();
+        var backupRoot = Path.Combine(_dir, "backups");
+        var previous = CultureInfo.CurrentCulture;
+        CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
+        try
+        {
+            var before = DateTime.Now.AddSeconds(-1);
+            var result = _service.Backup(game, backupRoot);
+            var after = DateTime.Now.AddSeconds(1);
+
+            Assert.True(result.Success, result.Message);
+            var archive = Assert.Single(_service.ListBackups(backupRoot, game.Id));
+            Assert.InRange(archive.TakenAt, before, after);
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = previous;
+        }
+    }
+
     [Fact]
     public void Backup_creates_the_destination_folder_when_it_does_not_exist_yet()
     {
