@@ -65,7 +65,7 @@
                                                          selected row's bright accent background; matches the
                                                          legible text the row itself switches to when selected. -->
                                                     <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
-                                                        <Setter Property="Foreground" Value="{DynamicResource TextFillColorInverseBrush}"/>
+                                                        <Setter Property="Foreground" Value="{DynamicResource SavegameBunkerOnAccentTextBrush}"/>
                                                     </DataTrigger>
                                                 </Style.Triggers>
                                             </Style>
