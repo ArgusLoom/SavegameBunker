@@ -135,6 +135,19 @@ public sealed class BackupService
                 return OperationResult.Fail($"Backup failed for {game.DisplayName}: {ex.Message}");
             }
 
+            // ITEM-5: InspectSaveDir's own empty check walks without the exclusions, so a save
+            // folder whose only files sit in the backup folder passes it, and the archive pass
+            // above excludes that same folder — leaving a zero-entry archive that would otherwise
+            // verify (0 equals 0) and be reported as a backup. Gated on "and nothing was skipped"
+            // so a locked-only save folder (zero entries, one skipped path) stays the
+            // warning-carrying success it already is — the empty-folder message above is untouched.
+            if (entryHashes.Count == 0 && skippedPaths.Count == 0)
+            {
+                TryDelete(tempPath);
+                return OperationResult.Fail(
+                    $"Backup failed for {game.DisplayName}: {saveDir} holds nothing but the backup folder, so there is nothing to back up.");
+            }
+
             // Success is reported only after the archive is reopened and its entries matched
             // against a fresh walk of the save directory.
             var verificationFailure = DescribeVerificationFailure(

@@ -201,6 +201,9 @@ and silently replacing a broken catalog would destroy the user's own configurati
 
 ### 3. Backup
 - Resolve `saveDirTemplate`. Missing or empty directory → error naming the path, abort, write nothing.
+  A save directory whose only content is the backup folder counts as empty too: the backup fails
+  and no archive is written, because an archive with nothing in it would otherwise verify and be
+  reported as a backup.
 - Resolve `backupRoot`. If none is configured, ask for one via a folder dialog; cancelling aborts the
   backup cleanly. The folder dialog opens on a detected external volume when one is present, so the
   common case stays one click.

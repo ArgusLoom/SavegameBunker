@@ -35,6 +35,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   as a save folder stored it as "E:", which Windows reads as the current folder on that drive;
   and a backup folder at a drive root was not recognised as holding anything, so the rules that
   keep backups out of backups did not apply to it.
+- **A save folder that holds nothing but your backup folder is no longer "backed up" as an empty archive.**
+  The backup now fails and says why.
 - **Deleting a backup in the restore list and then cancelling now updates the game's row.**
   Before, the row kept showing the deleted backup until you clicked Refresh.
 - **Find Games says "1 file" instead of "1 files".**

@@ -798,6 +798,38 @@ public sealed class BackupServiceTests : IDisposable
         Assert.DoesNotContain(names, name => name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
     }
 
+    // ITEM-5: InspectSaveDir's empty check walks without the exclusions, so a save folder whose
+    // only files sit in the backup folder passes it — the archive pass then excludes that same
+    // folder and collects nothing, which a zero-entry archive would otherwise verify (0 equals 0)
+    // and report as a successful backup.
+    [Fact]
+    public void A_save_folder_holding_only_the_backup_folder_fails_and_writes_no_archive()
+    {
+        var saveDir = Path.Combine(_dir, "s4");
+        var backupRoot = Path.Combine(saveDir, "bk");
+        Directory.CreateDirectory(backupRoot);
+        var oldArchive = Path.Combine(backupRoot, "old.zip");
+        File.WriteAllText(oldArchive, "not a real archive");
+
+        var game = new Game
+        {
+            Id = "s4-game",
+            DisplayName = "S4 Game",
+            SaveDirTemplate = saveDir.Replace('\\', '/'),
+        };
+
+        var result = _service.Backup(game, backupRoot);
+
+        Assert.False(result.Success);
+        Assert.Contains("nothing but the backup folder", result.Message);
+
+        var targetDir = BackupDirFor(backupRoot, game);
+        Assert.Empty(Directory.Exists(targetDir) ? Directory.GetFiles(targetDir, "*.zip") : []);
+        Assert.Empty(Directory.Exists(targetDir) ? Directory.GetFiles(targetDir, "*.zip.tmp") : []);
+        Assert.True(File.Exists(oldArchive));
+        Assert.Equal("not a real archive", File.ReadAllText(oldArchive));
+    }
+
     // The documented supported case (CHANGELOG 1.3.0): backupRoot INSIDE a game's save folder keeps
     // working under the containment rule — walking the save folder prunes the subtree that equals
     // or contains the backup root, so the archive holds the save files and no archives, and a
