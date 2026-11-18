@@ -215,11 +215,22 @@ and silently replacing a broken catalog would destroy the user's own configurati
   or interrupted backup leaves no partial `.zip` behind.
 - After writing, the archive is reopened and its entries checked against the source before success
   is reported. An archive nobody can read is not a backup.
-- A `backupRoot` that lives inside the game's own save directory is honoured for Backup — the
-  archive walk steps over it rather than packing every earlier archive into each new one. Restore
-  is refused for that same game instead: it renames the save directory aside and deletes it, which
-  would delete the backup folder along with it. The error names the cause and the fix (move the
-  backup folder).
+- A `backupRoot` inside the game's own save directory, or equal to it, is honoured for Backup —
+  the archive walk leaves out exactly the folders that hold backups: a subfolder that is or
+  contains `backupRoot`, and, when the save directory is itself `backupRoot` or the game's archive
+  folder `<backupRoot>\<id>`, every subfolder of it, because other games' archive folders cannot be
+  told apart from save data there. Nothing else is left out, so a save directory that merely sits
+  inside `backupRoot` (backup folder `Documents`, save folder `Documents\My Games\X`) or inside its
+  own archive folder (`<backupRoot>\<id>\saves`) is archived with all its subfolders, since no
+  archive of this app lives below it. The success message names each left-out folder in a plain
+  note (example: "Left out: backups (backup folder).") which describes what the archive holds and
+  is not a warning about the destination, so the *Backup destination* rule still holds; left-out
+  folders are not unreadable paths and never raise the "NOT in this backup" warning.
+- Restore is refused for a game whose archive folder `<backupRoot>\<id>` lies inside, or is, its
+  save directory — this covers every `backupRoot` inside or equal to the save directory — because
+  restore renames the save directory aside and deletes it, which would delete the archives with
+  it, including the safety backup taken a moment earlier. Backing up in such a layout stays
+  supported; the error names the cause and the fix (move the backup folder).
 - **Startup reminder.** Once per start, after the first status scan, if any game has saves changed
   since its last backup or has never been backed up, one confirmation asks whether to back those
   games up now. Yes runs the same bulk backup as *Back up all changed*; No does nothing and is not

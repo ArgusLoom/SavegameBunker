@@ -797,6 +797,128 @@ public sealed class RestoreServiceTests : IDisposable
         Assert.False(RestoreService.ExceedsArchiveLimits(archive, maxUncompressedBytes: 10));
     }
 
+    // D-02: every layout restore refuses is pinned by a test that checks nothing was deleted —
+    // the archive, the other archives and the save files all survive a refused restore.
+
+    [Fact]
+    public void A_refused_restore_with_the_backup_folder_inside_the_save_folder_deletes_nothing()
+    {
+        var game = GameWithSaves();
+        var saveDir = SaveDirIn(_dir);
+        var backupRoot = Path.Combine(saveDir, "Backups");
+        var backupResult = _backupService.Backup(game, backupRoot);
+        Assert.True(backupResult.Success, backupResult.Message);
+        var archive = Assert.Single(Directory.GetFiles(BackupDirFor(backupRoot, game), "*.zip"));
+
+        var result = _service.Restore(game, backupRoot, archive, _ => true);
+
+        Assert.False(result.Success);
+        Assert.True(File.Exists(archive));
+        Assert.Single(Directory.GetFiles(BackupDirFor(backupRoot, game), "*.zip"));
+        Assert.Equal("payload", File.ReadAllText(Path.Combine(saveDir, "save.dat")));
+        Assert.True(Directory.Exists(backupRoot));
+        Assert.Empty(Directory.GetDirectories(_dir, "saves.savegamebunker-restore-*"));
+    }
+
+    [Fact]
+    public void Restore_is_refused_when_the_backup_folder_is_the_save_folder_and_every_archive_survives()
+    {
+        var game = GameWithSaves();
+        var saveDir = SaveDirIn(_dir);
+        var backupRoot = saveDir;
+        var backupResult = _backupService.Backup(game, backupRoot);
+        Assert.True(backupResult.Success, backupResult.Message);
+        var archives = Directory.GetFiles(BackupDirFor(backupRoot, game), "*.zip");
+        Assert.Single(archives);
+
+        var confirmCalls = 0;
+        var result = _service.Restore(game, backupRoot, archives[0], _ => { confirmCalls++; return true; });
+
+        Assert.False(result.Success);
+        Assert.False(result.Cancelled);
+        Assert.Contains("inside", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(0, confirmCalls);
+        Assert.Single(Directory.GetFiles(BackupDirFor(backupRoot, game), "*.zip"));
+        Assert.Equal("payload", File.ReadAllText(Path.Combine(saveDir, "save.dat")));
+    }
+
+    // D-11: a save folder equal to the game's own archive folder (<backupRoot>/<id>) would be
+    // replaced — with every archive of the game inside it — by the rename-aside-and-delete restore
+    // performs. Backup in that layout stays supported; replacing the folder is refused before the
+    // first write, so the safety backup this method is about to take never happens either.
+    [Fact]
+    public void Restore_is_refused_when_the_save_folder_is_the_games_own_archive_folder_and_every_archive_survives()
+    {
+        var saveDir = Path.Combine(_dir, "b2", "x");
+        Directory.CreateDirectory(saveDir);
+        File.WriteAllText(Path.Combine(saveDir, "a.dat"), "payload");
+        var game = new Game { Id = "x", DisplayName = "X", SaveDirTemplate = saveDir.Replace('\\', '/') };
+        var backupRoot = Path.Combine(_dir, "b2");
+
+        // The staging file is a root-level file the walk may report; do not assert the message.
+        var backupResult = _backupService.Backup(game, backupRoot);
+        Assert.True(backupResult.Success, backupResult.Message);
+        var archives = Directory.GetFiles(BackupDirFor(backupRoot, game), "*.zip");
+        Assert.Single(archives);
+
+        var confirmCalls = 0;
+        var result = _service.Restore(game, backupRoot, archives[0], _ => { confirmCalls++; return true; });
+
+        Assert.False(result.Success);
+        Assert.False(result.Cancelled);
+        Assert.Contains("inside", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(0, confirmCalls);
+        Assert.Single(Directory.GetFiles(BackupDirFor(backupRoot, game), "*.zip"));
+        Assert.Equal("payload", File.ReadAllText(Path.Combine(saveDir, "a.dat")));
+    }
+
+    // The two layouts item 0 opened up round-trip: every subfolder file comes back through restore.
+
+    [Fact]
+    public void A_save_folder_inside_the_backup_folder_round_trips_its_subfolders_through_restore()
+    {
+        var saveDir = Path.Combine(_dir, "Documents", "My Games", "X");
+        Directory.CreateDirectory(Path.Combine(saveDir, "profiles"));
+        File.WriteAllText(Path.Combine(saveDir, "top.dat"), "payload");
+        File.WriteAllText(Path.Combine(saveDir, "profiles", "p1.dat"), "profile-payload");
+        var game = new Game { Id = "x-game", DisplayName = "X Game", SaveDirTemplate = saveDir.Replace('\\', '/') };
+        var backupRoot = Path.Combine(_dir, "Documents");
+
+        var backupResult = _backupService.Backup(game, backupRoot);
+        Assert.True(backupResult.Success, backupResult.Message);
+        var archive = Assert.Single(Directory.GetFiles(BackupDirFor(backupRoot, game), "*.zip"));
+
+        Directory.Delete(Path.Combine(saveDir, "profiles"), recursive: true);
+        var result = _service.Restore(game, backupRoot, archive, _ => true);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal("profile-payload", File.ReadAllText(Path.Combine(saveDir, "profiles", "p1.dat")));
+        Assert.Equal("payload", File.ReadAllText(Path.Combine(saveDir, "top.dat")));
+    }
+
+    [Fact]
+    public void A_save_folder_inside_its_own_archive_folder_round_trips_its_subfolders_through_restore()
+    {
+        var saveDir = Path.Combine(_dir, "b3", "x", "saves");
+        Directory.CreateDirectory(Path.Combine(saveDir, "sub"));
+        File.WriteAllText(Path.Combine(saveDir, "a.dat"), "payload");
+        File.WriteAllText(Path.Combine(saveDir, "sub", "b.dat"), "sub-payload");
+        var game = new Game { Id = "x", DisplayName = "X", SaveDirTemplate = saveDir.Replace('\\', '/') };
+        var backupRoot = Path.Combine(_dir, "b3");
+
+        var backupResult = _backupService.Backup(game, backupRoot);
+        Assert.True(backupResult.Success, backupResult.Message);
+        var originalArchive = Assert.Single(Directory.GetFiles(BackupDirFor(backupRoot, game), "*.zip"));
+
+        Directory.Delete(Path.Combine(saveDir, "sub"), recursive: true);
+        var result = _service.Restore(game, backupRoot, originalArchive, _ => true);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Equal("sub-payload", File.ReadAllText(Path.Combine(saveDir, "sub", "b.dat")));
+        Assert.Equal("payload", File.ReadAllText(Path.Combine(saveDir, "a.dat")));
+        Assert.Equal(2, Directory.GetFiles(BackupDirFor(backupRoot, game), "*.zip").Length);
+    }
+
     /// <summary>
     /// Records progress on the calling thread. The real <see cref="Progress{T}"/> posts to a
     /// synchronization context, which a plain xUnit host does not have, so its callbacks would

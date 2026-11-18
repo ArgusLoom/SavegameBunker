@@ -62,10 +62,14 @@ public sealed class RestoreService
                 return OperationResult.Fail($"Save folder for {game.DisplayName}: {pathError}");
 
             // Restore replaces the save folder wholesale: the old one is renamed aside and then
-            // deleted. A backup folder living inside it would be deleted with it — every archive
-            // of every game, including the safety backup this method is about to write. Backing
-            // up into such a folder is honoured; replacing the folder that holds it is not.
-            if (BackupService.IsSameOrInside(backupRoot, saveDir))
+            // deleted. When the game's own archive folder (<backupRoot>/<id>) is that folder or
+            // lies inside it, every archive of the game — including the safety backup this method
+            // is about to write — would be deleted with it. Backing up in such a layout stays
+            // supported; replacing the folder that holds the archives is not. The check covers
+            // every backupRoot inside or equal to the save folder too, because it puts the game's
+            // archive folder inside the save folder as well.
+            var gameArchiveDir = Path.Combine(backupRoot, game.Id);
+            if (BackupService.IsSameOrInside(gameArchiveDir, saveDir))
                 return OperationResult.Fail(Strings.Format("str_restore_backupFolderInsideSaveFolder", game.DisplayName));
 
             // The archive must live in this game's own backup folder (<backupRoot>/<game.Id>) —
@@ -73,7 +77,7 @@ public sealed class RestoreService
             // single archive. ListBackups already enforces that layout; this guard keeps any
             // caller from pointing restore at an arbitrary zip outside the app's own archives.
             // IsSameOrInside compares normalized path prefixes, so it works on a file path too.
-            if (!BackupService.IsSameOrInside(archivePath, Path.Combine(backupRoot, game.Id)))
+            if (!BackupService.IsSameOrInside(archivePath, gameArchiveDir))
                 return OperationResult.Fail(
                     $"Archive is not a backup of {game.DisplayName} in the configured backup folder: {archivePath}");
 

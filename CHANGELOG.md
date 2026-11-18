@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Backups of a save folder inside your backup folder now include its subfolders.** With a backup
+  folder such as Documents and a game that saves under Documents\My Games, backups held only the
+  files at the top of the save folder; every subfolder was skipped without a word, and restoring
+  such a backup removed those subfolders. Backups now include them. When a backup leaves a folder
+  out on purpose because it holds backups, the backup message now names it. Restore also refuses a
+  save folder that holds the game's own backups instead of deleting them with it.
 - **Backups now show the right date with Thai, Persian or Arabic regional formats.** With one of
   those Windows formats, backups were named in that calendar's year (for example 2569 instead of
   2026). A Thai-format PC then showed every game as "up to date" even after its saves had
