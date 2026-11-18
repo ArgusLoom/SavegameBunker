@@ -119,23 +119,20 @@ public sealed class DialogService : IDialogService
     {
         var options = ConfirmDialogOptions(message, confirmButtonText);
 
-        // Callers reach Confirm from a background thread (under Task.Run). That caller must block
+        // Callers reach Confirm from a background thread (under Task.Run) — every caller wraps it
+        // in Task.Run (MainViewModel.PromptUnsecuredGamesOnce, MainViewModel.RemoveGameAsync,
+        // GameActions' restore, RestorePickerViewModel.DeleteArchiveAsync). That caller must block
         // until the user answers, so the dialog is started with InvokeAsync (queues onto the UI
         // thread's own dispatcher without blocking it) and the *unwrapped* task is awaited
         // synchronously from this — the calling background — thread.
         // Blocking the UI thread itself here (e.g. via Dispatcher.Invoke running the wait inline)
         // would deadlock: the dialog needs that thread's own message pump to resolve, and a
         // synchronous wait on it stops that pump from running.
-        if (!_owner.Dispatcher.CheckAccess())
-        {
-            var task = _owner.Dispatcher.InvokeAsync(() => ShowQueuedAsync(options)).Task.Unwrap();
-            return task.GetAwaiter().GetResult() == ContentDialogResult.Primary;
-        }
+        Debug.Assert(!_owner.Dispatcher.CheckAccess(),
+            "Confirm blocks its caller until the user answers; call it off the UI thread (Task.Run), never on it.");
 
-        // A call from the UI thread itself: this branch gives the interface's synchronous contract
-        // a defined, if deadlock-prone, behavior there rather than silently doing nothing.
-        return _contentDialogService.ShowSimpleDialogAsync(options, CancellationToken.None)
-            .GetAwaiter().GetResult() == ContentDialogResult.Primary;
+        var task = _owner.Dispatcher.InvokeAsync(() => ShowQueuedAsync(options)).Task.Unwrap();
+        return task.GetAwaiter().GetResult() == ContentDialogResult.Primary;
     }
 
     private static SimpleContentDialogCreateOptions ErrorDialogOptions(string message) => new()
