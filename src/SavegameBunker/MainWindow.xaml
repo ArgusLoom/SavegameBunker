@@ -36,101 +36,61 @@
                 <ui:Button x:Name="ThemeToggleButton" Click="ThemeToggleButton_Click"
                         DockPanel.Dock="Right" Style="{StaticResource ToolbarButton}"
                         ToolTip="{DynamicResource str_toolbar_toggleTheme_tip}"
-                        AutomationProperties.Name="{DynamicResource str_toolbar_toggleTheme}">
-                    <StackPanel Orientation="Vertical">
-                        <Viewbox Style="{StaticResource ToolbarGlyph}">
-                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Theme}"/>
-                        </Viewbox>
-                        <AccessText Text="{DynamicResource str_toolbar_toggleTheme}" Style="{StaticResource ToolbarButtonLabel}"/>
-                    </StackPanel>
-                </ui:Button>
+                        AutomationProperties.Name="{DynamicResource str_toolbar_toggleTheme}"
+                        Content="{DynamicResource str_toolbar_toggleTheme}"
+                        Tag="{StaticResource Icon.Theme}"/>
                 <!-- Docked right, left of the theme toggle: opening the list file is a file-level
                      action like the toggle beside it, not one of the game actions on the left. -->
                 <ui:Button x:Name="OpenCatalogButton" Command="{Binding OpenCatalogCommand}"
                         DockPanel.Dock="Right"
                         Style="{StaticResource ToolbarButton}"
                         ToolTip="{DynamicResource str_toolbar_openGamesList_tip}"
-                        AutomationProperties.Name="{DynamicResource str_toolbar_openGamesList}">
-                    <StackPanel Orientation="Vertical">
-                        <Viewbox Style="{StaticResource ToolbarGlyph}">
-                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.List}"/>
-                        </Viewbox>
-                        <AccessText Text="{DynamicResource str_toolbar_openGamesList_access}" Style="{StaticResource ToolbarButtonLabel}"/>
-                    </StackPanel>
-                </ui:Button>
+                        AutomationProperties.Name="{DynamicResource str_toolbar_openGamesList}"
+                        Content="{DynamicResource str_toolbar_openGamesList_access}"
+                        Tag="{StaticResource Icon.List}"/>
                 <!-- Docked right, left of the catalog toggle: opening the guide is a window-level
                      action like its neighbours, not one of the game actions on the left. -->
                 <ui:Button x:Name="HelpButton" Command="{Binding HelpCommand}"
                         DockPanel.Dock="Right"
                         Style="{StaticResource ToolbarButton}"
                         ToolTip="{DynamicResource str_toolbar_help_tip}"
-                        AutomationProperties.Name="{DynamicResource str_toolbar_help}">
-                    <StackPanel Orientation="Vertical">
-                        <Viewbox Style="{StaticResource ToolbarGlyph}">
-                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Help}"/>
-                        </Viewbox>
-                        <AccessText Text="{DynamicResource str_toolbar_help_access}" Style="{StaticResource ToolbarButtonLabel}"/>
-                    </StackPanel>
-                </ui:Button>
+                        AutomationProperties.Name="{DynamicResource str_toolbar_help}"
+                        Content="{DynamicResource str_toolbar_help_access}"
+                        Tag="{StaticResource Icon.Help}"/>
             <WrapPanel x:Name="MainToolBar">
                 <ui:Button x:Name="FindGamesButton" Command="{Binding FindGamesCommand}"
                         Style="{StaticResource ToolbarButton}"
                         ToolTip="{DynamicResource str_toolbar_findGames_tip}"
-                        AutomationProperties.Name="{DynamicResource str_toolbar_findGames}">
-                    <StackPanel Orientation="Vertical">
-                        <Viewbox Style="{StaticResource ToolbarGlyph}">
-                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Scan}"/>
-                        </Viewbox>
-                        <AccessText Text="{DynamicResource str_toolbar_findGames_access}" Style="{StaticResource ToolbarButtonLabel}"/>
-                    </StackPanel>
-                </ui:Button>
+                        AutomationProperties.Name="{DynamicResource str_toolbar_findGames}"
+                        Content="{DynamicResource str_toolbar_findGames_access}"
+                        Tag="{StaticResource Icon.Scan}"/>
                 <ui:Button x:Name="AddGameButton" Command="{Binding AddGameCommand}"
                         Style="{StaticResource ToolbarButton}"
                         ToolTip="{DynamicResource str_toolbar_addGame_tip}"
-                        AutomationProperties.Name="{DynamicResource str_toolbar_addGame}">
-                    <StackPanel Orientation="Vertical">
-                        <Viewbox Style="{StaticResource ToolbarGlyph}">
-                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Add}"/>
-                        </Viewbox>
-                        <AccessText Text="{DynamicResource str_toolbar_addGame_access}" Style="{StaticResource ToolbarButtonLabel}"/>
-                    </StackPanel>
-                </ui:Button>
+                        AutomationProperties.Name="{DynamicResource str_toolbar_addGame}"
+                        Content="{DynamicResource str_toolbar_addGame_access}"
+                        Tag="{StaticResource Icon.Add}"/>
                 <ui:Button x:Name="RefreshButton" Command="{Binding RefreshCommand}"
                         Style="{StaticResource ToolbarButton}"
                         ToolTip="{DynamicResource str_toolbar_refresh_tip}"
-                        AutomationProperties.Name="{DynamicResource str_toolbar_refresh}">
-                    <StackPanel Orientation="Vertical">
-                        <Viewbox Style="{StaticResource ToolbarGlyph}">
-                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Refresh}"/>
-                        </Viewbox>
-                        <AccessText Text="{DynamicResource str_toolbar_refresh_access}" Style="{StaticResource ToolbarButtonLabel}"/>
-                    </StackPanel>
-                </ui:Button>
+                        AutomationProperties.Name="{DynamicResource str_toolbar_refresh}"
+                        Content="{DynamicResource str_toolbar_refresh_access}"
+                        Tag="{StaticResource Icon.Refresh}"/>
                 <ui:Button x:Name="ChangeBackupRootButton" Command="{Binding ChangeBackupRootCommand}"
                         Style="{StaticResource ToolbarButton}"
                         ToolTip="{DynamicResource str_toolbar_changeBackupFolder_tip}"
-                        AutomationProperties.Name="{DynamicResource str_toolbar_changeBackupFolder}">
-                    <StackPanel Orientation="Vertical">
-                        <Viewbox Style="{StaticResource ToolbarGlyph}">
-                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Folder}"/>
-                        </Viewbox>
-                        <AccessText Text="{DynamicResource str_toolbar_changeBackupFolder_access}" Style="{StaticResource ToolbarButtonLabel}"/>
-                    </StackPanel>
-                </ui:Button>
+                        AutomationProperties.Name="{DynamicResource str_toolbar_changeBackupFolder}"
+                        Content="{DynamicResource str_toolbar_changeBackupFolder_access}"
+                        Tag="{StaticResource Icon.Folder}"/>
                 <!-- Hidden, not disabled, when nothing qualifies — Visibility on HasBackupTargets,
                      enablement on IsAnyRowChecking, so a half-finished sweep can never define the set. -->
                 <ui:Button x:Name="BackupAllChangedButton" Command="{Binding BackupAllChangedCommand}"
                         Style="{StaticResource ToolbarButton}"
                         ToolTip="{DynamicResource str_toolbar_backUpAllChanged_tip}"
                         AutomationProperties.Name="{DynamicResource str_toolbar_backUpAllChanged}"
-                        Visibility="{Binding HasBackupTargets, Converter={StaticResource BoolToVis}}">
-                    <StackPanel Orientation="Vertical">
-                        <Viewbox Style="{StaticResource ToolbarGlyph}">
-                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Backup}"/>
-                        </Viewbox>
-                        <AccessText Text="{DynamicResource str_toolbar_backUpAllChanged}" Style="{StaticResource ToolbarButtonLabel}"/>
-                    </StackPanel>
-                </ui:Button>
+                        Visibility="{Binding HasBackupTargets, Converter={StaticResource BoolToVis}}"
+                        Content="{DynamicResource str_toolbar_backUpAllChanged}"
+                        Tag="{StaticResource Icon.Backup}"/>
                 <!-- Same visibility/enablement split as BackupAllChangedButton:
                      visible on HasAnySelected (a computed flag), enabled on the command's own
                      CanExecute, so a half-finished sweep or a running operation disables rather
@@ -139,26 +99,16 @@
                         Style="{StaticResource ToolbarButton}"
                         Visibility="{Binding HasAnySelected, Converter={StaticResource BoolToVis}}"
                         ToolTip="{DynamicResource str_toolbar_backUpSelected_tip}"
-                        AutomationProperties.Name="{DynamicResource str_toolbar_backUpSelected}">
-                    <StackPanel Orientation="Vertical">
-                        <Viewbox Style="{StaticResource ToolbarGlyph}">
-                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Backup}"/>
-                        </Viewbox>
-                        <AccessText Text="{Binding BackupSelectedLabel}" Style="{StaticResource ToolbarButtonLabel}"/>
-                    </StackPanel>
-                </ui:Button>
+                        AutomationProperties.Name="{DynamicResource str_toolbar_backUpSelected}"
+                        Content="{Binding BackupSelectedLabel}"
+                        Tag="{StaticResource Icon.Backup}"/>
                 <ui:Button x:Name="RestoreSelectedButton" Command="{Binding RestoreSelectedCommand}"
                         Style="{StaticResource ToolbarButton}"
                         Visibility="{Binding HasAnySelected, Converter={StaticResource BoolToVis}}"
                         ToolTip="{DynamicResource str_toolbar_restoreSelected_tip}"
-                        AutomationProperties.Name="{DynamicResource str_toolbar_restoreSelected}">
-                    <StackPanel Orientation="Vertical">
-                        <Viewbox Style="{StaticResource ToolbarGlyph}">
-                            <Path Style="{StaticResource ToolbarGlyphPath}" Data="{StaticResource Icon.Restore}"/>
-                        </Viewbox>
-                        <AccessText Text="{Binding RestoreSelectedLabel}" Style="{StaticResource ToolbarButtonLabel}"/>
-                    </StackPanel>
-                </ui:Button>
+                        AutomationProperties.Name="{DynamicResource str_toolbar_restoreSelected}"
+                        Content="{Binding RestoreSelectedLabel}"
+                        Tag="{StaticResource Icon.Restore}"/>
             </WrapPanel>
             </DockPanel>
 

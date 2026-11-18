@@ -292,48 +292,6 @@
     </Style>
 
 
-    <!--
-        Toolbar buttons: the large icon+label form the design
-        section calls for. Icon above its label rather than beside it, so the actions read as
-        targets of equal weight instead of a row of similar-length text runs. The symbol itself is
-        set per button — this style owns only the shape.
-    -->
-    <Style
-        x:Key="ToolbarButton"
-        BasedOn="{StaticResource {x:Type ui:Button}}"
-        TargetType="ui:Button">
-        <Setter Property="Appearance" Value="Transparent" />
-        <!--
-            Sized so every toolbar button shares one row at the window's minimum width, including
-            the two selection buttons with a two-digit count. A wider MinWidth/Padding (84 / 10)
-            wraps the last one onto a second row and takes that height away from the game list.
-        -->
-        <Setter Property="MinWidth" Value="72" />
-        <Setter Property="MinHeight" Value="60" />
-        <Setter Property="Padding" Value="6,6" />
-        <Setter Property="Margin" Value="2,0" />
-        <Setter Property="HorizontalContentAlignment" Value="Center" />
-        <Setter Property="VerticalContentAlignment" Value="Center" />
-        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
-        <Style.Triggers>
-            <!--
-                The accent's hover/press role. Transparent
-                Appearance is what gives these buttons their flat resting state, but it also
-                suppresses WPF-UI's own accent chrome, which is why the accent has to be stated
-                here rather than inherited.
-            -->
-            <Trigger Property="IsMouseOver" Value="True">
-                <Setter Property="Background" Value="{DynamicResource SavegameBunkerAccentHoverBrush}" />
-                <Setter Property="Foreground" Value="{DynamicResource SavegameBunkerAccentContrastBrush}" />
-                <Setter Property="BorderBrush" Value="{DynamicResource SavegameBunkerAccentBrush}" />
-            </Trigger>
-            <Trigger Property="IsPressed" Value="True">
-                <Setter Property="Background" Value="{DynamicResource SavegameBunkerAccentPressedBrush}" />
-                <Setter Property="Foreground" Value="{DynamicResource SavegameBunkerAccentContrastBrush}" />
-            </Trigger>
-        </Style.Triggers>
-    </Style>
-
     <!--  Hosts a SavegameBunkerIcons.xaml geometry at the toolbar's 22px icon size.  -->
     <Style x:Key="ToolbarGlyph" TargetType="Viewbox">
         <Setter Property="Width" Value="22" />
@@ -356,6 +314,65 @@
         <Setter Property="Margin" Value="0,4,0,0" />
         <Setter Property="HorizontalAlignment" Value="Center" />
         <Setter Property="TextAlignment" Value="Center" />
+    </Style>
+
+    <!--
+        Toolbar buttons: the large icon+label form the design
+        section calls for. Icon above its label rather than beside it, so the actions read as
+        targets of equal weight instead of a row of similar-length text runs. One shared
+        ContentTemplate renders every button: the icon geometry arrives through the button's Tag
+        and the label through its Content, so each button states only what differs. This style
+        sits below ToolbarGlyph, ToolbarGlyphPath and ToolbarButtonLabel because its template
+        names them — a StaticResource naming a key defined further down this dictionary fails at
+        runtime with a XamlParseException the build does not catch.
+    -->
+    <Style
+        x:Key="ToolbarButton"
+        BasedOn="{StaticResource {x:Type ui:Button}}"
+        TargetType="ui:Button">
+        <Setter Property="Appearance" Value="Transparent" />
+        <!--
+            Sized so every toolbar button shares one row at the window's minimum width, including
+            the two selection buttons with a two-digit count. A wider MinWidth/Padding (84 / 10)
+            wraps the last one onto a second row and takes that height away from the game list.
+        -->
+        <Setter Property="MinWidth" Value="72" />
+        <Setter Property="MinHeight" Value="60" />
+        <Setter Property="Padding" Value="6,6" />
+        <Setter Property="Margin" Value="2,0" />
+        <Setter Property="HorizontalContentAlignment" Value="Center" />
+        <Setter Property="VerticalContentAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+        <Setter Property="ContentTemplate">
+            <Setter.Value>
+                <DataTemplate>
+                    <StackPanel Orientation="Vertical">
+                        <Viewbox Style="{StaticResource ToolbarGlyph}">
+                            <Path Style="{StaticResource ToolbarGlyphPath}"
+                                  Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=ui:Button}}"/>
+                        </Viewbox>
+                        <AccessText Text="{Binding}" Style="{StaticResource ToolbarButtonLabel}"/>
+                    </StackPanel>
+                </DataTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <!--
+                The accent's hover/press role. Transparent
+                Appearance is what gives these buttons their flat resting state, but it also
+                suppresses WPF-UI's own accent chrome, which is why the accent has to be stated
+                here rather than inherited.
+            -->
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="{DynamicResource SavegameBunkerAccentHoverBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource SavegameBunkerAccentContrastBrush}" />
+                <Setter Property="BorderBrush" Value="{DynamicResource SavegameBunkerAccentBrush}" />
+            </Trigger>
+            <Trigger Property="IsPressed" Value="True">
+                <Setter Property="Background" Value="{DynamicResource SavegameBunkerAccentPressedBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource SavegameBunkerAccentContrastBrush}" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
 </ResourceDictionary>
