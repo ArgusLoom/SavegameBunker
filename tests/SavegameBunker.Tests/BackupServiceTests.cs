@@ -16,50 +16,16 @@ namespace SavegameBunker.Tests;
 /// </summary>
 public sealed class BackupServiceTests : IDisposable
 {
+    private readonly TempDir _temp = new();
     private readonly string _dir;
     private readonly BackupService _service = new();
 
     public BackupServiceTests()
     {
-        _dir = Path.Combine(Path.GetTempPath(), "SavegameBunkerTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_dir);
+        _dir = _temp.DirectoryPath;
     }
 
-    public void Dispose()
-    {
-        try
-        {
-            // A denied-ACL subdirectory must be re-permitted level by level, before it is
-            // possible to even list its own contents to recurse further. A junction must be
-            // unlinked directly (non-recursive delete) rather than descended into, or recursive
-            // delete tries to walk back into the tree it points at.
-            TestFileSystem.RemoveDenyRules(_dir);
-            TestFileSystem.RemoveJunctions(_dir);
-            Directory.Delete(_dir, recursive: true);
-        }
-        catch (IOException)
-        {
-            // A leftover temp directory must not fail the test run.
-        }
-        catch (UnauthorizedAccessException)
-        {
-            // A Deny ACE that could not be lifted must not fail the whole run.
-        }
-    }
-
-    private Game GameWithSaves(string fileName = "save.dat", string content = "payload")
-    {
-        var saveDir = Path.Combine(_dir, "saves");
-        Directory.CreateDirectory(saveDir);
-        File.WriteAllText(Path.Combine(saveDir, fileName), content);
-
-        return new Game
-        {
-            Id = "test-game",
-            DisplayName = "Test Game",
-            SaveDirTemplate = saveDir.Replace('\\', '/'),
-        };
-    }
+    public void Dispose() => _temp.Dispose();
 
     // An existing save folder with nothing in it — distinct from GameWithSaves, whose folder
     // always holds at least one file.
@@ -111,7 +77,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void Backup_writes_to_the_configured_folder_on_an_ordinary_fixed_volume()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
 
         var result = _service.Backup(game, backupRoot);
@@ -135,7 +101,7 @@ public sealed class BackupServiceTests : IDisposable
     [InlineData("ar-SA")]
     public void Backup_names_the_archive_with_a_gregorian_timestamp_in_any_culture(string culture)
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var previous = CultureInfo.CurrentCulture;
         CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo(culture);
@@ -158,7 +124,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void Backup_creates_the_destination_folder_when_it_does_not_exist_yet()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "not", "created", "yet");
 
         var result = _service.Backup(game, backupRoot);
@@ -172,7 +138,7 @@ public sealed class BackupServiceTests : IDisposable
     {
         // Same volume, and in fact the same parent directory as the saves. A backup here survives
         // everything except losing the disk, which is the trade the user is entitled to make.
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "beside-the-saves");
 
         var result = _service.Backup(game, backupRoot);
@@ -242,7 +208,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void Backup_of_a_locked_source_file_succeeds_without_it_and_names_the_skipped_path()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var savePath = Path.Combine(_dir, "saves", "save.dat");
 
@@ -264,7 +230,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void DescribeVerificationFailure_returns_null_when_the_archive_matches_its_source()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var result = _service.Backup(game, backupRoot);
         Assert.True(result.Success, result.Message);
@@ -278,7 +244,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void DescribeVerificationFailure_names_the_entry_count_difference_after_a_file_is_added()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var result = _service.Backup(game, backupRoot);
         Assert.True(result.Success, result.Message);
@@ -296,7 +262,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void DescribeVerificationFailure_names_the_byte_counts_after_a_source_file_grows()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var result = _service.Backup(game, backupRoot);
         Assert.True(result.Success, result.Message);
@@ -339,7 +305,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void Backup_of_a_save_file_with_non_ascii_characters_in_its_name_succeeds_and_verifies()
     {
-        var game = GameWithSaves(fileName: "spielstand-übung-遊戲.dat");
+        var game = TestGames.WithSaveFile(_dir, fileName: "spielstand-übung-遊戲.dat");
         var backupRoot = Path.Combine(_dir, "backups");
 
         var result = _service.Backup(game, backupRoot);
@@ -355,7 +321,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void Two_consecutive_backups_of_the_same_game_never_lose_or_collide_on_the_first_archive()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
 
         var first = _service.Backup(game, backupRoot);
@@ -437,7 +403,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void Backup_reports_an_unavailable_backup_folder_and_writes_nothing()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         Directory.CreateDirectory(backupRoot);
         // A file, not a directory, occupies the path EnsureWritable needs to create.
@@ -454,7 +420,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void A_stale_temp_file_from_a_killed_run_is_removed_by_the_next_backup()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var targetDir = BackupDirFor(backupRoot, game);
         Directory.CreateDirectory(targetDir);
@@ -553,7 +519,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void Backup_survives_a_final_rename_collision_by_suffixing_the_archive()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var targetDir = Path.Combine(backupRoot, game.Id);
         Directory.CreateDirectory(targetDir);
@@ -585,7 +551,7 @@ public sealed class BackupServiceTests : IDisposable
         // carries no timestamp at all (a GUID instead), so this proves
         // the only timestamp ever written — the final archive's — cannot be older than the moment
         // the write actually finished.
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
 
         var beforeBackupCall = DateTime.Now;
@@ -740,7 +706,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void Backup_with_a_suffix_writes_a_suffixed_archive_that_ListBackups_still_returns()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
 
         var result = _service.Backup(game, backupRoot, "-pre-restore", out var archivePath);
@@ -760,7 +726,7 @@ public sealed class BackupServiceTests : IDisposable
     [InlineData("")]
     public void A_backup_folder_inside_or_equal_to_the_save_folder_is_honoured_and_never_archived(string relativeRoot)
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var saveDir = Path.Combine(_dir, "saves");
         var backupRoot = Path.Combine(saveDir, relativeRoot);
 
@@ -847,7 +813,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void A_backup_root_inside_the_save_folder_still_succeeds_and_packs_no_archives()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var saveDir = Path.Combine(_dir, "saves");
         var backupRoot = Path.Combine(saveDir, "backups");
 
@@ -867,7 +833,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void Backup_two_argument_overload_still_writes_an_unsuffixed_archive()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
 
         var result = _service.Backup(game, backupRoot);
@@ -899,7 +865,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void A_backup_written_by_this_service_is_listed_by_it()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
 
         var backupResult = _service.Backup(game, backupRoot);
@@ -1065,7 +1031,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void Backup_with_no_progress_sink_still_writes_a_verified_archive()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
 
         var result = _service.Backup(game, backupRoot);
@@ -1223,7 +1189,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void Backup_one_name_below_the_rename_retry_limit_still_succeeds_as_the_last_suffix()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var targetDir = Path.Combine(backupRoot, game.Id);
 
@@ -1317,7 +1283,7 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void A_backup_folder_inside_the_save_folder_is_named_as_left_out_not_as_unreadable()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "saves", "backups");
 
         Assert.True(_service.Backup(game, backupRoot).Success);

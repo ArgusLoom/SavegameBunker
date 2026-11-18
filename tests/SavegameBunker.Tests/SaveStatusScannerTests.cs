@@ -10,31 +10,15 @@ namespace SavegameBunker.Tests;
 /// </summary>
 public sealed class SaveStatusScannerTests : IDisposable
 {
+    private readonly TempDir _temp = new();
     private readonly string _dir;
 
     public SaveStatusScannerTests()
     {
-        _dir = Path.Combine(Path.GetTempPath(), "SavegameBunkerTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_dir);
+        _dir = _temp.DirectoryPath;
     }
 
-    public void Dispose()
-    {
-        try
-        {
-            // A denied-ACL subdirectory must be re-permitted level by level, before it is
-            // possible to even list its own contents to recurse further. A junction must be
-            // unlinked directly (non-recursive delete) rather than descended into, or recursive
-            // delete tries to walk back into the tree it points at.
-            TestFileSystem.RemoveDenyRules(_dir);
-            TestFileSystem.RemoveJunctions(_dir);
-            Directory.Delete(_dir, recursive: true);
-        }
-        catch (IOException)
-        {
-            // A leftover temp directory must not fail the test run.
-        }
-    }
+    public void Dispose() => _temp.Dispose();
 
     private static Game GameFor(string template) =>
         new() { Id = "g", DisplayName = "G", SaveDirTemplate = template };

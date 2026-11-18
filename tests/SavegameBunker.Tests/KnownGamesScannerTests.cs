@@ -12,27 +12,15 @@ namespace SavegameBunker.Tests;
 /// </summary>
 public sealed class KnownGamesScannerTests : IDisposable
 {
+    private readonly TempDir _temp = new();
     private readonly string _dir;
 
     public KnownGamesScannerTests()
     {
-        _dir = Path.Combine(Path.GetTempPath(), "SavegameBunkerTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_dir);
+        _dir = _temp.DirectoryPath;
     }
 
-    public void Dispose()
-    {
-        try
-        {
-            TestFileSystem.RemoveDenyRules(_dir);
-            TestFileSystem.RemoveJunctions(_dir);
-            Directory.Delete(_dir, recursive: true);
-        }
-        catch (IOException)
-        {
-            // A leftover temp directory must not fail the test run.
-        }
-    }
+    public void Dispose() => _temp.Dispose();
 
     private static KnownGame EntryFor(string id, string displayName, string template) =>
         new() { Id = id, DisplayName = displayName, Aliases = [], SaveDirTemplate = template };

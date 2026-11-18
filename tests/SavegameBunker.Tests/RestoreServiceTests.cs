@@ -14,48 +14,18 @@ namespace SavegameBunker.Tests;
 /// </summary>
 public sealed class RestoreServiceTests : IDisposable
 {
+    private readonly TempDir _temp = new();
     private readonly string _dir;
     private readonly BackupService _backupService = new();
     private readonly RestoreService _service;
 
     public RestoreServiceTests()
     {
-        _dir = Path.Combine(Path.GetTempPath(), "SavegameBunkerTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_dir);
+        _dir = _temp.DirectoryPath;
         _service = new RestoreService(_backupService);
     }
 
-    public void Dispose()
-    {
-        try
-        {
-            TestFileSystem.RemoveDenyRules(_dir);
-            TestFileSystem.RemoveJunctions(_dir);
-            Directory.Delete(_dir, recursive: true);
-        }
-        catch (IOException)
-        {
-            // A leftover temp directory must not fail the test run.
-        }
-        catch (UnauthorizedAccessException)
-        {
-            // A Deny ACE that could not be lifted must not fail the whole run.
-        }
-    }
-
-    private Game GameWithSaves(string fileName = "save.dat", string content = "payload")
-    {
-        var saveDir = Path.Combine(_dir, "saves");
-        Directory.CreateDirectory(saveDir);
-        File.WriteAllText(Path.Combine(saveDir, fileName), content);
-
-        return new Game
-        {
-            Id = "test-game",
-            DisplayName = "Test Game",
-            SaveDirTemplate = saveDir.Replace('\\', '/'),
-        };
-    }
+    public void Dispose() => _temp.Dispose();
 
     // An existing save folder with nothing in it — distinct from GameWithSaves, whose folder
     // always holds at least one file.
@@ -128,7 +98,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void Restore_writes_a_pre_restore_safety_backup_before_swapping_in_the_restored_contents()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -153,7 +123,7 @@ public sealed class RestoreServiceTests : IDisposable
         // HasAnyFile must not read the symlinked file as "something to protect" — BackupService's
         // own safety-backup write skips that exact file and would otherwise refuse it as empty,
         // aborting the restore before extraction even runs.
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -177,7 +147,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void Confirm_is_invoked_once_with_a_safety_backup_already_on_disk_and_save_dir_still_pre_restore()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -209,7 +179,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void Declining_confirmation_leaves_the_save_directory_unchanged_and_no_restore_sibling_behind()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -236,7 +206,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void Restore_is_refused_when_the_backup_folder_sits_inside_the_save_folder()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var saveDir = SaveDirIn(_dir);
         var backupRoot = Path.Combine(saveDir, "Backups");
         var backupResult = _backupService.Backup(game, backupRoot);
@@ -257,7 +227,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void Safety_backup_failure_aborts_before_confirm_and_leaves_the_save_directory_untouched()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -386,7 +356,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void A_truncated_archive_fails_extraction_leaves_the_save_dir_unchanged_and_removes_the_temp_dir()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -409,7 +379,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void A_plain_text_file_renamed_to_zip_fails_extraction_and_leaves_the_save_dir_unchanged()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var gameBackupDir = Directory.CreateDirectory(BackupDirFor(backupRoot, game));
         var notAnArchive = Path.Combine(gameBackupDir.FullName, "fake.zip");
@@ -429,7 +399,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void A_zero_byte_archive_file_fails_extraction_and_leaves_the_save_dir_unchanged()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var gameBackupDir = Directory.CreateDirectory(BackupDirFor(backupRoot, game));
         var zeroByteArchive = Path.Combine(gameBackupDir.FullName, "empty.zip");
@@ -449,7 +419,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void A_missing_archive_path_fails_extraction_and_leaves_the_save_dir_unchanged()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var missingArchive = Path.Combine(BackupDirFor(backupRoot, game), "does-not-exist.zip");
 
@@ -467,7 +437,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void A_verification_mismatch_names_the_archive_path_and_detail_and_removes_the_temp_dir()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
 
         // A structurally valid archive whose one entry name uses a backslash. On Windows, extraction
@@ -502,7 +472,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void Repeating_a_failed_restore_produces_the_identical_error_twice_with_no_growing_debris()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -570,7 +540,7 @@ public sealed class RestoreServiceTests : IDisposable
         // (see the swap-failure test below) — the one copy of the user's data that still exists.
         // The stale-temp sweep must never delete it, only ever the disposable "-tmp-" extraction
         // siblings.
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -593,7 +563,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void CleanStaleRestoreTemp_is_scoped_to_this_games_own_leftover_siblings()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -614,7 +584,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void A_successful_restores_message_never_mentions_the_stale_temp_sweep()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -634,7 +604,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void CleanStaleRestoreTemp_is_best_effort_and_a_restore_still_succeeds_with_an_undeletable_leftover()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -662,7 +632,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void A_restore_reports_its_three_steps_in_order_and_exactly_once_each()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -679,7 +649,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void A_restore_cancelled_at_the_confirmation_reports_step_one_and_no_further_step()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -696,7 +666,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void A_restore_whose_safety_backup_fails_reports_step_one_and_no_further_step()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -718,7 +688,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void A_restore_that_needs_no_safety_backup_still_reports_all_three_steps()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -740,7 +710,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void A_restore_given_no_progress_object_behaves_exactly_as_before()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -758,7 +728,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void ExceedsArchiveLimits_is_false_for_a_normal_backup()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var backupResult = _backupService.Backup(game, backupRoot);
         Assert.True(backupResult.Success, backupResult.Message);
@@ -803,7 +773,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void A_refused_restore_with_the_backup_folder_inside_the_save_folder_deletes_nothing()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var saveDir = SaveDirIn(_dir);
         var backupRoot = Path.Combine(saveDir, "Backups");
         var backupResult = _backupService.Backup(game, backupRoot);
@@ -823,7 +793,7 @@ public sealed class RestoreServiceTests : IDisposable
     [Fact]
     public void Restore_is_refused_when_the_backup_folder_is_the_save_folder_and_every_archive_survives()
     {
-        var game = GameWithSaves();
+        var game = TestGames.WithSaveFile(_dir);
         var saveDir = SaveDirIn(_dir);
         var backupRoot = saveDir;
         var backupResult = _backupService.Backup(game, backupRoot);
