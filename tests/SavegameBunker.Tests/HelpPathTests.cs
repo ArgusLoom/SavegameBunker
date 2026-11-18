@@ -5,19 +5,15 @@ namespace SavegameBunker.Tests;
 
 public sealed class HelpPathTests : IDisposable
 {
+    private readonly TempDir _temp = new();
     private readonly string _dir;
 
     public HelpPathTests()
     {
-        _dir = Path.Combine(Path.GetTempPath(), "SavegameBunkerTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_dir);
+        _dir = _temp.DirectoryPath;
     }
 
-    public void Dispose()
-    {
-        try { Directory.Delete(_dir, recursive: true); }
-        catch (IOException) { /* leftover must not fail the run */ }
-    }
+    public void Dispose() => _temp.Dispose();
 
     private void WriteGuide(string language)
     {
