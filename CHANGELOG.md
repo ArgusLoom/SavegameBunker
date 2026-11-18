@@ -42,6 +42,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Find Games says "1 file" instead of "1 files".**
 - **The "safety backup" tag in the restore list stays readable when its row is selected.**
 
+### Changed
+
+- **Dialog buttons are one width, and the title bar's close button turns the standard Windows red
+  on hover again.** The app's own error text and icons keep their contrast-corrected red; a few
+  gaps in the status bar, the progress panel and the empty list are tidier.
+
 ## [1.0.1] - 2026-11-18
 
 A maintenance release: two clearer error situations and a lot of work under the hood. Nothing

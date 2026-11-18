@@ -57,21 +57,15 @@
     <Thickness x:Key="xs">4</Thickness>
     <Thickness x:Key="sm">8</Thickness>
     <Thickness x:Key="md">16</Thickness>
-    <Thickness x:Key="lg">24</Thickness>
-    <Thickness x:Key="xl">32</Thickness>
 
     <!--
         Corner radius scale. Not one value everywhere: Fluent stages its radii, tighter on small
         controls than on the surfaces that hold them, and flattening that would make buttons look
-        swollen next to their container. Two rungs are enough for this window.
+        swollen next to their container.
         
-        radiusControl — buttons, inputs, the row-level chrome. Matches WPF-UI's own control radius,
-        so SavegameBunker's styles sit flush with the library's.
         radiusSurface — panels that contain other things: the grid, the status bar, popups.
     -->
-    <system:Double x:Key="radiusControlValue">4</system:Double>
     <system:Double x:Key="radiusSurfaceValue">8</system:Double>
-    <CornerRadius x:Key="radiusControl">4</CornerRadius>
     <CornerRadius x:Key="radiusSurface">8</CornerRadius>
 
     <!--
