@@ -143,12 +143,14 @@
         <Setter Property="Fill" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=MenuItem}}" />
     </Style>
 
-    <!--  Overflow flyout items: rest light, hover green — colour only, same as Scan. One shared
-          HeaderTemplate renders every item: the glyph geometry arrives through the item's Tag and
-          the text through its Header, so each item states only what differs. This style sits
-          below OverflowMenuGlyphPath because its template names it — a StaticResource naming a
-          key defined further down this dictionary fails at runtime with a XamlParseException
-          the build does not catch.  -->
+    <!--
+        Overflow flyout items: rest light, hover green — colour only, same as Scan. One shared
+        HeaderTemplate renders every item: the glyph geometry arrives through the item's Tag and
+        the text through its Header, so each item states only what differs. This style sits
+        below OverflowMenuGlyphPath because its template names it — a StaticResource naming a
+        key defined further down this dictionary fails at runtime with a XamlParseException
+        the build does not catch.
+    -->
     <Style
         x:Key="OverflowMenuItem"
         BasedOn="{StaticResource {x:Type ui:MenuItem}}"
@@ -158,11 +160,13 @@
             <Setter.Value>
                 <DataTemplate>
                     <StackPanel Orientation="Horizontal">
-                        <Viewbox Width="16" Height="16" Margin="0,0,8,0">
-                            <Path Style="{StaticResource OverflowMenuGlyphPath}"
-                                  Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=MenuItem}}"/>
+                        <Viewbox
+                            Width="16"
+                            Height="16"
+                            Margin="0,0,8,0">
+                            <Path Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=MenuItem}}" Style="{StaticResource OverflowMenuGlyphPath}" />
                         </Viewbox>
-                        <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+                        <TextBlock VerticalAlignment="Center" Text="{Binding}" />
                     </StackPanel>
                 </DataTemplate>
             </Setter.Value>
@@ -193,7 +197,7 @@
             </DataTrigger>
             <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Error">
                 <Setter Property="Symbol" Value="ErrorCircle24" />
-                <Setter Property="Foreground" Value="{DynamicResource PaletteRedBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource SavegameBunkerDangerBrush}" />
             </DataTrigger>
         </Style.Triggers>
     </Style>
@@ -207,7 +211,7 @@
                 <Setter Property="Foreground" Value="{DynamicResource SavegameBunkerCautionBrush}" />
             </DataTrigger>
             <DataTrigger Binding="{Binding RelativeSource={RelativeSource Self}, Path=Tag}" Value="Error">
-                <Setter Property="Foreground" Value="{DynamicResource PaletteRedBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource SavegameBunkerDangerBrush}" />
             </DataTrigger>
         </Style.Triggers>
     </Style>
@@ -396,10 +400,9 @@
                 <DataTemplate>
                     <StackPanel Orientation="Vertical">
                         <Viewbox Style="{StaticResource ToolbarGlyph}">
-                            <Path Style="{StaticResource ToolbarGlyphPath}"
-                                  Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=ui:Button}}"/>
+                            <Path Data="{Binding Tag, RelativeSource={RelativeSource AncestorType=ui:Button}}" Style="{StaticResource ToolbarGlyphPath}" />
                         </Viewbox>
-                        <AccessText Text="{Binding}" Style="{StaticResource ToolbarButtonLabel}"/>
+                        <AccessText Style="{StaticResource ToolbarButtonLabel}" Text="{Binding}" />
                     </StackPanel>
                 </DataTemplate>
             </Setter.Value>

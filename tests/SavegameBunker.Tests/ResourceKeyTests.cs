@@ -11,12 +11,17 @@ namespace SavegameBunker.Tests;
 /// property simply keeps its default value. That is how <c>PaletteRedBrush</c> shipped referenced
 /// but never defined: every error-severity row rendered in the ordinary foreground colour, so a
 /// failed row looked exactly like a healthy one. Found by hand during a manual
-/// walkthrough, not by the suite.
+/// walkthrough, not by the suite. The key has since been renamed <c>SavegameBunkerDangerBrush</c>
+/// (D-06): <c>PaletteRedColor</c>/<c>PaletteRedBrush</c> collided with WPF-UI's own identically-named
+/// keys, which the app's dictionary shadowed app-wide.
 ///
 /// Scope is deliberately narrow: only the palette keys SavegameBunker owns. Keys supplied by WPF-UI
 /// (<c>BodyTextBlockStyle</c>, <c>TextFillColorPrimaryBrush</c>, …) live in that library's own
 /// dictionaries and are not this project's to define, so checking them would need an allowlist to
-/// keep in sync — a maintenance burden that would itself rot.
+/// keep in sync — a maintenance burden that would itself rot. The <c>Palette</c> prefix stays in
+/// the guard below even though no key in this project still carries it: it also catches any app
+/// XAML that names a <c>Palette*</c> key again and silently picks up WPF-UI's own palette red
+/// instead of the app's — the exact failure mode this rename fixes.
 /// </remarks>
 public class ResourceKeyTests
 {
@@ -44,7 +49,10 @@ public class ResourceKeyTests
                 defined.Add(m.Groups[1].Value);
         }
 
-        // The keys this project owns rather than inherits: our palette names.
+        // The keys this project owns rather than inherits: our palette names. "Palette" has no
+        // owner today (D-06 renamed the one key that carried it) but stays in the guard so any
+        // future PaletteFoo key fails here instead of silently resolving to WPF-UI's own
+        // identically-named resource.
         var ownedPrefixes = new[] { "Palette", "SavegameBunker" };
 
         var unresolved = new List<string>();
@@ -72,7 +80,7 @@ public class ResourceKeyTests
 
         // A Color on its own cannot be assigned to a Foreground; every severity colour needs the
         // matching SolidColorBrush or the trigger that uses it does nothing at all.
-        Assert.Contains(@"x:Key=""PaletteRedBrush""", appXaml);
+        Assert.Contains(@"x:Key=""SavegameBunkerDangerBrush""", appXaml);
         Assert.Contains(@"x:Key=""SavegameBunkerCautionBrush""", appXaml);
     }
 }
