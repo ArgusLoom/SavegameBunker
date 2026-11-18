@@ -31,6 +31,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   2026). A Thai-format PC then showed every game as "up to date" even after its saves had
   changed, so "Back up all changed" skipped it. Backups made from now on use the usual date.
   Older archives keep their names.
+- **Drive roots now work as save and backup folders.** Picking the root of a drive such as E:\
+  as a save folder stored it as "E:", which Windows reads as the current folder on that drive;
+  and a backup folder at a drive root was not recognised as holding anything, so the rules that
+  keep backups out of backups did not apply to it.
 - **Deleting a backup in the restore list and then cancelling now updates the game's row.**
   Before, the row kept showing the deleted backup until you clicked Refresh.
 - **Find Games says "1 file" instead of "1 files".**

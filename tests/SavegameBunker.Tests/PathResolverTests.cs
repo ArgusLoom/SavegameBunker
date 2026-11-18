@@ -199,6 +199,19 @@ public sealed class PathResolverTests
     }
 
     [Fact]
+    public void ToTemplate_keeps_a_drive_root_a_root()
+    {
+        // TrimEnd(Path.DirectorySeparatorChar) turned E:\ into E:, which Windows reads as the
+        // current directory on that drive rather than its root.
+        var template = PathResolver.ToTemplate(@"E:\");
+
+        Assert.Equal("E:/", template);
+        Assert.True(PathResolver.TryResolve(template, null, out var resolved, out var error));
+        Assert.Null(error);
+        Assert.Equal(@"E:\", resolved);
+    }
+
+    [Fact]
     public void ToTemplate_output_round_trips_through_TryResolve()
     {
         var documents = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);

@@ -134,7 +134,9 @@ public static class PathResolver
     /// under none of the candidate roots is not an error — it is returned as a plain absolute
     /// path with forward slashes. A relocated Documents or Saved Games folder needs no special
     /// case either: once it moves outside the profile, %USERPROFILE% no longer prefixes it at
-    /// all, so only the relocated candidate still matches.
+    /// all, so only the relocated candidate still matches. A drive root (<c>E:\</c>) stays a root
+    /// (<c>E:/</c>) rather than being trimmed to <c>E:</c>, which Windows reads as the current
+    /// directory on that drive, not its root.
     /// </remarks>
     public static string ToTemplate(string absolutePath)
     {
@@ -147,22 +149,24 @@ public static class PathResolver
             ("%USERPROFILE%", Environment.GetFolderPath(Environment.SpecialFolder.UserProfile)),
         };
 
-        var target = Path.GetFullPath(absolutePath).TrimEnd(Path.DirectorySeparatorChar);
+        var target = PathCompare.Normalize(absolutePath);
 
         var best = candidates
             .Where(c => !string.IsNullOrEmpty(c.Value))
-            .Select(c => (c.Token, Value: Path.GetFullPath(c.Value!).TrimEnd(Path.DirectorySeparatorChar)))
-            .Where(c => target.Equals(c.Value, StringComparison.OrdinalIgnoreCase)
-                     || target.StartsWith(c.Value + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            .Select(c => (c.Token, Value: PathCompare.Normalize(c.Value!)))
+            .Where(c => PathCompare.IsSameOrInside(target, c.Value))
             .OrderByDescending(c => c.Value.Length)
             .FirstOrDefault();
 
         if (best.Token is null)
             return target.Replace(Path.DirectorySeparatorChar, '/');
 
+        var remainderStart = Path.EndsInDirectorySeparator(best.Value)
+            ? best.Value.Length
+            : best.Value.Length + 1;
         var remainder = target.Length == best.Value.Length
             ? ""
-            : target[(best.Value.Length + 1)..];
+            : target[remainderStart..];
 
         return remainder.Length == 0
             ? best.Token
