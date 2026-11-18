@@ -50,6 +50,8 @@ None. Open ideas and accepted limitations are tracked in `.planning/WISHLIST.md`
 
 ### Roadmap Evolution
 
+- 2026-11-18 — Phase 2 added: Audit follow-ups (startup prompt arming race, first-run
+  concurrent bulk backup, two load-flaky tests) from the 2026-11-18 audit scan.
 - 2026-11-17 — Milestone v1.0.1 (post-release hardening) started. Phase 1 added: Bugfixing &
   Refactoring — remaining R2 audit defects (rename-cap message, Scan skip-surfacing, service
   never-throw contract) + incremental behavior-locked MainViewModel split (Plans 01→05:

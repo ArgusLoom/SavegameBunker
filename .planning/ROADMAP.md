@@ -55,3 +55,33 @@ Plans:
 bulk-backup coordinator → status-sweep coordinator → row-actions service → rest form. Each
 plan ends with: Linux Release build 0/0, a dispatched `test.yml` run green, one commit per
 concern; the Owner's Windows suite run is the verification of record at phase close.
+
+### Phase 2: Audit follow-ups
+
+**Goal:** Close the three open findings from the 2026-11-18 audit scan that need a design
+decision or test-harness work. The quick fixes from the same scan (archive timestamp culture,
+workflow token hardening, release SDK pin, restore-picker cancel rescan) already landed.
+
+1. **Startup prompt can be lost.** The construction-time sweep (`MainViewModel.cs:166`) can
+   settle before `App.xaml.cs:206` arms the prompt after `await vm.ReportLoad()`, for example
+   behind ReportLoad's error dialog or a slow backup-root reachability check. The prompt then
+   fires on the next full sweep (Refresh), mid-session, which contradicts the documented
+   behavior. Constraints: the prompt must never overlap ReportLoad's dialog, and
+   `StartupUnsecuredPromptTests` arm after the sweep and drive `PromptUnsecuredGamesOnce`
+   directly, so the fix changes that test contract.
+2. **Concurrent bulk backups on first run.** `RunBulkBackupAsync` (`MainViewModel.cs:1357`)
+   awaits `EnsureBackupRootAsync` (the `DriveHints` probe in `Task.Run`, then the picker) before
+   any guard is raised, so the other bulk command's `CanExecute` stays true. Two loops can write
+   the same games, and the first `EndBulkProgress` clears `IsBusy` while the second still runs.
+   Only reachable before a backup root is configured.
+3. **Flaky tests under load.** `StartupUnsecuredPromptTests.Yes_with_an_unset_backup_root_opens_the_picker_and_cancelling_is_a_no_op`
+   and `MainViewModelTests.A_cancelled_first_backup_folder_prompt_writes_nothing` time out at the
+   3 s `WaitForAsync` when the suite runs right after a build. Both route through the unset-root
+   `DriveHints` probe, which touches real drives.
+
+**Requirements**: TBD
+**Depends on:** Phase 1
+**Plans:** 0 plans
+
+Plans:
+- [ ] TBD (run /gsd-plan-phase 2 to break down)
