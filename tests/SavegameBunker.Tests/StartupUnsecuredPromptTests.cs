@@ -48,8 +48,11 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
 
     /// <param name="configuredBackupRoot">
     /// The catalog's <c>backupRoot</c>; <c>null</c> (the default) seeds the usual real root beside
-    /// the save directories, an empty string leaves it unset so the prompt's Yes branch has to
-    /// take the folder-picker route (<see cref="MainViewModel.EnsureBackupRootAsync"/>).
+    /// the save directories. An empty string leaves the root unset, so every row settles on
+    /// <see cref="BackupComparisonKind.FolderNotAvailable"/> and the prompt has nothing to offer —
+    /// the picker route the unset root would take is covered by the bulk-path fact in
+    /// <see cref="MainViewModelTests"/> (<c>Back_up_selected_with_an_unset_backup_root_…</c>),
+    /// because with an unset root no row ever qualifies for the startup prompt.
     /// </param>
     private async Task<(MainViewModel Vm, RecordingDialogService Dialog, string BackupRoot)> CreateViewModelAsync(
         int gameCount, string? configuredBackupRoot)
@@ -270,23 +273,26 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
         Assert.False(vm2.IsBulkBackupRunning);
     }
 
+    /// <summary>
+    /// The prompt can only ever offer rows whose comparison says their saves are uncovered —
+    /// <see cref="BulkRunRules.NeedsBackup"/> accepts only SavesChangedSinceBackup and
+    /// NeverBackedUp. With an unset backup root every row settles on FolderNotAvailable, so
+    /// nothing is unsecured and the prompt is a synchronous no-op: the picker route an unset root
+    /// would take is unreachable from here and covered by the bulk-path fact in
+    /// <see cref="MainViewModelTests"/> instead (D-04, D-13).
+    /// </summary>
     [Fact]
-    public async Task Yes_with_an_unset_backup_root_opens_the_picker_and_cancelling_is_a_no_op()
+    public async Task An_unset_backup_root_never_reaches_the_prompt()
     {
-        var (vm, dialog, backupRoot) = await CreateViewModelAsync(1, configuredBackupRoot: "");
-        vm.RequestStartupUnsecuredPrompt();
-        dialog.ConfirmToReturn = true;
-        dialog.FolderToReturn = null; // the user cancels the picker
+        var (vm, dialog, _) = await CreateViewModelAsync(1, configuredBackupRoot: "");
 
-        vm.Games[0].ApplyBackupComparison(BackupComparison.NeverBackedUp());
+        Assert.Equal(BackupComparisonKind.BackupFolderNotAvailable, vm.Games[0].ComparisonKind);
+
+        vm.RequestStartupUnsecuredPrompt();
         vm.PromptUnsecuredGamesOnce();
 
-        var statusBefore = vm.StatusMessage;
-        await WaitForAsync(() => dialog.PickFolderCalls == 1 && vm.StatusMessage != statusBefore);
-
-        Assert.Single(dialog.ConfirmMessages);
-        Assert.Empty(dialog.ErrorMessages);
-        Assert.False(Directory.Exists(Path.Combine(backupRoot, "game-0")));
-        Assert.False(vm.IsBulkBackupRunning);
+        Assert.Empty(vm.GetUnsecuredRows());
+        Assert.Empty(dialog.ConfirmMessages);
+        Assert.Equal(0, dialog.PickFolderCalls);
     }
 }

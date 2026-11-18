@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Choosing a backup folder no longer stalls on a disconnected network drive.** The first backup
+  asks for a folder and suggests a start location; with a mapped network drive that was offline,
+  finding that suggestion could hold the folder dialog back for a long time. Network and optical
+  drives are no longer asked whether they are ready.
 - **Backups of a save folder inside your backup folder now include its subfolders.** With a backup
   folder such as Documents and a game that saves under Documents\My Games, backups held only the
   files at the top of the save folder; every subfolder was skipped without a word, and restoring

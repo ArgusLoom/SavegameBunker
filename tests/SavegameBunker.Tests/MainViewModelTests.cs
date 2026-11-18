@@ -442,6 +442,35 @@ public sealed class MainViewModelTests : IDisposable
         Assert.Empty(dialog.InfoMessages);
     }
 
+    /// <summary>
+    /// The bulk path (<see cref="MainViewModel.BackupSelectedCommand"/>) with an unset backup
+    /// root opens the same picker as the row path, and cancelling it writes nothing — the
+    /// reachable counterpart to the row-path cancel fact above, because
+    /// <see cref="MainViewModel.BackupCommand"/> is the only route to that one. Plan 02-06 builds
+    /// item 2's guard fact on this arrangement.
+    /// </summary>
+    [Fact]
+    public async Task Back_up_selected_with_an_unset_backup_root_opens_the_picker_and_cancelling_writes_nothing()
+    {
+        var (vm, dialog, catalogPath) = CreateViewModel(backupRoot: "");
+        dialog.FolderToReturn = null; // the user cancels the picker
+
+        await WaitForAsync(() => vm.Games.All(row => row.ComparisonKind != BackupComparisonKind.Checking));
+
+        vm.Games[0].IsSelected = true;
+        await WaitForAsync(() => vm.BackupSelectedCommand.CanExecute(null));
+        vm.BackupSelectedCommand.Execute(null);
+
+        await WaitForAsync(() => dialog.PickFolderCalls == 1 && vm.StatusMessage.StartsWith("Backup cancelled"));
+
+        Assert.Equal(_suggestedStartFolder, Assert.Single(dialog.PickFolderInitialDirectories));
+        Assert.Empty(Directory.GetFiles(_dir, "*.zip", SearchOption.AllDirectories));
+        Assert.False(File.Exists(catalogPath));
+        Assert.Empty(dialog.ErrorMessages);
+        Assert.False(vm.IsBulkBackupRunning);
+        Assert.False(vm.IsAnyOperationRunning);
+    }
+
     [Fact]
     public async Task A_whitespace_backup_root_opens_the_picker_like_an_absent_one()
     {
