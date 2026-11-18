@@ -56,7 +56,7 @@ public sealed class BulkRunRulesTests
         var d = MakeRow("d", "Delta", BackupComparisonKind.SavesChangedSinceBackup);
         d.IsBusy = true;
 
-        var targets = BulkRunRules.ChangedTargets(new[] { a, b, c, d });
+        var targets = BulkRunRules.ChangedTargets([a, b, c, d]);
 
         Assert.Equal(new[] { a, b }, targets);
     }
@@ -71,7 +71,7 @@ public sealed class BulkRunRulesTests
         c.IsSelected = true;
         c.IsBusy = true;
 
-        var targets = BulkRunRules.SelectedTargets(new[] { a, b, c });
+        var targets = BulkRunRules.SelectedTargets([a, b, c]);
 
         Assert.Equal(new[] { a }, targets);
     }
@@ -82,7 +82,7 @@ public sealed class BulkRunRulesTests
         var targets = new[] { MakeRow("a", "Alpha", BackupComparisonKind.NeverBackedUp) };
 
         var result = BulkRunRules.BackupOutcome(
-            targets, Array.Empty<string>(), "str_bulkBackup_allSucceeded", "str_bulkBackup_partialFailure");
+            targets, [], "str_bulkBackup_allSucceeded", "str_bulkBackup_partialFailure");
 
         Assert.True(result.Success);
         Assert.Equal(Strings.Format("str_bulkBackup_one", "Alpha"), result.Message);
@@ -98,7 +98,7 @@ public sealed class BulkRunRulesTests
         };
 
         var result = BulkRunRules.BackupOutcome(
-            targets, Array.Empty<string>(), "str_bulkBackup_allSucceeded", "str_bulkBackup_partialFailure");
+            targets, [], "str_bulkBackup_allSucceeded", "str_bulkBackup_partialFailure");
 
         Assert.True(result.Success);
         Assert.Equal(Strings.Format("str_bulkBackup_allSucceeded", 2), result.Message);
@@ -115,7 +115,7 @@ public sealed class BulkRunRulesTests
         };
 
         var result = BulkRunRules.BackupOutcome(
-            targets, new[] { "Beta", "Gamma" }, "str_bulkBackup_allSucceeded", "str_bulkBackup_partialFailure");
+            targets, ["Beta", "Gamma"], "str_bulkBackup_allSucceeded", "str_bulkBackup_partialFailure");
 
         Assert.False(result.Success);
         Assert.Equal(Strings.Format("str_bulkBackup_partialFailure", 1, 3, "Beta, Gamma"), result.Message);
@@ -126,7 +126,7 @@ public sealed class BulkRunRulesTests
     {
         var targets = new[] { MakeRow("a", "Alpha", BackupComparisonKind.UpToDate) };
 
-        var result = BulkRunRules.RestoreOutcome(targets, 0, Array.Empty<string>(), Array.Empty<string>());
+        var result = BulkRunRules.RestoreOutcome(targets, 0, [], []);
 
         Assert.False(result.Success);
         Assert.True(result.Cancelled);
@@ -143,7 +143,7 @@ public sealed class BulkRunRulesTests
             MakeRow("c", "Gamma", BackupComparisonKind.UpToDate),
         };
 
-        var result = BulkRunRules.RestoreOutcome(targets, 1, new[] { "Gamma" }, new[] { "Beta" });
+        var result = BulkRunRules.RestoreOutcome(targets, 1, ["Gamma"], ["Beta"]);
 
         Assert.False(result.Success);
         Assert.False(result.Cancelled);
@@ -159,7 +159,7 @@ public sealed class BulkRunRulesTests
             MakeRow("b", "Beta", BackupComparisonKind.UpToDate),
         };
 
-        var result = BulkRunRules.RestoreOutcome(targets, 1, Array.Empty<string>(), new[] { "Beta" });
+        var result = BulkRunRules.RestoreOutcome(targets, 1, [], ["Beta"]);
 
         Assert.True(result.Success);
         Assert.False(result.Cancelled);
@@ -170,14 +170,14 @@ public sealed class BulkRunRulesTests
     public void RestoreOutcome_names_the_single_game_or_counts_all()
     {
         var single = new[] { MakeRow("a", "Alpha", BackupComparisonKind.UpToDate) };
-        var one = BulkRunRules.RestoreOutcome(single, 1, Array.Empty<string>(), Array.Empty<string>());
+        var one = BulkRunRules.RestoreOutcome(single, 1, [], []);
 
         var pair = new[]
         {
             MakeRow("a", "Alpha", BackupComparisonKind.UpToDate),
             MakeRow("b", "Beta", BackupComparisonKind.UpToDate),
         };
-        var all = BulkRunRules.RestoreOutcome(pair, 2, Array.Empty<string>(), Array.Empty<string>());
+        var all = BulkRunRules.RestoreOutcome(pair, 2, [], []);
 
         Assert.True(one.Success);
         Assert.Equal(Strings.Format("str_bulkRestore_one", "Alpha"), one.Message);

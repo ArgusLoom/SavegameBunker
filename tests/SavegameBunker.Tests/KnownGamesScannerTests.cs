@@ -36,7 +36,7 @@ public sealed class KnownGamesScannerTests : IDisposable
     }
 
     private static KnownGame EntryFor(string id, string displayName, string template) =>
-        new() { Id = id, DisplayName = displayName, Aliases = new List<string>(), SaveDirTemplate = template };
+        new() { Id = id, DisplayName = displayName, Aliases = [], SaveDirTemplate = template };
 
     private string FixtureDir(string name)
     {
@@ -53,7 +53,7 @@ public sealed class KnownGamesScannerTests : IDisposable
     }
 
     private static ScanResult RunScan(IReadOnlyList<KnownGame> table) =>
-        new KnownGamesScanner().Scan(table, Array.Empty<Game>());
+        new KnownGamesScanner().Scan(table, []);
 
     [Fact]
     public void A_directory_holding_one_file_produces_exactly_one_hit_matching_the_fixture_tree()
@@ -100,7 +100,7 @@ public sealed class KnownGamesScannerTests : IDisposable
         var result = RunScan(table);
 
         Assert.Equal(
-            new[] { "Alpha Game", "Bravo Game", "Charlie Game" },
+            ["Alpha Game", "Bravo Game", "Charlie Game"],
             result.Hits.Select(hit => hit.Game.DisplayName));
     }
 
@@ -230,7 +230,7 @@ public sealed class KnownGamesScannerTests : IDisposable
         var result = RunScan(table);
 
         Assert.Equal(
-            new[] { "Alpha Game", "Bravo Game", "Charlie Game" },
+            ["Alpha Game", "Bravo Game", "Charlie Game"],
             result.SkippedShared.Select(entry => entry.DisplayName));
     }
 
@@ -354,7 +354,7 @@ public sealed class KnownGamesScannerTests : IDisposable
         var template = FixtureDir("empty-catalog-hit");
         var table = new[] { EntryFor("empty-catalog-game", "Empty Catalog Game", template) };
 
-        var result = new KnownGamesScanner().Scan(table, Array.Empty<Game>());
+        var result = new KnownGamesScanner().Scan(table, []);
 
         Assert.Single(result.Hits);
         Assert.Equal(0, result.SkippedAlreadyKnown);

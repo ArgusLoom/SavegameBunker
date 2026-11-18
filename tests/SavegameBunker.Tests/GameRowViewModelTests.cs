@@ -185,7 +185,7 @@ public sealed class GameRowViewModelTests
     {
         var row = MakeRow();
         var lastModified = new DateTime(2026, 8, 29, 10, 0, 0);
-        var status = SaveStatus.Found(5, 1024, lastModified, oversized: false) with { SkippedPaths = new[] { "locked" } };
+        var status = SaveStatus.Found(5, 1024, lastModified, oversized: false) with { SkippedPaths = ["locked"] };
 
         row.ApplyStatus(status);
 
@@ -197,7 +197,7 @@ public sealed class GameRowViewModelTests
     public void ApplyStatus_no_saves_with_skipped_paths_names_them_instead_of_no_saves_yet()
     {
         var row = MakeRow();
-        var status = SaveStatus.NoSaves() with { SkippedPaths = new[] { "." } };
+        var status = SaveStatus.NoSaves() with { SkippedPaths = ["."] };
 
         row.ApplyStatus(status);
 
@@ -211,7 +211,7 @@ public sealed class GameRowViewModelTests
     {
         var row = MakeRow();
         var lastModified = new DateTime(2026, 8, 29, 10, 0, 0);
-        var status = SaveStatus.Found(5, 1024, lastModified, oversized: true) with { SkippedPaths = new[] { "locked" } };
+        var status = SaveStatus.Found(5, 1024, lastModified, oversized: true) with { SkippedPaths = ["locked"] };
 
         row.ApplyStatus(status);
 
@@ -235,7 +235,7 @@ public sealed class GameRowViewModelTests
     public void ApplyStatus_skipped_paths_sentence_keeps_non_ascii_names_intact()
     {
         var row = MakeRow();
-        var status = SaveStatus.Found(1, 10, null, oversized: false) with { SkippedPaths = new[] { "Ōkami/セーブ" } };
+        var status = SaveStatus.Found(1, 10, null, oversized: false) with { SkippedPaths = ["Ōkami/セーブ"] };
 
         row.ApplyStatus(status);
 

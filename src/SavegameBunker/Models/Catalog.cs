@@ -21,5 +21,5 @@ public sealed class Catalog
     public string? BackupRoot { get; init; }
 
     [JsonPropertyName("games")]
-    public List<Game> Games { get; init; } = new();
+    public List<Game> Games { get; init; } = [];
 }

@@ -73,7 +73,7 @@ public sealed class StatusSweepCoordinatorTests : IDisposable
         var backup = new BackupService();
         var coordinator = new StatusSweepCoordinator(backup, action => action());
 
-        var snapshot = coordinator.Reset(Array.Empty<GameRowViewModel>());
+        var snapshot = coordinator.Reset([]);
 
         Assert.Empty(snapshot);
     }
@@ -134,18 +134,18 @@ public sealed class StatusSweepCoordinatorTests : IDisposable
         var root = Path.Combine(_dir, "backups");
 
         // Missing root: not reachable.
-        var snapshot1 = coordinator.Reset(new[] { row });
+        var snapshot1 = coordinator.Reset([row]);
         var became1 = await coordinator.WalkAsync(snapshot1, hasRoot: true, root: root);
         Assert.False(became1);
 
         // Root now exists: this is the flip.
         Directory.CreateDirectory(root);
-        var snapshot2 = coordinator.Reset(new[] { row });
+        var snapshot2 = coordinator.Reset([row]);
         var became2 = await coordinator.WalkAsync(snapshot2, hasRoot: true, root: root);
         Assert.True(became2);
 
         // Still reachable: no flip the second time.
-        var snapshot3 = coordinator.Reset(new[] { row });
+        var snapshot3 = coordinator.Reset([row]);
         var became3 = await coordinator.WalkAsync(snapshot3, hasRoot: true, root: root);
         Assert.False(became3);
     }
@@ -157,7 +157,7 @@ public sealed class StatusSweepCoordinatorTests : IDisposable
         var coordinator = new StatusSweepCoordinator(backup, action => action());
 
         var (free, selected, changed) = await coordinator.ComputeAdvisoryAsync(
-            hasRoot: false, root: "", selectedGames: Array.Empty<Game>(), changedGames: Array.Empty<Game>());
+            hasRoot: false, root: "", selectedGames: [], changedGames: []);
 
         Assert.Null(free);
         Assert.Null(selected);
@@ -172,7 +172,7 @@ public sealed class StatusSweepCoordinatorTests : IDisposable
         var game = GameWithSaves("a", "A");
 
         var (_, selected, _) = await coordinator.ComputeAdvisoryAsync(
-            hasRoot: false, root: "", selectedGames: new[] { game }, changedGames: Array.Empty<Game>());
+            hasRoot: false, root: "", selectedGames: [game], changedGames: []);
 
         var expectedSize = backup.ComputeSaveDataSize(game);
         Assert.Equal(

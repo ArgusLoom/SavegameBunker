@@ -39,7 +39,7 @@ public static class KnownGamesCatalog
     {
         var trimmed = query.Trim();
         if (trimmed.Length == 0)
-            return Array.Empty<KnownGame>();
+            return [];
 
         return Entries
             .Select(game => (Game: game, Index: EarliestMatch(game, trimmed)))
@@ -120,7 +120,7 @@ public static class KnownGamesCatalog
         catch
         {
             // A corrupt embedded resource must not crash the dialog — degrade to plain browsing.
-            return Array.Empty<KnownGame>();
+            return [];
         }
     }
 
@@ -132,16 +132,16 @@ public static class KnownGamesCatalog
     internal static IReadOnlyList<KnownGame> LoadFrom(Stream? stream)
     {
         if (stream is null)
-            return Array.Empty<KnownGame>();
+            return [];
 
         try
         {
             return (IReadOnlyList<KnownGame>?)JsonSerializer.Deserialize<List<KnownGame>>(stream, ReadOptions)
-                ?? Array.Empty<KnownGame>();
+                ?? [];
         }
         catch
         {
-            return Array.Empty<KnownGame>();
+            return [];
         }
     }
 }

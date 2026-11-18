@@ -43,7 +43,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// instances. <see cref="Games"/>/each row's own <see cref="GameRowViewModel.IsSelected"/> is
     /// the display, always seeded from and written back to this set, never the other way around.
     /// </summary>
-    private readonly HashSet<string> _selectedIds = new();
+    private readonly HashSet<string> _selectedIds = [];
 
     /// <summary>
     /// Passed to <see cref="System.Windows.Data.BindingOperations.EnableCollectionSynchronization"/>
@@ -166,7 +166,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         StartStatusScan();
     }
 
-    public ObservableCollection<GameRowViewModel> Games { get; } = new();
+    public ObservableCollection<GameRowViewModel> Games { get; } = [];
 
     /// <summary>
     /// The DataGrid's actual <c>ItemsSource</c> — a filtered view over <see cref="Games"/>
@@ -858,7 +858,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
             SaveDirTemplate = result.SaveDirTemplate,
         };
 
-        var saveResult = await _session.AddGamesAsync(new[] { game });
+        var saveResult = await _session.AddGamesAsync([game]);
         if (!saveResult.Success)
         {
             Report(saveResult);
@@ -867,7 +867,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
 
         var added = InsertSorted(game);
         StatusMessage = Strings.Format("str_common_added", game.DisplayName);
-        StartStatusScan(only: new[] { added });
+        StartStatusScan(only: [added]);
     }
 
     /// <summary>
@@ -1223,7 +1223,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
                 {
                     var replacement = RegisterRow(repaired);
                     Games[rowIndex] = replacement;
-                    StartStatusScan(only: new[] { replacement });
+                    StartStatusScan(only: [replacement]);
                 }
             }
             Report(OperationResult.Ok(Strings.Format("str_changeSaveFolder_outcome", row.DisplayName)));
@@ -1522,7 +1522,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     bool IRowActionHost.TryGetConfiguredBackupRoot(out string root) => _session.TryGetConfiguredBackupRoot(out root);
     void IRowActionHost.SetStatus(string message) => StatusMessage = message;
     void IRowActionHost.Report(OperationResult result) => Report(result);
-    void IRowActionHost.Rescan(GameRowViewModel row) => StartStatusScan(only: new[] { row });
+    void IRowActionHost.Rescan(GameRowViewModel row) => StartStatusScan(only: [row]);
     void IRowActionHost.BackupStarted() => IsBackupRunning = ++_backupsInFlight > 0;
     void IRowActionHost.BackupFinished() => IsBackupRunning = --_backupsInFlight > 0;
     void IRowActionHost.RestoreStarted() => IsRestoreRunning = ++_restoresInFlight > 0;

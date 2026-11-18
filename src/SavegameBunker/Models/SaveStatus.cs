@@ -45,7 +45,7 @@ public sealed record SaveStatus(
     /// parameter so the four factories and every existing caller are unchanged, and a complete
     /// scan still compares equal to the factory's own value.
     /// </summary>
-    public IReadOnlyList<string> SkippedPaths { get; init; } = Array.Empty<string>();
+    public IReadOnlyList<string> SkippedPaths { get; init; } = [];
 
     public static SaveStatus Checking() =>
         new(SaveStatusKind.Checking, 0, 0, null, false, null);

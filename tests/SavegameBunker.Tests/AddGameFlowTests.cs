@@ -45,10 +45,10 @@ public sealed class AddGameFlowTests : IDisposable
         var catalog = new Catalog
         {
             BackupRoot = "SavegameBunkerBackups",
-            Games = new List<Game>
-            {
+            Games =
+            [
                 new() { Id = id, DisplayName = "SavegameBunker Test Game", SaveDirTemplate = template },
-            },
+            ],
         };
 
         var saveResult = await GameCatalog.SaveAsync(catalogPath, catalog);

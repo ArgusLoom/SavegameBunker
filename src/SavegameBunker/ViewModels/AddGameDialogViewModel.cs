@@ -63,7 +63,7 @@ public sealed partial class AddGameDialogViewModel : CommunityToolkitObservableO
     /// refilled on every change to it. A plain collection — the popup's open state is driven from
     /// <see cref="HasSuggestions"/> in XAML, so this view model still names no WPF type.
     /// </summary>
-    public ObservableCollection<KnownGame> Suggestions { get; } = new();
+    public ObservableCollection<KnownGame> Suggestions { get; } = [];
 
     /// <summary>Whether the autocomplete popup should be open.</summary>
     public bool HasSuggestions => Suggestions.Count > 0;

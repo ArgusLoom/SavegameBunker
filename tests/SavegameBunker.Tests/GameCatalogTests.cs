@@ -266,11 +266,11 @@ public sealed class GameCatalogTests : IDisposable
         var catalog = new Catalog
         {
             BackupRoot = "E:/SavegameBunkerBackups",
-            Games = new List<Game>
-            {
+            Games =
+            [
                 new() { Id = "b", DisplayName = "B", SaveDirTemplate = "%APPDATA%/B" },
                 new() { Id = "a", DisplayName = "A", SaveDirTemplate = "%APPDATA%/A" },
-            },
+            ],
         };
 
         var saveResult = await GameCatalog.SaveAsync(path, catalog);
@@ -279,7 +279,7 @@ public sealed class GameCatalogTests : IDisposable
         var reloaded = await GameCatalog.LoadAsync(path);
 
         Assert.Equal("E:/SavegameBunkerBackups", reloaded.Catalog.BackupRoot);
-        Assert.Equal(new[] { "a", "b" }, reloaded.Catalog.Games.Select(g => g.Id));
+        Assert.Equal(["a", "b"], reloaded.Catalog.Games.Select(g => g.Id));
     }
 
     [Fact]
@@ -288,18 +288,18 @@ public sealed class GameCatalogTests : IDisposable
         var path = Write("""{ "games": [] }""");
         var catalog = new Catalog
         {
-            Games = new List<Game>
-            {
+            Games =
+            [
                 new() { Id = "zebra", DisplayName = "Zebra", SaveDirTemplate = "%APPDATA%/Zebra" },
                 new() { Id = "apple", DisplayName = "apple", SaveDirTemplate = "%APPDATA%/apple" },
                 new() { Id = "banana", DisplayName = "Banana", SaveDirTemplate = "%APPDATA%/Banana" },
-            },
+            ],
         };
 
         Assert.True((await GameCatalog.SaveAsync(path, catalog)).Success);
         var reloaded = await GameCatalog.LoadAsync(path);
 
-        Assert.Equal(new[] { "apple", "banana", "zebra" }, reloaded.Catalog.Games.Select(g => g.Id));
+        Assert.Equal(["apple", "banana", "zebra"], reloaded.Catalog.Games.Select(g => g.Id));
     }
 
     [Fact]
@@ -308,17 +308,17 @@ public sealed class GameCatalogTests : IDisposable
         var path = Write("""{ "games": [] }""");
         var catalog = new Catalog
         {
-            Games = new List<Game>
-            {
+            Games =
+            [
                 new() { Id = "first", DisplayName = "Same", SaveDirTemplate = "%APPDATA%/first" },
                 new() { Id = "second", DisplayName = "Same", SaveDirTemplate = "%APPDATA%/second" },
-            },
+            ],
         };
 
         Assert.True((await GameCatalog.SaveAsync(path, catalog)).Success);
         var reloaded = await GameCatalog.LoadAsync(path);
 
-        Assert.Equal(new[] { "first", "second" }, reloaded.Catalog.Games.Select(g => g.Id));
+        Assert.Equal(["first", "second"], reloaded.Catalog.Games.Select(g => g.Id));
     }
 
     [Fact]
@@ -327,17 +327,17 @@ public sealed class GameCatalogTests : IDisposable
         var path = Write("""{ "games": [] }""");
         var catalog = new Catalog
         {
-            Games = new List<Game>
-            {
+            Games =
+            [
                 new() { Id = "upper", DisplayName = "Doom", SaveDirTemplate = "%APPDATA%/upper" },
                 new() { Id = "lower", DisplayName = "doom", SaveDirTemplate = "%APPDATA%/lower" },
-            },
+            ],
         };
 
         Assert.True((await GameCatalog.SaveAsync(path, catalog)).Success);
         var reloaded = await GameCatalog.LoadAsync(path);
 
-        Assert.Equal(new[] { "upper", "lower" }, reloaded.Catalog.Games.Select(g => g.Id));
+        Assert.Equal(["upper", "lower"], reloaded.Catalog.Games.Select(g => g.Id));
         Assert.Equal(2, reloaded.Catalog.Games.Count);
     }
 
@@ -347,23 +347,23 @@ public sealed class GameCatalogTests : IDisposable
         var path = Write("""{ "games": [] }""");
         var catalog = new Catalog
         {
-            Games = new List<Game>
-            {
+            Games =
+            [
                 new() { Id = "b", DisplayName = "B", SaveDirTemplate = "%APPDATA%/B" },
                 new() { Id = "a", DisplayName = "A", SaveDirTemplate = "%APPDATA%/A" },
-            },
+            ],
         };
 
         Assert.True((await GameCatalog.SaveAsync(path, catalog)).Success);
 
-        Assert.Equal(new[] { "b", "a" }, catalog.Games.Select(g => g.Id));
+        Assert.Equal(["b", "a"], catalog.Games.Select(g => g.Id));
     }
 
     [Fact]
     public async Task SaveAsync_round_trips_an_empty_catalog_and_a_single_game_without_error()
     {
         var emptyPath = Write("""{ "games": [] }""");
-        Assert.True((await GameCatalog.SaveAsync(emptyPath, new Catalog { Games = new List<Game>() })).Success);
+        Assert.True((await GameCatalog.SaveAsync(emptyPath, new Catalog { Games = [] })).Success);
         var emptyReload = await GameCatalog.LoadAsync(emptyPath);
         Assert.Empty(emptyReload.Catalog.Games);
         Assert.Null(emptyReload.FatalError);
@@ -372,14 +372,14 @@ public sealed class GameCatalogTests : IDisposable
         File.WriteAllText(onePath, """{ "games": [] }""");
         var one = new Catalog
         {
-            Games = new List<Game>
-            {
+            Games =
+            [
                 new() { Id = "only", DisplayName = "Only", SaveDirTemplate = "%APPDATA%/Only" },
-            },
+            ],
         };
         Assert.True((await GameCatalog.SaveAsync(onePath, one)).Success);
         var oneReload = await GameCatalog.LoadAsync(onePath);
-        Assert.Equal(new[] { "only" }, oneReload.Catalog.Games.Select(g => g.Id));
+        Assert.Equal(["only"], oneReload.Catalog.Games.Select(g => g.Id));
         Assert.Null(oneReload.FatalError);
     }
 
@@ -398,7 +398,7 @@ public sealed class GameCatalogTests : IDisposable
 
         var load = await GameCatalog.LoadAsync(path);
 
-        Assert.Equal(new[] { "b", "a" }, load.Catalog.Games.Select(g => g.Id));
+        Assert.Equal(["b", "a"], load.Catalog.Games.Select(g => g.Id));
         Assert.Equal(before, File.GetLastWriteTimeUtc(path));
     }
 
@@ -406,7 +406,7 @@ public sealed class GameCatalogTests : IDisposable
     public async Task SaveAsync_leaves_no_temp_file_behind_on_success()
     {
         var path = Write("""{ "games": [] }""");
-        var catalog = new Catalog { Games = new List<Game>() };
+        var catalog = new Catalog { Games = [] };
 
         var result = await GameCatalog.SaveAsync(path, catalog);
 
@@ -429,7 +429,7 @@ public sealed class GameCatalogTests : IDisposable
         await File.WriteAllTextAsync(path, """{ "games": [{ "id": "from-elsewhere", "displayName": "From Elsewhere", "saveDirTemplate": "%APPDATA%/Elsewhere" }] }""");
 
         var newGame = new Game { Id = "new", DisplayName = "New", SaveDirTemplate = "%APPDATA%/New" };
-        var catalogToSave = new Catalog { Games = load.Catalog.Games.Append(newGame).ToList() };
+        var catalogToSave = new Catalog { Games = [.. load.Catalog.Games, newGame] };
         var result = await GameCatalog.SaveAsync(path, catalogToSave, load.LastWriteTimeUtc);
 
         Assert.False(result.Success);
@@ -447,7 +447,7 @@ public sealed class GameCatalogTests : IDisposable
 
         var catalog = new Catalog
         {
-            Games = new List<Game> { new() { Id = "a", DisplayName = "A", SaveDirTemplate = "%APPDATA%/A" } },
+            Games = [new() { Id = "a", DisplayName = "A", SaveDirTemplate = "%APPDATA%/A" }],
         };
         var result = await GameCatalog.SaveAsync(path, catalog, load.LastWriteTimeUtc);
 
@@ -460,7 +460,7 @@ public sealed class GameCatalogTests : IDisposable
         var path = Write("""{ "games": [] }""");
         await File.WriteAllTextAsync(path, """{ "games": [{ "id": "from-elsewhere", "displayName": "From Elsewhere", "saveDirTemplate": "%APPDATA%/Elsewhere" }] }""");
 
-        var catalog = new Catalog { Games = new List<Game>() };
+        var catalog = new Catalog { Games = [] };
         var result = await GameCatalog.SaveAsync(path, catalog, expectedLastWriteTimeUtc: null);
 
         Assert.True(result.Success, result.Message);
@@ -470,7 +470,7 @@ public sealed class GameCatalogTests : IDisposable
     public async Task SaveAsync_to_a_missing_directory_fails_and_names_the_path()
     {
         var path = Path.Combine(_dir, "missing-subdir", "games.json");
-        var catalog = new Catalog { Games = new List<Game>() };
+        var catalog = new Catalog { Games = [] };
 
         var result = await GameCatalog.SaveAsync(path, catalog);
 
@@ -512,7 +512,7 @@ public sealed class GameCatalogTests : IDisposable
 
         var catalog = new Catalog
         {
-            Games = new List<Game> { new() { Id = "a", DisplayName = "A", SaveDirTemplate = "%APPDATA%/A" } },
+            Games = [new() { Id = "a", DisplayName = "A", SaveDirTemplate = "%APPDATA%/A" }],
         };
         var result = await GameCatalog.SaveAsync(path, catalog);
 
@@ -531,7 +531,7 @@ public sealed class GameCatalogTests : IDisposable
         {
             var catalog = new Catalog
             {
-                Games = new List<Game> { new() { Id = "a", DisplayName = "A", SaveDirTemplate = "%APPDATA%/A" } },
+                Games = [new() { Id = "a", DisplayName = "A", SaveDirTemplate = "%APPDATA%/A" }],
             };
             var result = await GameCatalog.SaveAsync(path, catalog);
 
@@ -553,10 +553,10 @@ public sealed class GameCatalogTests : IDisposable
         var saves = Enumerable.Range(0, 8).Select(i => GameCatalog.SaveAsync(path, new Catalog
         {
             BackupRoot = $"D:/Backups/{i}",
-            Games = new List<Game>
-            {
+            Games =
+            [
                 new() { Id = $"game-{i}", DisplayName = $"Game {i}", SaveDirTemplate = $"%APPDATA%/Game{i}" },
-            },
+            ],
         }));
 
         var results = await Task.WhenAll(saves);
@@ -578,9 +578,9 @@ public sealed class GameCatalogTests : IDisposable
     {
         var explicitPath = Path.Combine(_dir, "retro.json");
 
-        Assert.Equal(explicitPath, GameCatalog.ResolvePath(new[] { explicitPath }));
-        Assert.Equal(GameCatalog.DefaultPath, GameCatalog.ResolvePath(Array.Empty<string>()));
-        Assert.Equal(GameCatalog.DefaultPath, GameCatalog.ResolvePath(new[] { "   " }));
+        Assert.Equal(explicitPath, GameCatalog.ResolvePath([explicitPath]));
+        Assert.Equal(GameCatalog.DefaultPath, GameCatalog.ResolvePath([]));
+        Assert.Equal(GameCatalog.DefaultPath, GameCatalog.ResolvePath(["   "]));
     }
 
     /// <summary>

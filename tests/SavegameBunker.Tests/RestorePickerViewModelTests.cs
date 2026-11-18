@@ -17,7 +17,7 @@ public sealed class RestorePickerViewModelTests
     [Fact]
     public void One_archive_produces_a_singular_header()
     {
-        var vm = new RestorePickerViewModel("Test Game", new[] { Archive("a.zip", new DateTime(2026, 1, 1)) });
+        var vm = new RestorePickerViewModel("Test Game", [Archive("a.zip", new DateTime(2026, 1, 1))]);
 
         // Content fragments, not full sentences — the resource file locks the wording; the test
         // owns the singular form for one archive.
@@ -28,11 +28,11 @@ public sealed class RestorePickerViewModelTests
     [Fact]
     public void Two_or_more_archives_produce_a_plural_header_naming_the_count()
     {
-        var vm = new RestorePickerViewModel("Test Game", new[]
-        {
+        var vm = new RestorePickerViewModel("Test Game",
+        [
             Archive("a.zip", new DateTime(2026, 1, 2)),
             Archive("b.zip", new DateTime(2026, 1, 1)),
-        });
+        ]);
 
         // Same content-fragment rule: plural noun and the count, not the whole sentence.
         Assert.Contains("2 backups", vm.HeaderText);
@@ -46,9 +46,9 @@ public sealed class RestorePickerViewModelTests
         var newer = Archive("newer.zip", new DateTime(2026, 1, 5));
 
         // Deliberately supplied oldest-first — the view model must not impose its own sort.
-        var vm = new RestorePickerViewModel("Test Game", new[] { older, newer });
+        var vm = new RestorePickerViewModel("Test Game", [older, newer]);
 
-        Assert.Equal(new[] { older, newer }, vm.Rows.Select(r => r.Archive));
+        Assert.Equal([older, newer], vm.Rows.Select(r => r.Archive));
     }
 
     [Fact]
@@ -58,10 +58,10 @@ public sealed class RestorePickerViewModelTests
         var first = Archive("first.zip", takenAt);
         var second = Archive("second.zip", takenAt);
 
-        var vm = new RestorePickerViewModel("Test Game", new[] { first, second });
+        var vm = new RestorePickerViewModel("Test Game", [first, second]);
 
         Assert.Equal(2, vm.Rows.Count);
-        Assert.Equal(new[] { first, second }, vm.Rows.Select(r => r.Archive));
+        Assert.Equal([first, second], vm.Rows.Select(r => r.Archive));
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public sealed class RestorePickerViewModelTests
     {
         var takenAt = new DateTime(2026, 7, 4, 9, 5, 0);
         var archive = Archive("a.zip", takenAt, sizeBytes: 12345);
-        var vm = new RestorePickerViewModel("Test Game", new[] { archive });
+        var vm = new RestorePickerViewModel("Test Game", [archive]);
 
         var row = Assert.Single(vm.Rows);
         Assert.Equal(takenAt, row.TakenAt);
@@ -80,7 +80,7 @@ public sealed class RestorePickerViewModelTests
     public void An_ordinary_archives_file_name_reports_it_is_not_a_safety_backup()
     {
         var archive = Archive("2026-07-04-090500.zip", new DateTime(2026, 7, 4));
-        var vm = new RestorePickerViewModel("Test Game", new[] { archive });
+        var vm = new RestorePickerViewModel("Test Game", [archive]);
 
         Assert.False(Assert.Single(vm.Rows).IsSafetyBackup);
     }
@@ -89,7 +89,7 @@ public sealed class RestorePickerViewModelTests
     public void A_pre_restore_suffixed_archives_file_name_reports_it_is_a_safety_backup()
     {
         var archive = Archive("2026-07-04-090500-pre-restore.zip", new DateTime(2026, 7, 4));
-        var vm = new RestorePickerViewModel("Test Game", new[] { archive });
+        var vm = new RestorePickerViewModel("Test Game", [archive]);
 
         Assert.True(Assert.Single(vm.Rows).IsSafetyBackup);
     }
@@ -98,7 +98,7 @@ public sealed class RestorePickerViewModelTests
     public void CanRestore_is_false_before_any_row_is_selected_and_true_after_one_is()
     {
         var archive = Archive("a.zip", new DateTime(2026, 1, 1));
-        var vm = new RestorePickerViewModel("Test Game", new[] { archive });
+        var vm = new RestorePickerViewModel("Test Game", [archive]);
 
         Assert.False(vm.CanRestore);
 
@@ -110,7 +110,7 @@ public sealed class RestorePickerViewModelTests
     [Fact]
     public void Title_names_the_game()
     {
-        var vm = new RestorePickerViewModel("Elden Ring", Array.Empty<BackupArchive>());
+        var vm = new RestorePickerViewModel("Elden Ring", []);
 
         // Content fragment: the test owns that the title names the game, not the exact caption.
         Assert.Contains("Elden Ring", vm.Title);
@@ -130,7 +130,7 @@ public sealed class RestorePickerViewModelTests
     {
         var dialogs = new RecordingDialogService();
         var vm = new RestorePickerViewModel(
-            "Test Game", new[] { Archive("a.zip", new DateTime(2026, 1, 1)) },
+            "Test Game", [Archive("a.zip", new DateTime(2026, 1, 1))],
             dialogs, path => new BackupService().DeleteArchive(path));
         var row = vm.Rows.Single();
 
@@ -177,7 +177,7 @@ public sealed class RestorePickerDeleteTests : IDisposable
     private BackupArchive RealArchive(string fileName)
     {
         var path = Path.Combine(_dir, fileName);
-        File.WriteAllBytes(path, new byte[] { 1, 2, 3 });
+        File.WriteAllBytes(path, [1, 2, 3]);
         return new BackupArchive(path, new DateTime(2026, 1, 1), 3);
     }
 
@@ -189,7 +189,7 @@ public sealed class RestorePickerDeleteTests : IDisposable
         var dialogs = new RecordingDialogService { ConfirmToReturn = true };
         var service = new BackupService();
         var vm = new RestorePickerViewModel(
-            "Test Game", new[] { gone, keep }, dialogs, path => service.DeleteArchive(path));
+            "Test Game", [gone, keep], dialogs, path => service.DeleteArchive(path));
         var row = vm.Rows.Single(r => r.Archive == gone);
 
         await vm.DeleteArchiveCommand.ExecuteAsync(row);
@@ -208,7 +208,7 @@ public sealed class RestorePickerDeleteTests : IDisposable
         var dialogs = new RecordingDialogService { ConfirmToReturn = false };
         var service = new BackupService();
         var vm = new RestorePickerViewModel(
-            "Test Game", new[] { archive }, dialogs, path => service.DeleteArchive(path));
+            "Test Game", [archive], dialogs, path => service.DeleteArchive(path));
 
         await vm.DeleteArchiveCommand.ExecuteAsync(vm.Rows.Single());
 
@@ -222,7 +222,7 @@ public sealed class RestorePickerDeleteTests : IDisposable
         var archive = RealArchive("locked.zip");
         var dialogs = new RecordingDialogService { ConfirmToReturn = true };
         var vm = new RestorePickerViewModel(
-            "Test Game", new[] { archive }, dialogs,
+            "Test Game", [archive], dialogs,
             path => OperationResult.Fail("The archive could not be deleted — it may be open in another program."));
 
         await vm.DeleteArchiveCommand.ExecuteAsync(vm.Rows.Single());
@@ -240,7 +240,7 @@ public sealed class RestorePickerDeleteTests : IDisposable
         var dialogs = new RecordingDialogService { ConfirmToReturn = true };
         var service = new BackupService();
         var vm = new RestorePickerViewModel(
-            "Test Game", new[] { archive }, dialogs, path => service.DeleteArchive(path));
+            "Test Game", [archive], dialogs, path => service.DeleteArchive(path));
         vm.SelectedBackup = vm.Rows.Single();
         Assert.True(vm.CanRestore);
 
@@ -259,7 +259,7 @@ public sealed class RestorePickerDeleteTests : IDisposable
         var dialogs = new RecordingDialogService { ConfirmToReturn = true };
         var service = new BackupService();
         var vm = new RestorePickerViewModel(
-            "Test Game", new[] { archive }, dialogs, path => service.DeleteArchive(path));
+            "Test Game", [archive], dialogs, path => service.DeleteArchive(path));
 
         await vm.DeleteArchiveCommand.ExecuteAsync(vm.Rows.Single());
 
@@ -289,7 +289,7 @@ public sealed class RestorePickerDeleteTests : IDisposable
 
             // The same failure channel through the view model: row stays, error is surfaced.
             var vm = new RestorePickerViewModel(
-                "Test Game", new[] { archive }, dialogs,
+                "Test Game", [archive], dialogs,
                 path => new BackupService().DeleteArchive(path));
             await vm.DeleteArchiveCommand.ExecuteAsync(vm.Rows.Single());
 
@@ -305,7 +305,7 @@ public sealed class RestorePickerDeleteTests : IDisposable
         var archive = new BackupArchive(Path.Combine(_dir, "vanished.zip"), new DateTime(2026, 1, 1), 0);
         var dialogs = new RecordingDialogService { ConfirmToReturn = true };
         var vm = new RestorePickerViewModel(
-            "Test Game", new[] { archive }, dialogs, path => new BackupService().DeleteArchive(path));
+            "Test Game", [archive], dialogs, path => new BackupService().DeleteArchive(path));
 
         await vm.DeleteArchiveCommand.ExecuteAsync(vm.Rows.Single());
 
@@ -327,7 +327,7 @@ public sealed class RestorePickerDeleteTests : IDisposable
         var dialogs = new RecordingDialogService { ConfirmToReturn = true };
         var gate = new TaskCompletionSource();
         var vm = new RestorePickerViewModel(
-            "Test Game", new[] { first, second }, dialogs,
+            "Test Game", [first, second], dialogs,
             // Blocks inside the delete step until the test releases it — that is exactly the
             // pending window whose guards this fact observes.
             _ => { gate.Task.Wait(); return OperationResult.Ok("deleted"); });
@@ -364,7 +364,7 @@ public sealed class RestorePickerDeleteTests : IDisposable
         var archive = RealArchive("a.zip");
         var dialogs = new RecordingDialogService { ConfirmToReturn = true };
         var vm = new RestorePickerViewModel(
-            "Test Game", new[] { archive }, dialogs,
+            "Test Game", [archive], dialogs,
             _ => OperationResult.Fail("The archive could not be deleted."));
         vm.SelectedBackup = vm.Rows.Single();
         Assert.True(vm.CanRestore);

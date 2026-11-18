@@ -61,7 +61,7 @@ public sealed class MainViewModelGuardPinTests : IDisposable
         {
             var saveDir = Path.Combine(_dir, $"saves-{i}");
             Directory.CreateDirectory(saveDir);
-            File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), new byte[] { 1, 2, 3 });
+            File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), [1, 2, 3]);
             games.Add(new Game { Id = $"game-{i}", DisplayName = $"Game {i}", SaveDirTemplate = saveDir.Replace('\\', '/') });
         }
 
@@ -106,7 +106,7 @@ public sealed class MainViewModelGuardPinTests : IDisposable
                 return;
 
             captured = true;
-            capturedKinds = vm.Games.Select(r => r.ComparisonKind).ToArray();
+            capturedKinds = [.. vm.Games.Select(r => r.ComparisonKind)];
             capturedIsAnyRowChecking = vm.IsAnyRowChecking;
             capturedTotal = vm.BulkBackupTotal;
             capturedCurrentGameName = vm.BulkBackupCurrentGameName;
@@ -152,19 +152,19 @@ public sealed class MainViewModelGuardPinTests : IDisposable
                 return;
 
             captured = true;
-            capturedKinds = new[] { vm.Games[0].ComparisonKind, vm.Games[1].ComparisonKind };
-            capturedBusy = new[] { vm.Games[0].IsBusy, vm.Games[1].IsBusy };
+            capturedKinds = [vm.Games[0].ComparisonKind, vm.Games[1].ComparisonKind];
+            capturedBusy = [vm.Games[0].IsBusy, vm.Games[1].IsBusy];
             capturedIsAnyRowChecking = vm.IsAnyRowChecking;
             capturedIsBulkBackupRunning = vm.IsBulkBackupRunning;
-            capturedCanExecute = new[]
-            {
+            capturedCanExecute =
+            [
                 vm.BackupSelectedCommand.CanExecute(null),
                 vm.RestoreSelectedCommand.CanExecute(null),
                 vm.RefreshCommand.CanExecute(null),
                 vm.ChangeBackupRootCommand.CanExecute(null),
                 vm.BackupCommand.CanExecute(vm.Games[2]),
                 vm.RestoreCommand.CanExecute(vm.Games[2]),
-            };
+            ];
         };
 
         vm.BackupAllChangedCommand.Execute(null);
@@ -196,7 +196,7 @@ public sealed class MainViewModelGuardPinTests : IDisposable
                 return;
 
             captured = true;
-            capturedKinds = new[] { vm.Games[0].ComparisonKind, vm.Games[1].ComparisonKind };
+            capturedKinds = [vm.Games[0].ComparisonKind, vm.Games[1].ComparisonKind];
             capturedTotal = vm.BulkBackupTotal;
             capturedProgressText = vm.BulkBackupProgressText;
         };
@@ -243,8 +243,8 @@ public sealed class MainViewModelGuardPinTests : IDisposable
         // The unset backup root means any reach into the backup-folder picker would be visible.
         var load = new CatalogLoad(
             Path.Combine(_dir, "games.json"),
-            new Catalog { BackupRoot = null, Games = new List<Game>() },
-            Array.Empty<string>(), false, null);
+            new Catalog { BackupRoot = null, Games = [] },
+            [], false, null);
         var dialog = new RecordingDialogService();
         var vm = new MainViewModel(load, dialog);
 
@@ -267,7 +267,7 @@ public sealed class MainViewModelGuardPinTests : IDisposable
     public async Task A_refresh_of_an_empty_catalog_settles_with_no_row_checking_and_the_load_message()
     {
         var catalogPath = Path.Combine(_dir, "games.json");
-        await GameCatalog.SaveAsync(catalogPath, new Catalog { BackupRoot = null, Games = new List<Game>() });
+        await GameCatalog.SaveAsync(catalogPath, new Catalog { BackupRoot = null, Games = [] });
         var load = await GameCatalog.LoadAsync(catalogPath);
 
         var dialog = new RecordingDialogService();

@@ -74,7 +74,7 @@ internal sealed class GameActions
         {
             if (!_backup.IsBackupRootReachable(configuredBackupRoot))
             {
-                return (false, false, (IReadOnlyList<BackupArchive>)Array.Empty<BackupArchive>());
+                return (false, false, (IReadOnlyList<BackupArchive>)[]);
             }
 
             var ok = _backup.TryListBackups(configuredBackupRoot, row.Game.Id, out var found);
@@ -213,7 +213,7 @@ internal sealed class GameActions
                 : Strings.Get("str_restoreConfirm_safetyNone")),
         };
 
-        var comparison = BackupComparer.Compare(status, backupRootReachable: true, new[] { picked });
+        var comparison = BackupComparer.Compare(status, backupRootReachable: true, [picked]);
         if (comparison.Kind == BackupComparisonKind.SavesChangedSinceBackup)
         {
             paragraphs.Add(Strings.Format("str_restoreConfirm_warning", ElapsedFormat.Describe(comparison.Elapsed!.Value)));

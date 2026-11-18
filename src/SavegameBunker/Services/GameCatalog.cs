@@ -93,7 +93,7 @@ public static class GameCatalog
                 return Fatal(path, $"No catalog at {path}, and it could not be created: {ex.Message}");
             }
 
-            return new CatalogLoad(path, new Catalog(), Array.Empty<string>(), Seeded: true, FatalError: null,
+            return new CatalogLoad(path, new Catalog(), [], Seeded: true, FatalError: null,
                 LastWriteTimeUtc: File.GetLastWriteTimeUtc(path));
         }
 
@@ -203,9 +203,7 @@ public static class GameCatalog
             var ordered = new Catalog
             {
                 BackupRoot = catalog.BackupRoot,
-                Games = catalog.Games
-                    .OrderBy(g => g.DisplayName, StringComparer.OrdinalIgnoreCase)
-                    .ToList(),
+                Games = [.. catalog.Games.OrderBy(g => g.DisplayName, StringComparer.OrdinalIgnoreCase)],
             };
             var json = JsonSerializer.Serialize(ordered, WriteOptions);
             await File.WriteAllTextAsync(tempPath, json);
@@ -253,7 +251,7 @@ public static class GameCatalog
             out error);
 
     private static CatalogLoad Fatal(string path, string message) =>
-        new(path, new Catalog(), Array.Empty<string>(), Seeded: false, FatalError: message);
+        new(path, new Catalog(), [], Seeded: false, FatalError: message);
 
     /// <summary>
     /// Drops entries the application could not act on later and says why now, at load time,

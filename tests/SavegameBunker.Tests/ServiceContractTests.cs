@@ -190,21 +190,21 @@ public sealed class ServiceContractTests : IDisposable
 
         return new Dictionary<string, List<Action>>(StringComparer.Ordinal)
         {
-            ["BackupComparer.Compare(SaveStatus, Boolean, IReadOnlyList`1, Nullable`1)"] = new()
-            {
-                () => _ = BackupComparer.Compare(SaveStatus.PathError("x"), true, Array.Empty<BackupArchive>(), null),
-                () => _ = BackupComparer.Compare(SaveStatus.NoSaves(), false, Array.Empty<BackupArchive>(), null),
-            },
-            ["BackupService.Backup(Game, String, IProgress`1)"] = new()
-            {
+            ["BackupComparer.Compare(SaveStatus, Boolean, IReadOnlyList`1, Nullable`1)"] =
+            [
+                () => _ = BackupComparer.Compare(SaveStatus.PathError("x"), true, [], null),
+                () => _ = BackupComparer.Compare(SaveStatus.NoSaves(), false, [], null),
+            ],
+            ["BackupService.Backup(Game, String, IProgress`1)"] =
+            [
                 // A template naming a variable that does not exist cannot resolve — the backup
                 // must fail with a message, never an exception.
                 () => Assert.False(_service.Backup(GameWithTemplate("%NOT_A_REAL_VARIABLE%/saves"), Root("unresolvable")).Success),
                 // A file where the backup root directory is expected.
                 () => Assert.False(_service.Backup(GameWithRealSaves(), notADirectory).Success),
-            },
-            ["BackupService.Backup(Game, String, String, String&, IProgress`1)"] = new()
-            {
+            ],
+            ["BackupService.Backup(Game, String, String, String&, IProgress`1)"] =
+            [
                 // The suffix lands in the archive's file name, so invalid file-name characters
                 // must fail the call and leave no archive path behind.
                 () =>
@@ -213,57 +213,57 @@ public sealed class ServiceContractTests : IDisposable
                     Assert.False(result.Success);
                     Assert.Null(archivePath);
                 },
-            },
-            ["BackupService.ComputeSaveDataSize(Game)"] = new()
-            {
+            ],
+            ["BackupService.ComputeSaveDataSize(Game)"] =
+            [
                 () => _ = _service.ComputeSaveDataSize(GameWithTemplate("%NOT_A_REAL_VARIABLE%/saves")),
-            },
-            ["BackupService.DeleteArchive(String)"] = new()
-            {
+            ],
+            ["BackupService.DeleteArchive(String)"] =
+            [
                 () => _ = _service.DeleteArchive(""),
                 () => _ = _service.DeleteArchive(Missing("no-such-archive.zip")),
-            },
-            ["BackupService.IsBackupRootReachable(String)"] = new()
-            {
+            ],
+            ["BackupService.IsBackupRootReachable(String)"] =
+            [
                 () => _ = _service.IsBackupRootReachable(""),
                 () => _ = _service.IsBackupRootReachable(Missing("gone")),
-            },
-            ["BackupService.ListBackups(String, String)"] = new()
-            {
+            ],
+            ["BackupService.ListBackups(String, String)"] =
+            [
                 () => _ = _service.ListBackups(Missing("gone"), "contract-game"),
                 () => _ = _service.ListBackups(notADirectory, "contract-game"),
-            },
-            ["BackupService.TryGetAvailableFreeSpace(String, Int64&)"] = new()
-            {
+            ],
+            ["BackupService.TryGetAvailableFreeSpace(String, Int64&)"] =
+            [
                 () => _ = _service.TryGetAvailableFreeSpace("", out _),
                 // A relative path is never a configured root; deliberately never a UNC path,
                 // which could stall the suite on a dead host.
                 () => _ = _service.TryGetAvailableFreeSpace("relative/dir", out _),
-            },
-            ["BackupService.TryListBackups(String, String, IReadOnlyList`1&)"] = new()
-            {
+            ],
+            ["BackupService.TryListBackups(String, String, IReadOnlyList`1&)"] =
+            [
                 () => _ = _service.TryListBackups(Missing("gone"), "contract-game", out _),
                 () => _ = _service.TryListBackups(notADirectory, "contract-game", out _),
-            },
-            ["CrashReport.Describe(Exception, String)"] = new()
-            {
+            ],
+            ["CrashReport.Describe(Exception, String)"] =
+            [
                 () => _ = CrashReport.Describe(
                     new InvalidOperationException("outer", new InvalidCastException("inner")), ""),
-            },
-            ["DropFolder.TrySingleExistingDirectory(String[], String&)"] = new()
-            {
+            ],
+            ["DropFolder.TrySingleExistingDirectory(String[], String&)"] =
+            [
                 () => _ = DropFolder.TrySingleExistingDirectory(null, out _),
-                () => _ = DropFolder.TrySingleExistingDirectory(Array.Empty<string>(), out _),
-                () => _ = DropFolder.TrySingleExistingDirectory(new[] { Missing("nope") }, out _),
-                () => _ = DropFolder.TrySingleExistingDirectory(new[] { dropA, dropB }, out _),
-            },
-            ["ElapsedFormat.Describe(TimeSpan)"] = new()
-            {
+                () => _ = DropFolder.TrySingleExistingDirectory([], out _),
+                () => _ = DropFolder.TrySingleExistingDirectory([Missing("nope")], out _),
+                () => _ = DropFolder.TrySingleExistingDirectory([dropA, dropB], out _),
+            ],
+            ["ElapsedFormat.Describe(TimeSpan)"] =
+            [
                 () => _ = ElapsedFormat.Describe(TimeSpan.Zero),
                 () => _ = ElapsedFormat.Describe(TimeSpan.FromHours(-3)),
-            },
-            ["GameCatalog.LoadAsync(String)"] = new()
-            {
+            ],
+            ["GameCatalog.LoadAsync(String)"] =
+            [
                 // A directory where the catalog file is expected.
                 () => _ = GameCatalog.LoadAsync(existingDirectory).GetAwaiter().GetResult(),
                 // A malformed catalog is reported, and the file the user hand-edited is never
@@ -276,92 +276,91 @@ public sealed class ServiceContractTests : IDisposable
                     _ = GameCatalog.LoadAsync(malformed).GetAwaiter().GetResult();
                     Assert.Equal(before, File.ReadAllBytes(malformed));
                 },
-            },
-            ["GameCatalog.ResolvePath(IReadOnlyList`1)"] = new()
-            {
-                () => _ = GameCatalog.ResolvePath(Array.Empty<string>()),
-                () => _ = GameCatalog.ResolvePath(new[] { "" }),
-                () => _ = GameCatalog.ResolvePath(new[] { "   " }),
-            },
-            ["GameCatalog.SaveAsync(String, Catalog)"] = new()
-            {
+            ],
+            ["GameCatalog.ResolvePath(IReadOnlyList`1)"] =
+            [
+                () => _ = GameCatalog.ResolvePath([]),
+                () => _ = GameCatalog.ResolvePath([""]),
+                () => _ = GameCatalog.ResolvePath(["   "]),
+            ],
+            ["GameCatalog.SaveAsync(String, Catalog)"] =
+            [
                 () => Assert.False(GameCatalog.SaveAsync(existingDirectory, new Catalog()).GetAwaiter().GetResult().Success),
-            },
-            ["GameCatalog.SaveAsync(String, Catalog, Nullable`1)"] = new()
-            {
+            ],
+            ["GameCatalog.SaveAsync(String, Catalog, Nullable`1)"] =
+            [
                 () => Assert.False(GameCatalog.SaveAsync(existingDirectory, new Catalog(), null).GetAwaiter().GetResult().Success),
                 () => Assert.False(GameCatalog.SaveAsync(existingDirectory, new Catalog(), DateTime.MinValue).GetAwaiter().GetResult().Success),
-            },
-            ["GameCatalog.TryResolveBackupRoot(CatalogLoad, String&, String&)"] = new()
-            {
+            ],
+            ["GameCatalog.TryResolveBackupRoot(CatalogLoad, String&, String&)"] =
+            [
                 () => _ = GameCatalog.TryResolveBackupRoot(LoadWithRoot("%NOT_A_REAL_VARIABLE%/b"), out _, out _),
                 () => _ = GameCatalog.TryResolveBackupRoot(LoadWithRoot(""), out _, out _),
-            },
-            ["HelpPath.LanguageFor(String)"] = new()
-            {
+            ],
+            ["HelpPath.LanguageFor(String)"] =
+            [
                 () => _ = HelpPath.LanguageFor(null),
                 () => _ = HelpPath.LanguageFor(""),
                 () => _ = HelpPath.LanguageFor("xx"),
-            },
-            ["HelpPath.Resolve(String, String)"] = new()
-            {
+            ],
+            ["HelpPath.Resolve(String, String)"] =
+            [
                 () => _ = HelpPath.Resolve(Missing("help"), "en"),
-            },
-            ["IdSlug.Derive(String)"] = new()
-            {
+            ],
+            ["IdSlug.Derive(String)"] =
+            [
                 () => _ = IdSlug.Derive(""),
                 () => _ = IdSlug.Derive("!!!"),
                 () => _ = IdSlug.Derive("   "),
-            },
-            ["IdSlug.IsSafe(String)"] = new()
-            {
+            ],
+            ["IdSlug.IsSafe(String)"] =
+            [
                 () => _ = IdSlug.IsSafe(""),
                 () => _ = IdSlug.IsSafe(".."),
                 () => _ = IdSlug.IsSafe("con"),
                 () => _ = IdSlug.IsSafe(new string('a', 300)),
-            },
-            ["KnownGamesCatalog.Find(String, Int32)"] = new()
-            {
+            ],
+            ["KnownGamesCatalog.Find(String, Int32)"] =
+            [
                 () => _ = KnownGamesCatalog.Find("", 5),
                 () => _ = KnownGamesCatalog.Find("zzzz-no-such-game", 0),
-            },
-            ["KnownGamesCatalog.TryExactMatch(String, KnownGame&)"] = new()
-            {
+            ],
+            ["KnownGamesCatalog.TryExactMatch(String, KnownGame&)"] =
+            [
                 () => _ = KnownGamesCatalog.TryExactMatch("", out _),
-            },
-            ["KnownGamesScanner.Scan(IReadOnlyList`1, IReadOnlyList`1)"] = new()
-            {
+            ],
+            ["KnownGamesScanner.Scan(IReadOnlyList`1, IReadOnlyList`1)"] =
+            [
                 () => _ = new KnownGamesScanner().Scan(
-                    new[]
-                    {
+                    [
                         new KnownGame
                         {
                             Id = "known-game",
                             DisplayName = "Known Game",
                             SaveDirTemplate = "%NOT_A_REAL_VARIABLE%/x",
                         },
-                    },
-                    new[] { GameWithTemplate("") }),
-            },
-            ["KnownGamesScanner.SharedTemplates(IReadOnlyList`1)"] = new()
-            {
-                () => _ = KnownGamesScanner.SharedTemplates(Array.Empty<KnownGame>()),
-            },
-            ["PathResolver.ToTemplate(String)"] = new()
-            {
+                    ],
+                    [GameWithTemplate("")]),
+            ],
+            ["KnownGamesScanner.SharedTemplates(IReadOnlyList`1)"] =
+            [
+                () => _ = KnownGamesScanner.SharedTemplates([]),
+            ],
+            ["PathResolver.ToTemplate(String)"] =
+            [
                 // What the folder picker and drag-drop actually hand it: a real directory path
                 // and its drive root.
                 () => _ = PathResolver.ToTemplate(_dir),
                 () => _ = PathResolver.ToTemplate(Path.GetPathRoot(Path.GetFullPath(_dir))!),
-            },
-            ["PathResolver.TryResolve(String, String, String&, String&)"] = new()
-            {
+            ],
+            ["PathResolver.TryResolve(String, String, String&, String&)"] =
+            [
                 () => _ = PathResolver.TryResolve(null, null, out _, out _),
                 () => _ = PathResolver.TryResolve("", null, out _, out _),
                 () => _ = PathResolver.TryResolve("%NOT_A_REAL_VARIABLE%/x", null, out _, out _),
-            },
-            ["RestoreService.Restore(Game, String, String, Func`2, IProgress`1)"] = new()
-            {
+            ],
+            ["RestoreService.Restore(Game, String, String, Func`2, IProgress`1)"] =
+            [
                 // A missing archive path and a confirm delegate that always returns false, so no
                 // save folder can ever actually be swapped by this case.
                 () => Assert.False(restore.Restore(
@@ -369,39 +368,39 @@ public sealed class ServiceContractTests : IDisposable
                     Root("restore-root"),
                     Missing("missing-archive.zip"),
                     _ => false).Success),
-            },
-            ["SaveStatusScanner.Scan(Game)"] = new()
-            {
+            ],
+            ["SaveStatusScanner.Scan(Game)"] =
+            [
                 () => _ = SaveStatusScanner.Scan(GameWithTemplate("")),
                 () => _ = SaveStatusScanner.Scan(GameWithTemplate("%NOT_A_REAL_VARIABLE%/x")),
-            },
-            ["ShellOpen.Classify(String)"] = new()
-            {
+            ],
+            ["ShellOpen.Classify(String)"] =
+            [
                 () => _ = ShellOpen.Classify(null),
                 () => _ = ShellOpen.Classify(""),
                 () => _ = ShellOpen.Classify(Missing("nothing-here.txt")),
-            },
-            ["SizeFormat.Describe(Int64)"] = new()
-            {
+            ],
+            ["SizeFormat.Describe(Int64)"] =
+            [
                 () => _ = SizeFormat.Describe(0),
                 () => _ = SizeFormat.Describe(-1),
-            },
-            ["Strings.Preload()"] = new()
-            {
+            ],
+            ["Strings.Preload()"] =
+            [
                 () => Strings.Preload(),
-            },
-            ["WikiUrl.IsAllowed(String)"] = new()
-            {
+            ],
+            ["WikiUrl.IsAllowed(String)"] =
+            [
                 () => _ = WikiUrl.IsAllowed(null),
                 () => _ = WikiUrl.IsAllowed(""),
                 () => _ = WikiUrl.IsAllowed("javascript:alert(1)"),
                 () => _ = WikiUrl.IsAllowed("http://example.com"),
-            },
-            ["WikiUrl.Search(String)"] = new()
-            {
+            ],
+            ["WikiUrl.Search(String)"] =
+            [
                 () => _ = WikiUrl.Search(""),
                 () => _ = WikiUrl.Search("Ōkami & Co / 100%"),
-            },
+            ],
         };
     }
 
@@ -428,7 +427,7 @@ public sealed class ServiceContractTests : IDisposable
     private static CatalogLoad LoadWithRoot(string backupRoot) => new(
         "games.json",
         new Catalog { BackupRoot = backupRoot },
-        Array.Empty<string>(),
+        [],
         Seeded: false,
         FatalError: null);
 }

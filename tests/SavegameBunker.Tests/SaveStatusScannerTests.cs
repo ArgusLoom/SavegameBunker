@@ -187,7 +187,7 @@ public sealed class SaveStatusScannerTests : IDisposable
 
         Assert.Equal(SaveStatusKind.Found, status.Kind);
         Assert.Equal(1, status.FileCount);
-        Assert.Equal(new[] { "locked" }, status.SkippedPaths);
+        Assert.Equal(["locked"], status.SkippedPaths);
     }
 
     [Fact]
@@ -216,8 +216,8 @@ public sealed class SaveStatusScannerTests : IDisposable
         var first = SaveStatusScanner.Scan(GameFor(_dir));
         var second = SaveStatusScanner.Scan(GameFor(_dir));
 
-        Assert.Equal(new[] { "locked" }, first.SkippedPaths);
-        Assert.Equal(new[] { "locked" }, second.SkippedPaths);
+        Assert.Equal(["locked"], first.SkippedPaths);
+        Assert.Equal(["locked"], second.SkippedPaths);
     }
 
     [Fact]
@@ -229,7 +229,7 @@ public sealed class SaveStatusScannerTests : IDisposable
         var status = SaveStatusScanner.Scan(GameFor(_dir));
 
         Assert.Equal(SaveStatusKind.NoSaves, status.Kind);
-        Assert.Equal(new[] { "." }, status.SkippedPaths);
+        Assert.Equal(["."], status.SkippedPaths);
     }
 
     [Fact]

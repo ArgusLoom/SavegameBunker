@@ -300,7 +300,7 @@ public sealed class BackupService
             // Composed exactly as Backup composes targetDir, so the two can never drift apart.
             var targetDir = Path.Combine(backupRoot, gameId);
             if (!Directory.Exists(targetDir))
-                return Array.Empty<BackupArchive>();
+                return [];
 
             // Directory.GetFiles("*.zip") also matches files whose 8.3 short name ends in .zip, so
             // a *.zip.tmp staging file is not guaranteed excluded by the glob alone — the explicit
@@ -336,7 +336,7 @@ public sealed class BackupService
             // list, not an OperationResult, has no channel of its own for an error to travel
             // through — that is what the out parameter is for.
             listable = false;
-            return Array.Empty<BackupArchive>();
+            return [];
         }
     }
 
@@ -437,7 +437,7 @@ public sealed class BackupService
             // existing stale-temp sweep and is already excluded from ListBackups, rather
             // than inventing a second cleanup mechanism for a second kind of leftover file.
             var probePath = Path.Combine(targetDir, $".probe-{Guid.NewGuid():N}.zip.tmp");
-            File.WriteAllBytes(probePath, Array.Empty<byte>());
+            File.WriteAllBytes(probePath, []);
             File.Delete(probePath);
             return null;
         }
@@ -462,7 +462,7 @@ public sealed class BackupService
         List<string> stale;
         try
         {
-            stale = Directory.EnumerateFiles(targetDir, "*.zip.tmp").ToList();
+            stale = [.. Directory.EnumerateFiles(targetDir, "*.zip.tmp")];
         }
         catch
         {

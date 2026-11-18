@@ -60,7 +60,7 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
         {
             var saveDir = Path.Combine(_dir, $"saves-{i}");
             Directory.CreateDirectory(saveDir);
-            File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), new byte[] { 1, 2, 3 });
+            File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), [1, 2, 3]);
             games.Add(new Game { Id = $"game-{i}", DisplayName = $"Game {i}", SaveDirTemplate = saveDir.Replace('\\', '/') });
         }
 

@@ -331,7 +331,7 @@ public sealed class RestoreServiceTests : IDisposable
     {
         var saveDir = SaveDirIn(_dir);
         Directory.CreateDirectory(saveDir);
-        File.WriteAllBytes(Path.Combine(saveDir, "empty.dat"), Array.Empty<byte>());
+        File.WriteAllBytes(Path.Combine(saveDir, "empty.dat"), []);
         var game = new Game
         {
             Id = "test-game",
@@ -434,7 +434,7 @@ public sealed class RestoreServiceTests : IDisposable
         var backupRoot = Path.Combine(_dir, "backups");
         var gameBackupDir = Directory.CreateDirectory(BackupDirFor(backupRoot, game));
         var zeroByteArchive = Path.Combine(gameBackupDir.FullName, "empty.zip");
-        File.WriteAllBytes(zeroByteArchive, Array.Empty<byte>());
+        File.WriteAllBytes(zeroByteArchive, []);
 
         var saveDir = SaveDirIn(_dir);
         var snapshot = Snapshot(saveDir);

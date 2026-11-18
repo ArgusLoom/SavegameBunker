@@ -68,20 +68,20 @@ public partial class App : Application
             ApplicationThemeManager.Apply(theme, WindowBackdropType.Mica, updateAccent: false);
             ApplicationAccentColorManager.Apply(AccentColor, theme);
 
-        // WPF-UI derives a whole ramp of accent shades from the input colour — separate keys for
-        // the ContentDialog primary button, list selection, hover/pressed and text-on-accent — and
-        // several of those derived shades read paler than the brand green itself. Repointed at one
-        // accent brush so every accent surface in the app (buttons, hover, selected rows, accent
-        // text, the empty-state link) shows the same colour, not a ramp.
-        //
-        // Light uses SavegameBunkerAccentLightBrush (a darker green, App.xaml) instead of the full-
-        // brightness SavegameBunkerAccentBrush: the bright accent is too light/low-contrast against a
-        // white ground — this is the one thing that actually differs between the two themes here.
-        var accentBrush = theme == ApplicationTheme.Light
-            ? Current.Resources["SavegameBunkerAccentLightBrush"]
-            : Current.Resources["SavegameBunkerAccentBrush"];
-        foreach (var key in new[]
-                 {
+            // WPF-UI derives a whole ramp of accent shades from the input colour — separate keys for
+            // the ContentDialog primary button, list selection, hover/pressed and text-on-accent — and
+            // several of those derived shades read paler than the brand green itself. Repointed at one
+            // accent brush so every accent surface in the app (buttons, hover, selected rows, accent
+            // text, the empty-state link) shows the same colour, not a ramp.
+            //
+            // Light uses SavegameBunkerAccentLightBrush (a darker green, App.xaml) instead of the full-
+            // brightness SavegameBunkerAccentBrush: the bright accent is too light/low-contrast against a
+            // white ground — this is the one thing that actually differs between the two themes here.
+            var accentBrush = theme == ApplicationTheme.Light
+                ? Current.Resources["SavegameBunkerAccentLightBrush"]
+                : Current.Resources["SavegameBunkerAccentBrush"];
+            foreach (var key in new[]
+                     {
                      "AccentButtonBackground",
                      "SystemAccentColorBrush",
                      "SystemAccentColorPrimaryBrush",
@@ -95,17 +95,17 @@ public partial class App : Application
                      "ProgressBarForeground",
                      "SavegameBunkerLinkBrush",
                  })
-        {
-            Current.Resources[key] = accentBrush;
-        }
+            {
+                Current.Resources[key] = accentBrush;
+            }
 
-        // The bright accent green fails contrast with a light selected-item text colour in either
-        // theme — fixed dark text stays legible on it regardless of which theme is active, so this
-        // does not need to flip with Light vs Dark the way TextFillColorInverseBrush would.
-        Current.Resources["ListBoxItemSelectedForegroundThemeBrush"] =
-            Current.Resources["SavegameBunkerOnAccentTextBrush"];
+            // The bright accent green fails contrast with a light selected-item text colour in either
+            // theme — fixed dark text stays legible on it regardless of which theme is active, so this
+            // does not need to flip with Light vs Dark the way TextFillColorInverseBrush would.
+            Current.Resources["ListBoxItemSelectedForegroundThemeBrush"] =
+                Current.Resources["SavegameBunkerOnAccentTextBrush"];
 
-        CurrentTheme = theme;
+            CurrentTheme = theme;
         }
     }
 

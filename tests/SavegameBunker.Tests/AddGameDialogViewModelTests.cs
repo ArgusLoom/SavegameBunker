@@ -89,7 +89,7 @@ public sealed class AddGameDialogViewModelTests : IDisposable
     public void Wiki_search_is_disabled_when_the_name_is_blank()
     {
         var dialog = new RecordingDialogService();
-        var vm = new AddGameDialogViewModel(Array.Empty<string>(), dialog);
+        var vm = new AddGameDialogViewModel([], dialog);
 
         Assert.False(vm.OpenWikiSearchCommand.CanExecute(null));
     }
@@ -98,7 +98,7 @@ public sealed class AddGameDialogViewModelTests : IDisposable
     public void Wiki_search_opens_the_escaped_pcgw_search_url_for_the_typed_name()
     {
         var dialog = new RecordingDialogService();
-        var vm = new AddGameDialogViewModel(Array.Empty<string>(), dialog);
+        var vm = new AddGameDialogViewModel([], dialog);
         vm.DisplayName = "Celeste";
 
         Assert.True(vm.OpenWikiSearchCommand.CanExecute(null));
@@ -113,7 +113,7 @@ public sealed class AddGameDialogViewModelTests : IDisposable
     public void Wiki_search_escapes_spaces_in_the_typed_name()
     {
         var dialog = new RecordingDialogService();
-        var vm = new AddGameDialogViewModel(Array.Empty<string>(), dialog);
+        var vm = new AddGameDialogViewModel([], dialog);
         vm.DisplayName = "Hollow Knight";
 
         Assert.True(vm.OpenWikiSearchCommand.CanExecute(null));
@@ -187,7 +187,7 @@ public sealed class AddGameDialogViewModelTests : IDisposable
     public void Wiki_button_applies_an_exact_hit_instead_of_opening_the_browser()
     {
         var dialog = new RecordingDialogService();
-        var vm = new AddGameDialogViewModel(Array.Empty<string>(), dialog);
+        var vm = new AddGameDialogViewModel([], dialog);
         vm.DisplayName = "a game not in the table";
 
         vm.OpenWikiSearchCommand.Execute(null);
@@ -490,7 +490,7 @@ public sealed class AddGameDialogViewModelTests : IDisposable
         var folder = Path.Combine(_dir, "saves");
         Directory.CreateDirectory(folder);
         for (var i = 0; i < 41; i++)
-            File.WriteAllBytes(Path.Combine(folder, $"file{i}.dat"), Array.Empty<byte>());
+            File.WriteAllBytes(Path.Combine(folder, $"file{i}.dat"), []);
         File.WriteAllBytes(Path.Combine(folder, "big.dat"), new byte[3_250_586]);
 
         var vm = CreateViewModel();

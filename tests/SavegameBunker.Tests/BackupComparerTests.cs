@@ -32,7 +32,7 @@ public sealed class BackupComparerTests
         var takenAt = lastModified.AddMinutes(5);
         var saveStatus = SaveStatus.Found(1, 10, lastModified, oversized: false);
 
-        var comparison = BackupComparer.Compare(saveStatus, true, new[] { Archive(takenAt) });
+        var comparison = BackupComparer.Compare(saveStatus, true, [Archive(takenAt)]);
 
         Assert.Equal(BackupComparisonKind.UpToDate, comparison.Kind);
         Assert.Equal(takenAt, comparison.NewestBackupTakenAt);
@@ -44,7 +44,7 @@ public sealed class BackupComparerTests
         var lastModified = new DateTime(2026, 8, 1, 12, 0, 0);
         var saveStatus = SaveStatus.Found(1, 10, lastModified, oversized: false);
 
-        var comparison = BackupComparer.Compare(saveStatus, true, new[] { Archive(lastModified) });
+        var comparison = BackupComparer.Compare(saveStatus, true, [Archive(lastModified)]);
 
         Assert.Equal(BackupComparisonKind.UpToDate, comparison.Kind);
     }
@@ -56,7 +56,7 @@ public sealed class BackupComparerTests
         var takenAt = lastModified.AddTicks(-1);
         var saveStatus = SaveStatus.Found(1, 10, lastModified, oversized: false);
 
-        var comparison = BackupComparer.Compare(saveStatus, true, new[] { Archive(takenAt) });
+        var comparison = BackupComparer.Compare(saveStatus, true, [Archive(takenAt)]);
 
         Assert.Equal(BackupComparisonKind.SavesChangedSinceBackup, comparison.Kind);
         Assert.Equal(takenAt, comparison.NewestBackupTakenAt);
@@ -68,7 +68,7 @@ public sealed class BackupComparerTests
     {
         var saveStatus = SaveStatus.Found(1, 10, DateTime.Now, oversized: false);
 
-        var comparison = BackupComparer.Compare(saveStatus, true, Array.Empty<BackupArchive>());
+        var comparison = BackupComparer.Compare(saveStatus, true, []);
 
         Assert.Equal(BackupComparisonKind.NeverBackedUp, comparison.Kind);
         Assert.Null(comparison.NewestBackupTakenAt);
@@ -77,7 +77,7 @@ public sealed class BackupComparerTests
     [Fact]
     public void NoSaves_with_an_empty_backup_list_returns_NoSaveData_with_no_newest_timestamp()
     {
-        var comparison = BackupComparer.Compare(SaveStatus.NoSaves(), true, Array.Empty<BackupArchive>());
+        var comparison = BackupComparer.Compare(SaveStatus.NoSaves(), true, []);
 
         Assert.Equal(BackupComparisonKind.NoSaveData, comparison.Kind);
         Assert.Null(comparison.NewestBackupTakenAt);
@@ -88,7 +88,7 @@ public sealed class BackupComparerTests
     {
         var takenAt = DateTime.Now;
 
-        var comparison = BackupComparer.Compare(SaveStatus.NoSaves(), true, new[] { Archive(takenAt) });
+        var comparison = BackupComparer.Compare(SaveStatus.NoSaves(), true, [Archive(takenAt)]);
 
         Assert.Equal(BackupComparisonKind.NoSaveData, comparison.Kind);
         Assert.NotNull(comparison.NewestBackupTakenAt);
@@ -98,7 +98,7 @@ public sealed class BackupComparerTests
     [Fact]
     public void PathError_folds_into_NoSaveData_with_no_backups()
     {
-        var comparison = BackupComparer.Compare(SaveStatus.PathError("bad template"), true, Array.Empty<BackupArchive>());
+        var comparison = BackupComparer.Compare(SaveStatus.PathError("bad template"), true, []);
 
         Assert.Equal(BackupComparisonKind.NoSaveData, comparison.Kind);
     }
@@ -108,7 +108,7 @@ public sealed class BackupComparerTests
     {
         var takenAt = DateTime.Now;
 
-        var comparison = BackupComparer.Compare(SaveStatus.PathError("bad template"), true, new[] { Archive(takenAt) });
+        var comparison = BackupComparer.Compare(SaveStatus.PathError("bad template"), true, [Archive(takenAt)]);
 
         Assert.Equal(BackupComparisonKind.NoSaveData, comparison.Kind);
         Assert.Equal(takenAt, comparison.NewestBackupTakenAt);
@@ -119,7 +119,7 @@ public sealed class BackupComparerTests
     {
         var saveStatus = SaveStatus.Found(0, 0, null, oversized: false);
 
-        var comparison = BackupComparer.Compare(saveStatus, true, Array.Empty<BackupArchive>());
+        var comparison = BackupComparer.Compare(saveStatus, true, []);
 
         Assert.Equal(BackupComparisonKind.NoSaveData, comparison.Kind);
     }
@@ -196,7 +196,7 @@ public sealed class BackupComparerTests
         var takenAt = lastModified.AddMinutes(5);
         var saveStatus = SaveStatus.Found(1, 10, lastModified, oversized: false);
 
-        var comparison = BackupComparer.Compare(saveStatus, true, new[] { Archive(takenAt) }, restoredArchiveTakenAt: null);
+        var comparison = BackupComparer.Compare(saveStatus, true, [Archive(takenAt)], restoredArchiveTakenAt: null);
 
         Assert.Equal(BackupComparisonKind.UpToDate, comparison.Kind);
     }

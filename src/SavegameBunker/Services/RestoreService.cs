@@ -300,7 +300,7 @@ public sealed class RestoreService
         List<string> stale;
         try
         {
-            stale = Directory.EnumerateDirectories(parent, $"{leafName}.savegamebunker-restore-tmp-*").ToList();
+            stale = [.. Directory.EnumerateDirectories(parent, $"{leafName}.savegamebunker-restore-tmp-*")];
         }
         catch
         {

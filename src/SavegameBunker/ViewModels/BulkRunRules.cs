@@ -40,7 +40,7 @@ internal static class BulkRunRules
     /// list is built.
     /// </summary>
     public static List<GameRowViewModel> ChangedTargets(IEnumerable<GameRowViewModel> rows) =>
-        rows.Where(row => NeedsBackup(row.ComparisonKind) && !row.IsBusy).ToList();
+        [.. rows.Where(row => NeedsBackup(row.ComparisonKind) && !row.IsBusy)];
 
     /// <summary>
     /// The bulk target list for the selection-driven commands: every checked row that is not
@@ -50,7 +50,7 @@ internal static class BulkRunRules
     /// excluded rather than re-claimed.
     /// </summary>
     public static List<GameRowViewModel> SelectedTargets(IEnumerable<GameRowViewModel> rows) =>
-        rows.Where(row => row.IsSelected && !row.IsBusy).ToList();
+        [.. rows.Where(row => row.IsSelected && !row.IsBusy)];
 
     /// <summary>
     /// Composes the closing outcome of a bulk backup from its targets and failures, exactly as

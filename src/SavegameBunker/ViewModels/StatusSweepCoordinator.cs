@@ -108,7 +108,7 @@ internal sealed class StatusSweepCoordinator
                 });
 
                 var rowReachable = false;
-                var backups = (IReadOnlyList<BackupArchive>)Array.Empty<BackupArchive>();
+                var backups = (IReadOnlyList<BackupArchive>)[];
                 if (reachable)
                 {
                     (rowReachable, backups) = await Task.Run(() =>

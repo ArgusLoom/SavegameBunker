@@ -14,11 +14,11 @@ namespace SavegameBunker.Tests;
 /// </summary>
 public sealed class RecordingDialogService : IDialogService
 {
-    public List<string> InfoMessages { get; } = new();
-    public List<string> ErrorMessages { get; } = new();
+    public List<string> InfoMessages { get; } = [];
+    public List<string> ErrorMessages { get; } = [];
     public string? FolderToReturn { get; set; }
     public int PickFolderCalls { get; private set; }
-    public List<string?> PickFolderInitialDirectories { get; } = new();
+    public List<string?> PickFolderInitialDirectories { get; } = [];
 
     /// <summary>
     /// Invoked at the start of both <see cref="Info"/> and <see cref="Error"/> — the deterministic
@@ -45,9 +45,9 @@ public sealed class RecordingDialogService : IDialogService
 
     public Queue<bool>? ConfirmReturnSequence { get; set; }
 
-    public List<string> ConfirmMessages { get; } = new();
+    public List<string> ConfirmMessages { get; } = [];
 
-    public List<string> ConfirmButtonTexts { get; } = new();
+    public List<string> ConfirmButtonTexts { get; } = [];
 
     public bool Confirm(string message, string confirmButtonText)
     {
@@ -71,7 +71,7 @@ public sealed class RecordingDialogService : IDialogService
 
     /// <summary>Each <see cref="ShowAddGameDialog"/> call's <c>initialSaveFolder</c> argument — the
     /// seam the folder-drop tests use to prove a drop passed the path and the toolbar still passes null.</summary>
-    public List<string?> ShowAddGameInitialFolders { get; } = new();
+    public List<string?> ShowAddGameInitialFolders { get; } = [];
 
     public AddGameResult? ShowAddGameDialog(IReadOnlyCollection<string> existingIds, string? initialSaveFolder = null)
     {
@@ -84,7 +84,7 @@ public sealed class RecordingDialogService : IDialogService
     /// resolves.</summary>
     public IReadOnlyList<KnownGame>? FindGamesSelectionToReturn { get; set; }
 
-    public List<ScanResult> FindGamesResults { get; } = new();
+    public List<ScanResult> FindGamesResults { get; } = [];
 
     public IReadOnlyList<KnownGame>? ShowFindGamesDialog(ScanResult result)
     {
@@ -94,7 +94,7 @@ public sealed class RecordingDialogService : IDialogService
 
     public OperationResult OpenInEditor(string path) => OperationResult.Ok("opened");
 
-    public List<string> OpenHttpsUrls { get; } = new();
+    public List<string> OpenHttpsUrls { get; } = [];
 
     public OperationResult OpenHttps(string url)
     {
@@ -106,7 +106,7 @@ public sealed class RecordingDialogService : IDialogService
     /// tests drive (success opens, failure reports).</summary>
     public OperationResult HelpGuideResultToReturn { get; set; } = OperationResult.Ok("opened");
 
-    public List<string> HelpGuideLanguages { get; } = new();
+    public List<string> HelpGuideLanguages { get; } = [];
 
     public OperationResult OpenHelpGuide(string uiLanguage)
     {
@@ -118,7 +118,7 @@ public sealed class RecordingDialogService : IDialogService
     /// restore flow tests drive.</summary>
     public BackupArchive? RestorePickerSelectionToReturn { get; set; }
 
-    public List<IReadOnlyList<BackupArchive>> RestorePickerCalls { get; } = new();
+    public List<IReadOnlyList<BackupArchive>> RestorePickerCalls { get; } = [];
 
     public BackupArchive? ShowRestorePickerDialog(string gameDisplayName, IReadOnlyList<BackupArchive> backups)
     {
@@ -130,7 +130,7 @@ public sealed class RecordingDialogService : IDialogService
     /// repair-route tests drive.</summary>
     public string? ChangeSaveFolderToReturn { get; set; }
 
-    public List<(string GameDisplayName, string CurrentTemplate)> ChangeSaveFolderCalls { get; } = new();
+    public List<(string GameDisplayName, string CurrentTemplate)> ChangeSaveFolderCalls { get; } = [];
 
     public string? ShowChangeSaveFolderDialog(string gameDisplayName, string currentTemplate)
     {
@@ -183,20 +183,20 @@ public sealed class MainViewModelTests : IDisposable
     {
         var saveDir = Path.Combine(_dir, "saves");
         Directory.CreateDirectory(saveDir);
-        File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), new byte[] { 1, 2, 3 });
+        File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), [1, 2, 3]);
 
         var catalogPath = Path.Combine(_dir, "games.json");
         var catalog = new Catalog
         {
             BackupRoot = backupRoot,
-            Games = new List<Game>
-            {
+            Games =
+            [
                 new() { Id = "test-game", DisplayName = "Test Game", SaveDirTemplate = saveDir.Replace('\\', '/') },
-            },
+            ],
         };
 
         var dialog = new RecordingDialogService();
-        var load = new CatalogLoad(catalogPath, catalog, Array.Empty<string>(), false, null);
+        var load = new CatalogLoad(catalogPath, catalog, [], false, null);
         var vm = new MainViewModel(load, dialog);
         return (vm, dialog, catalogPath);
     }
@@ -221,14 +221,14 @@ public sealed class MainViewModelTests : IDisposable
         {
             var saveDir = Path.Combine(_dir, $"hdr-saves-{i}");
             Directory.CreateDirectory(saveDir);
-            File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), new byte[] { 1, 2, 3 });
+            File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), [1, 2, 3]);
             games.Add(new Game { Id = $"hdr-game-{i}", DisplayName = $"Header Game {i}", SaveDirTemplate = saveDir.Replace('\\', '/') });
         }
 
         var catalogPath = Path.Combine(_dir, "hdr-games.json");
         var catalog = new Catalog { BackupRoot = Path.Combine(_dir, "backups"), Games = games };
         var dialog = new RecordingDialogService();
-        var load = new CatalogLoad(catalogPath, catalog, Array.Empty<string>(), false, null);
+        var load = new CatalogLoad(catalogPath, catalog, [], false, null);
         var vm = new MainViewModel(load, dialog);
         return (vm, dialog);
     }
@@ -246,14 +246,14 @@ public sealed class MainViewModelTests : IDisposable
         {
             var saveDir = Path.Combine(_dir, $"search-saves-{i}");
             Directory.CreateDirectory(saveDir);
-            File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), new byte[] { 1, 2, 3 });
+            File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), [1, 2, 3]);
             games.Add(new Game { Id = $"search-game-{i}", DisplayName = displayNames[i], SaveDirTemplate = saveDir.Replace('\\', '/') });
         }
 
         var catalogPath = Path.Combine(_dir, "search-games.json");
         var catalog = new Catalog { BackupRoot = Path.Combine(_dir, "backups"), Games = games };
         var dialog = new RecordingDialogService();
-        var load = new CatalogLoad(catalogPath, catalog, Array.Empty<string>(), false, null);
+        var load = new CatalogLoad(catalogPath, catalog, [], false, null);
         var vm = new MainViewModel(load, dialog);
         return (vm, dialog);
     }
@@ -267,16 +267,16 @@ public sealed class MainViewModelTests : IDisposable
     {
         var saveDir = Path.Combine(_dir, "saves");
         Directory.CreateDirectory(saveDir);
-        File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), new byte[] { 1, 2, 3 });
+        File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), [1, 2, 3]);
 
         var catalogPath = Path.Combine(_dir, "games.json");
         var catalog = new Catalog
         {
             BackupRoot = backupRoot,
-            Games = new List<Game>
-            {
+            Games =
+            [
                 new() { Id = "test-game", DisplayName = "Test Game", SaveDirTemplate = saveDir.Replace('\\', '/') },
-            },
+            ],
         };
         await GameCatalog.SaveAsync(catalogPath, catalog);
 
@@ -1046,7 +1046,7 @@ public sealed class MainViewModelTests : IDisposable
         var (vm, _, catalogPath) = CreateViewModel(backupRoot);
         // Refresh reloads the catalog from disk; without the file it would seed an empty template
         // and drop the row this test is about.
-        var saved = await GameCatalog.SaveAsync(catalogPath, new Catalog { BackupRoot = backupRoot, Games = new List<Game> { vm.Games[0].Game } });
+        var saved = await GameCatalog.SaveAsync(catalogPath, new Catalog { BackupRoot = backupRoot, Games = [vm.Games[0].Game] });
         Assert.True(saved.Success, saved.Message);
         SeedBackup(backupRoot, vm.Games[0].Game);
         var targetDir = Path.Combine(backupRoot, "test-game");
@@ -1094,7 +1094,7 @@ public sealed class MainViewModelTests : IDisposable
         Directory.CreateDirectory(gameDir);
         var olderContentDir = Path.Combine(_dir, "older-content");
         Directory.CreateDirectory(olderContentDir);
-        File.WriteAllBytes(Path.Combine(olderContentDir, "save.dat"), new byte[] { 9, 9, 9 });
+        File.WriteAllBytes(Path.Combine(olderContentDir, "save.dat"), [9, 9, 9]);
         ZipFile.CreateFromDirectory(olderContentDir, Path.Combine(gameDir, "2020-01-01_000000.zip"));
         var olderArchive = Assert.Single(new BackupService().ListBackups(backupRoot, "test-game"));
 
@@ -1192,16 +1192,16 @@ public sealed class MainViewModelTests : IDisposable
         var backupRoot = Path.Combine(_dir, "backups");
         var saveDir = Path.Combine(_dir, "saves");
         Directory.CreateDirectory(saveDir);
-        File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), new byte[] { 1, 2, 3 });
+        File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), [1, 2, 3]);
         var game = new Game { Id = "test-game", DisplayName = "Test Game", SaveDirTemplate = saveDir.Replace('\\', '/') };
         // Seeded before the view model is constructed, and never rewritten afterwards, so its
         // last-write time (set two seconds before the archive) stays older than the archive.
         SeedBackup(backupRoot, game);
 
         var catalogPath = Path.Combine(_dir, "games.json");
-        var catalog = new Catalog { BackupRoot = backupRoot, Games = new List<Game> { game } };
+        var catalog = new Catalog { BackupRoot = backupRoot, Games = [game] };
         var dialog = new RecordingDialogService();
-        var load = new CatalogLoad(catalogPath, catalog, Array.Empty<string>(), false, null);
+        var load = new CatalogLoad(catalogPath, catalog, [], false, null);
         var vm = new MainViewModel(load, dialog);
 
         await WaitForAsync(() => vm.Games[0].VerdictText != "Checking…");
@@ -1297,7 +1297,7 @@ public sealed class MainViewModelTests : IDisposable
     public async Task An_empty_catalog_completes_construction_and_a_refresh_without_throwing()
     {
         var catalogPath = Path.Combine(_dir, "games.json");
-        var catalog = new Catalog { BackupRoot = Path.Combine(_dir, "backups"), Games = new List<Game>() };
+        var catalog = new Catalog { BackupRoot = Path.Combine(_dir, "backups"), Games = [] };
         await GameCatalog.SaveAsync(catalogPath, catalog);
 
         var dialog = new RecordingDialogService();
@@ -1380,7 +1380,7 @@ public sealed class MainViewModelTests : IDisposable
         var archiveDir = Path.Combine(backupRoot, "test-game");
         Directory.CreateDirectory(archiveDir);
         var archivePath = Path.Combine(archiveDir, "2026-01-01_000000.zip");
-        await File.WriteAllBytesAsync(archivePath, new byte[] { 1, 2, 3 });
+        await File.WriteAllBytesAsync(archivePath, [1, 2, 3]);
 
         var (vm, dialog, catalogPath) = await CreateViewModelWithSavedCatalogAsync(backupRoot);
         var savePath = Path.Combine(_dir, "saves", "save.dat");
@@ -1409,13 +1409,13 @@ public sealed class MainViewModelTests : IDisposable
         var saveDirs = new List<string>();
         var catalog = new Catalog
         {
-            Games = new List<Game>(),
+            Games = [],
         };
         for (var i = 0; i < 2; i++)
         {
             var saveDir = Path.Combine(_dir, $"remove-saves-{i}");
             Directory.CreateDirectory(saveDir);
-            File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), new byte[] { 1, 2, 3 });
+            File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), [1, 2, 3]);
             saveDirs.Add(saveDir);
             catalog.Games.Add(new Game
             {
@@ -1501,7 +1501,7 @@ public sealed class MainViewModelTests : IDisposable
         var catalog = new Catalog
         {
             BackupRoot = Path.Combine(_dir, "backups"),
-            Games = new List<Game> { new() { Id = "broken", DisplayName = "Broken Game", SaveDirTemplate = "%NOT_A_REAL_VARIABLE%/Saves" } },
+            Games = [new() { Id = "broken", DisplayName = "Broken Game", SaveDirTemplate = "%NOT_A_REAL_VARIABLE%/Saves" }],
         };
         await GameCatalog.SaveAsync(catalogPath, catalog);
         var dialog = new RecordingDialogService();
@@ -1529,7 +1529,7 @@ public sealed class MainViewModelTests : IDisposable
         {
             var saveDir = Path.Combine(_dir, $"saves-{i}");
             Directory.CreateDirectory(saveDir);
-            File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), new byte[] { 1, 2, 3 });
+            File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), [1, 2, 3]);
             games.Add(new Game { Id = $"game-{i}", DisplayName = $"Game {i}", SaveDirTemplate = saveDir.Replace('\\', '/') });
         }
 
@@ -2222,7 +2222,7 @@ public sealed class MainViewModelTests : IDisposable
     [Fact]
     public async Task With_all_three_advisory_segments_absent_the_line_is_exactly_the_status_message()
     {
-        var (vm, dialog, _) = CreateViewModel(backupRoot: "");
+        var (vm, _, _) = CreateViewModel(backupRoot: "");
 
         await vm.RecomputeSpaceAdvisoryAsync();
 
@@ -2329,7 +2329,7 @@ public sealed class MainViewModelTests : IDisposable
     public async Task An_empty_catalog_leaves_SelectedCount_at_zero_and_HasAnySelected_false_with_no_exception()
     {
         var catalogPath = Path.Combine(_dir, "games.json");
-        var catalog = new Catalog { BackupRoot = Path.Combine(_dir, "backups"), Games = new List<Game>() };
+        var catalog = new Catalog { BackupRoot = Path.Combine(_dir, "backups"), Games = [] };
         await GameCatalog.SaveAsync(catalogPath, catalog);
 
         var dialog = new RecordingDialogService();
@@ -2675,7 +2675,7 @@ public sealed class MainViewModelTests : IDisposable
         vm.FindGamesCommand.Execute(null);
         await WaitForAsync(() => vm.FindGamesCommand.CanExecute(null) && vm.Games.Count == 3);
 
-        Assert.Equal(new[] { "alpha", "test-game", "zebra" }, vm.Games.Select(row => row.Game.Id));
+        Assert.Equal(["alpha", "test-game", "zebra"], vm.Games.Select(row => row.Game.Id));
     }
 
     [Fact]
@@ -2734,13 +2734,13 @@ public sealed class MainViewModelTests : IDisposable
         var load = await GameCatalog.LoadAsync(catalogPath);
         var vm = new MainViewModel(load, new RecordingDialogService());
 
-        Assert.Equal(new[] { "b", "a" }, vm.Games.Select(row => row.Game.Id));
+        Assert.Equal(["b", "a"], vm.Games.Select(row => row.Game.Id));
 
         await WaitForAsync(() => vm.RefreshCommand.CanExecute(null));
         vm.RefreshCommand.Execute(null);
         await WaitForAsync(() => vm.RefreshCommand.CanExecute(null));
 
-        Assert.Equal(new[] { "b", "a" }, vm.Games.Select(row => row.Game.Id));
+        Assert.Equal(["b", "a"], vm.Games.Select(row => row.Game.Id));
     }
 
     // --- Drop folder into Add Game ---------------------------------------------------
@@ -2803,7 +2803,7 @@ public sealed class MainViewModelTests : IDisposable
         var load = new CatalogLoad(
             Path.Combine(_dir, "broken.json"),
             new Catalog(),
-            Array.Empty<string>(),
+            [],
             Seeded: false,
             FatalError: "games.json could not be parsed.");
         var vm = new MainViewModel(load, dialog);
@@ -2825,7 +2825,7 @@ public sealed class MainViewModelTests : IDisposable
         var load = new CatalogLoad(
             Path.Combine(_dir, "games.json"),
             new Catalog { BackupRoot = missing },
-            Array.Empty<string>(),
+            [],
             Seeded: true,
             FatalError: null);
         var vm = new MainViewModel(load, dialog);
@@ -2854,7 +2854,7 @@ public sealed class MainViewModelTests : IDisposable
         {
             File.WriteAllBytes(
                 Path.Combine(_dir, $"saves-{i}", "save.dat"),
-                new byte[] { 9, 9, 9 });
+                [9, 9, 9]);
         }
 
         vm.RestoreSelectedCommand.Execute(null);
@@ -2892,12 +2892,12 @@ public sealed class MainViewModelTests : IDisposable
         await WaitForAsync(() => vm.BackupSelectedCommand.CanExecute(null));
 
         var savePath = Path.Combine(_dir, "saves-0", "save.dat");
-        File.WriteAllBytes(savePath, new byte[] { 7, 7, 7 });
+        File.WriteAllBytes(savePath, [7, 7, 7]);
         var gameDir = Path.Combine(backupRoot, "game-0");
         var safetyPath = Path.Combine(gameDir, "2099-01-01_000000-pre-restore.zip");
         ZipFile.CreateFromDirectory(Path.Combine(_dir, "saves-0"), safetyPath);
         File.SetLastWriteTime(safetyPath, DateTime.Now.AddHours(1));
-        File.WriteAllBytes(savePath, new byte[] { 9, 9, 9 });
+        File.WriteAllBytes(savePath, [9, 9, 9]);
 
         vm.RestoreSelectedCommand.Execute(null);
         await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: 15000);
@@ -2916,7 +2916,7 @@ public sealed class MainViewModelTests : IDisposable
         var savePath = Path.Combine(_dir, "saves-0", "save.dat");
         Directory.CreateDirectory(Path.Combine(backupRoot, "game-0"));
         ZipFile.CreateFromDirectory(Path.Combine(_dir, "saves-0"), Path.Combine(backupRoot, "game-0", "2099-01-01_000000-pre-restore.zip"));
-        File.WriteAllBytes(savePath, new byte[] { 9, 9, 9 });
+        File.WriteAllBytes(savePath, [9, 9, 9]);
 
         vm.Games[0].IsSelected = true;
         vm.RestoreSelectedCommand.Execute(null);
@@ -2933,15 +2933,15 @@ public sealed class MainViewModelTests : IDisposable
     {
         var (vm, dialog, backupRoot) = await CreateMultiGameViewModelAsync(2);
         dialog.FolderToReturn = backupRoot;
-        dialog.ConfirmReturnSequence = new Queue<bool>(new[] { false, true });
+        dialog.ConfirmReturnSequence = new Queue<bool>([false, true]);
 
         vm.Games[0].IsSelected = true;
         vm.Games[1].IsSelected = true;
         vm.BackupSelectedCommand.Execute(null);
         await WaitForAsync(() => vm.BackupSelectedCommand.CanExecute(null));
 
-        File.WriteAllBytes(Path.Combine(_dir, "saves-0", "save.dat"), new byte[] { 9, 9, 9 });
-        File.WriteAllBytes(Path.Combine(_dir, "saves-1", "save.dat"), new byte[] { 9, 9, 9 });
+        File.WriteAllBytes(Path.Combine(_dir, "saves-0", "save.dat"), [9, 9, 9]);
+        File.WriteAllBytes(Path.Combine(_dir, "saves-1", "save.dat"), [9, 9, 9]);
 
         vm.RestoreSelectedCommand.Execute(null);
         await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: 15000);
@@ -2969,7 +2969,7 @@ public sealed class MainViewModelTests : IDisposable
         await WaitForAsync(() => vm.BackupSelectedCommand.CanExecute(null));
 
         var savePath = Path.Combine(_dir, "search-saves-1", "save.dat");
-        File.WriteAllBytes(savePath, new byte[] { 9, 9, 9 });
+        File.WriteAllBytes(savePath, [9, 9, 9]);
 
         vm.RestoreSelectedCommand.Execute(null);
         await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: 15000);
@@ -3029,8 +3029,8 @@ public sealed class MainViewModelTests : IDisposable
         vm.BackupSelectedCommand.Execute(null);
         await WaitForAsync(() => vm.BackupSelectedCommand.CanExecute(null));
 
-        File.WriteAllBytes(Path.Combine(_dir, "saves-0", "save.dat"), new byte[] { 9, 9, 9 });
-        File.WriteAllBytes(Path.Combine(_dir, "saves-1", "save.dat"), new byte[] { 9, 9, 9 });
+        File.WriteAllBytes(Path.Combine(_dir, "saves-0", "save.dat"), [9, 9, 9]);
+        File.WriteAllBytes(Path.Combine(_dir, "saves-1", "save.dat"), [9, 9, 9]);
         vm.Games[0].IsBusy = true;
 
         vm.RestoreSelectedCommand.Execute(null);
@@ -3157,7 +3157,7 @@ public sealed class MainViewModelTests : IDisposable
     {
         var (vm, dialog, backupRoot) = await CreateMultiGameViewModelAsync(2);
         dialog.FolderToReturn = backupRoot;
-        dialog.ConfirmReturnSequence = new Queue<bool>(new[] { false, true });
+        dialog.ConfirmReturnSequence = new Queue<bool>([false, true]);
 
         vm.Games[0].IsSelected = true;
         vm.Games[1].IsSelected = true;

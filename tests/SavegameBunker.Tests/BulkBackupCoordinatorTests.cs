@@ -31,14 +31,14 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
     /// <summary>A synchronous recording stand-in for the (index, name) bulk reporter.</summary>
     private sealed class RecordingIndexProgress : IProgress<(int Index, string Name)>
     {
-        public List<(int Index, string Name)> Reports { get; } = new();
+        public List<(int Index, string Name)> Reports { get; } = [];
 
         public void Report((int Index, string Name) value) => Reports.Add(value);
     }
 
     private sealed class ByteProgressRecorder : IProgress<long>
     {
-        public List<long> Reports { get; } = new();
+        public List<long> Reports { get; } = [];
 
         public void Report(long value) => Reports.Add(value);
     }
@@ -58,7 +58,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
     }
 
     private List<GameRowViewModel> Rows(params Game[] games) =>
-        games.Select(game => new GameRowViewModel(game)).ToList();
+        [.. games.Select(game => new GameRowViewModel(game))];
 
     private static Dictionary<GameRowViewModel, IProgress<long>> ByteProgressFor(
         IEnumerable<GameRowViewModel> rows)
@@ -85,7 +85,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
             {
                 Assert.Equal(2, total);
                 Assert.Equal("Game A", first);
-                seenAtStart = rows.Select(row => (row.ComparisonKind, row.IsBusy)).ToList();
+                seenAtStart = [.. rows.Select(row => (row.ComparisonKind, row.IsBusy))];
             },
             () => { });
 
@@ -117,7 +117,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
             () =>
             {
                 finishCount++;
-                releasedAtFinish = rows.Select(row => row.IsBusy).ToList();
+                releasedAtFinish = [.. rows.Select(row => row.IsBusy)];
             });
 
         Assert.NotNull(run);
@@ -140,7 +140,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
 
         // A byteProgress dictionary missing the second target makes the loop throw as soon as it
         // reaches that row — the exact shape of an unexpected mid-loop failure.
-        var byteProgress = ByteProgressFor(new[] { rows[0] });
+        var byteProgress = ByteProgressFor([rows[0]]);
 
         var exception = await Assert.ThrowsAsync<KeyNotFoundException>(() => coordinator.BackupAsync(
             rows, Path.Combine(_dir, "backups"), new RecordingIndexProgress(), byteProgress,
@@ -200,7 +200,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
             rows, backupRoot, indexProgress, ByteProgressFor(rows), (_, _) => { }, () => { });
 
         Assert.NotNull(run);
-        Assert.Equal(new[] { "Broken Game" }, run.Failed);
+        Assert.Equal(["Broken Game"], run.Failed);
         Assert.Single(run.FailureDetails);
 
         // The second game's archive exists and the recorded progress covered both rows, in order.
@@ -257,7 +257,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
         Directory.CreateDirectory(Path.Combine(_dir, "saves-game-second"));
         File.WriteAllText(Path.Combine(_dir, "saves-game-second", "save.dat"), "restored-content-second");
 
-        var dialog = new RecordingDialogService { ConfirmReturnSequence = new Queue<bool>(new[] { true, false }) };
+        var dialog = new RecordingDialogService { ConfirmReturnSequence = new Queue<bool>([true, false]) };
         var rows = Rows(first, second);
 
         var coordinator = new BulkBackupCoordinator(backup, new GameActions(backup, dialog), _ => { });
@@ -273,7 +273,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
             () =>
             {
                 finishCount++;
-                releasedAtFinish = rows.Select(row => row.IsBusy).ToList();
+                releasedAtFinish = [.. rows.Select(row => row.IsBusy)];
             });
 
         Assert.NotNull(run);
@@ -282,7 +282,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
             itemCalls);
         Assert.Equal(1, run.Restored);
         Assert.Empty(run.Failed);
-        Assert.Equal(new[] { "Second Game" }, run.Declined);
+        Assert.Equal(["Second Game"], run.Declined);
         // Two confirms were asked, one per game, in list order.
         Assert.Equal(2, dialog.ConfirmMessages.Count);
         Assert.Equal(1, finishCount);
@@ -333,7 +333,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
             rows, backupRoot, StepProgressFor(rows), (_, _) => { }, (_, _) => { }, () => { });
 
         Assert.NotNull(run);
-        Assert.Equal(new[] { "Missing Game" }, run.Failed);
+        Assert.Equal(["Missing Game"], run.Failed);
         Assert.Single(run.FailureDetails);
         Assert.Equal(1, run.Restored);
         // The second game still reached its confirmation despite the first game's failure.
@@ -353,7 +353,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
     /// <summary>A synchronous recording stand-in for a per-row restore-step reporter.</summary>
     private sealed class StepProgressRecorder : IProgress<int>
     {
-        public List<int> Reports { get; } = new();
+        public List<int> Reports { get; } = [];
 
         public void Report(int value) => Reports.Add(value);
     }

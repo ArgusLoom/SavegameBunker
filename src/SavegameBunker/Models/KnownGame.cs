@@ -19,7 +19,7 @@ public sealed class KnownGame
     public string DisplayName { get; init; } = "";
 
     [JsonPropertyName("aliases")]
-    public List<string> Aliases { get; init; } = new();
+    public List<string> Aliases { get; init; } = [];
 
     [JsonPropertyName("saveDirTemplate")]
     public string SaveDirTemplate { get; init; } = "";

@@ -54,7 +54,7 @@ public sealed partial class ScanWindowViewModel : CommunityToolkitObservableObje
         SharedTitles = result.SkippedShared.Select(g => g.DisplayName).ToList();
     }
 
-    public ObservableCollection<ScanHitRowViewModel> Rows { get; } = new();
+    public ObservableCollection<ScanHitRowViewModel> Rows { get; } = [];
 
     public string HeaderText { get; }
 

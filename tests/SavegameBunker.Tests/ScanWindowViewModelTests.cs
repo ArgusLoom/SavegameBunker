@@ -151,7 +151,7 @@ public sealed class ScanWindowViewModelTests
 
         var vm = new ScanWindowViewModel(result);
 
-        Assert.Equal(new[] { "Bravo", "Alpha" }, vm.SharedTitles);
+        Assert.Equal(["Bravo", "Alpha"], vm.SharedTitles);
     }
 
     [Fact]

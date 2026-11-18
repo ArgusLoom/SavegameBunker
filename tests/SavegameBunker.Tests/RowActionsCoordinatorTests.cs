@@ -35,7 +35,7 @@ public sealed class RowActionsCoordinatorTests : IDisposable
     /// </summary>
     private sealed class FakeRowActionHost : IRowActionHost
     {
-        public List<string> Calls { get; } = new();
+        public List<string> Calls { get; } = [];
         public string? EnsureRootResult { get; set; } = "/tmp/unused-root";
         public bool HasConfiguredRoot { get; set; }
         public string ConfiguredRoot { get; set; } = "/tmp/unused-root";
@@ -251,13 +251,13 @@ public sealed class RowActionsCoordinatorTests : IDisposable
 
     private sealed class ByteRecorder : IProgress<long>
     {
-        public List<long> Reports { get; } = new();
+        public List<long> Reports { get; } = [];
         public void Report(long value) => Reports.Add(value);
     }
 
     private sealed class StepRecorder : IProgress<int>
     {
-        public List<int> Reports { get; } = new();
+        public List<int> Reports { get; } = [];
         public void Report(int value) => Reports.Add(value);
     }
 }

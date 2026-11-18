@@ -83,7 +83,7 @@ public sealed class CatalogSessionTests : IDisposable
             """);
 
         var newGame = new Game { Id = "new", DisplayName = "New", SaveDirTemplate = "%APPDATA%/New" };
-        var result = await session.AddGamesAsync(new[] { newGame });
+        var result = await session.AddGamesAsync([newGame]);
 
         Assert.False(result.Success);
         // The other process's write survives on disk untouched.
@@ -100,11 +100,11 @@ public sealed class CatalogSessionTests : IDisposable
         var session = new CatalogSession(load);
 
         var first = new Game { Id = "first", DisplayName = "First", SaveDirTemplate = "%APPDATA%/First" };
-        var firstResult = await session.AddGamesAsync(new[] { first });
+        var firstResult = await session.AddGamesAsync([first]);
         Assert.True(firstResult.Success, firstResult.Message);
 
         var second = new Game { Id = "second", DisplayName = "Second", SaveDirTemplate = "%APPDATA%/Second" };
-        var secondResult = await session.AddGamesAsync(new[] { second });
+        var secondResult = await session.AddGamesAsync([second]);
 
         Assert.True(secondResult.Success, secondResult.Message);
         Assert.Equal(2, session.Games.Count);
@@ -128,7 +128,7 @@ public sealed class CatalogSessionTests : IDisposable
         Assert.NotNull(session.FatalError);
 
         var newGame = new Game { Id = "new", DisplayName = "New", SaveDirTemplate = "%APPDATA%/New" };
-        var result = await session.AddGamesAsync(new[] { newGame });
+        var result = await session.AddGamesAsync([newGame]);
 
         Assert.False(result.Success);
         // The broken file on disk is exactly what the user can hand-fix — a write here would have

@@ -103,7 +103,7 @@ public sealed class BackupServiceTests : IDisposable
         var dir = Path.Combine(backupRoot, gameId);
         Directory.CreateDirectory(dir);
         var path = Path.Combine(dir, fileName);
-        File.WriteAllBytes(path, bytes ?? Array.Empty<byte>());
+        File.WriteAllBytes(path, bytes ?? []);
         return path;
     }
 
@@ -320,7 +320,7 @@ public sealed class BackupServiceTests : IDisposable
         File.WriteAllText(Path.Combine(saveDir, "save.dat"), "payload");
 
         var notAnArchive = Path.Combine(_dir, "not-a-real.zip");
-        File.WriteAllBytes(notAnArchive, new byte[] { 1, 2, 3, 4, 5, 6, 7, 8 });
+        File.WriteAllBytes(notAnArchive, [1, 2, 3, 4, 5, 6, 7, 8]);
 
         var detail = BackupService.DescribeVerificationFailure(notAnArchive, saveDir);
 
@@ -555,7 +555,7 @@ public sealed class BackupServiceTests : IDisposable
         // does NOT fail: the archive is retried under a -1 suffix (the two-argument Move never
         // overwrites, so the colliding name's content survives untouched).
         var collidingPath = Path.Combine(targetDir, $"{DateTime.Now:yyyy-MM-dd_HHmmss}.zip");
-        File.WriteAllBytes(collidingPath, new byte[] { 9 });
+        File.WriteAllBytes(collidingPath, [9]);
 
         var result = _service.Backup(game, backupRoot);
 
@@ -606,7 +606,7 @@ public sealed class BackupServiceTests : IDisposable
         var result = _service.ListBackups(backupRoot, "test-game");
 
         Assert.Equal(
-            new[] { "2026-07-25_143012.zip", "2026-07-22_090000.zip", "2026-07-20_100000.zip" },
+            ["2026-07-25_143012.zip", "2026-07-22_090000.zip", "2026-07-20_100000.zip"],
             result.Select(b => Path.GetFileName(b.FilePath)));
     }
 
@@ -1063,8 +1063,7 @@ public sealed class BackupServiceTests : IDisposable
     public void TryGetAvailableFreeSpace_creates_nothing_on_disk()
     {
         var backupRoot = Path.Combine(_dir, "never-created");
-
-        var result = _service.TryGetAvailableFreeSpace(backupRoot, out var freeBytes);
+        var result = _service.TryGetAvailableFreeSpace(backupRoot, out _);
 
         Assert.True(result);
         Assert.False(Directory.Exists(backupRoot));

@@ -65,7 +65,7 @@ public sealed partial class RestorePickerViewModel : CommunityToolkitObservableO
     [ObservableProperty]
     public partial string HeaderText { get; set; }
 
-    public ObservableCollection<RestorePickerRowViewModel> Rows { get; } = new();
+    public ObservableCollection<RestorePickerRowViewModel> Rows { get; } = [];
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(CanRestore))]
