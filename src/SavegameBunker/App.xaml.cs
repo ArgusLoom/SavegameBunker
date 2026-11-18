@@ -12,7 +12,7 @@ using Wpf.Ui.Controls;
 
 namespace SavegameBunker;
 
-public partial class App : Application
+public sealed partial class App : Application
 {
     /// <summary>
     /// The fixed accent colour — applied once at startup and never re-applied. There is

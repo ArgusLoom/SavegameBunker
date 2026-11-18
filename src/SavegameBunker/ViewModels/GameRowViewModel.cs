@@ -189,12 +189,6 @@ public sealed partial class GameRowViewModel : CommunityToolkitObservableObject
                 FileCountText = "0";
                 SizeText = "";
                 LastPlayedAt = null;
-                if (status.SkippedPaths.Count > 0)
-                {
-                    GameSeverity = RowSeverity.Warning;
-                    StatusText = Strings.Format(
-                        "str_game_unreadablePaths", status.SkippedPaths.Count, DirectoryWalk.FormatSkippedList(status.SkippedPaths));
-                }
                 break;
 
             case SaveStatusKind.Found:
@@ -205,12 +199,6 @@ public sealed partial class GameRowViewModel : CommunityToolkitObservableObject
                 StatusText = status.Oversized
                     ? Strings.Get("str_game_oversized")
                     : "";
-                if (status.SkippedPaths.Count > 0)
-                {
-                    GameSeverity = RowSeverity.Warning;
-                    StatusText = Strings.Format(
-                        "str_game_unreadablePaths", status.SkippedPaths.Count, DirectoryWalk.FormatSkippedList(status.SkippedPaths));
-                }
                 break;
 
             case SaveStatusKind.Checking:
@@ -221,6 +209,15 @@ public sealed partial class GameRowViewModel : CommunityToolkitObservableObject
                 SizeText = "";
                 LastPlayedAt = null;
                 break;
+        }
+
+        // A partly unreadable folder (with or without readable files) overrides the row's status,
+        // so the file count is never mistaken for complete.
+        if (status.Kind is (SaveStatusKind.NoSaves or SaveStatusKind.Found) && status.SkippedPaths.Count > 0)
+        {
+            GameSeverity = RowSeverity.Warning;
+            StatusText = Strings.Format(
+                "str_game_unreadablePaths", status.SkippedPaths.Count, DirectoryWalk.FormatSkippedList(status.SkippedPaths));
         }
     }
 

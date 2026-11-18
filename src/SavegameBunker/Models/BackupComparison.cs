@@ -43,24 +43,23 @@ public enum BackupComparisonKind
 public sealed record BackupComparison(
     BackupComparisonKind Kind,
     DateTime? NewestBackupTakenAt,
-    TimeSpan? Elapsed,
-    bool BackupRootReachable)
+    TimeSpan? Elapsed)
 {
     public static BackupComparison Checking() =>
-        new(BackupComparisonKind.Checking, null, null, true);
+        new(BackupComparisonKind.Checking, null, null);
 
     public static BackupComparison UpToDate(DateTime newestTakenAt) =>
-        new(BackupComparisonKind.UpToDate, newestTakenAt, null, true);
+        new(BackupComparisonKind.UpToDate, newestTakenAt, null);
 
     public static BackupComparison SavesChangedSinceBackup(DateTime newestTakenAt, TimeSpan elapsed) =>
-        new(BackupComparisonKind.SavesChangedSinceBackup, newestTakenAt, elapsed, true);
+        new(BackupComparisonKind.SavesChangedSinceBackup, newestTakenAt, elapsed);
 
     public static BackupComparison NeverBackedUp() =>
-        new(BackupComparisonKind.NeverBackedUp, null, null, true);
+        new(BackupComparisonKind.NeverBackedUp, null, null);
 
     public static BackupComparison NoSaveData(DateTime? newestTakenAt) =>
-        new(BackupComparisonKind.NoSaveData, newestTakenAt, null, true);
+        new(BackupComparisonKind.NoSaveData, newestTakenAt, null);
 
     public static BackupComparison FolderNotAvailable() =>
-        new(BackupComparisonKind.BackupFolderNotAvailable, null, null, false);
+        new(BackupComparisonKind.BackupFolderNotAvailable, null, null);
 }

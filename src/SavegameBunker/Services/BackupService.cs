@@ -230,27 +230,10 @@ public sealed class BackupService
     /// <see cref="RestoreService.MaxArchiveUncompressedBytes"/>). Backup itself is never capped —
     /// refusing to protect data because it is large would be worse than the risk those caps guard
     /// against — but an archive this app cannot later restore is worth telling the user about at
-    /// the moment it is created, not the moment a restore refuses it. Best effort: any failure to
-    /// reopen the just-written archive is swallowed, since a backup that already verified must
-    /// still be reported as a success.
+    /// the moment it is created, not the moment a restore refuses it.
     /// </summary>
-    private static string? DescribeOversizedArchiveWarning(string archivePath)
-    {
-        try
-        {
-            using var zip = ZipFile.OpenRead(archivePath);
-            var entries = zip.Entries.Where(e => !e.FullName.EndsWith('/')).ToList();
-            var totalBytes = entries.Sum(e => e.Length);
-            if (entries.Count > RestoreService.MaxArchiveEntries || totalBytes > RestoreService.MaxArchiveUncompressedBytes)
-                return Strings.Get("str_backup_exceedsRestoreCap");
-        }
-        catch
-        {
-            // Best effort — the backup already verified successfully.
-        }
-
-        return null;
-    }
+    private static string? DescribeOversizedArchiveWarning(string archivePath) =>
+        RestoreService.ExceedsArchiveLimits(archivePath) ? Strings.Get("str_backup_exceedsRestoreCap") : null;
 
     /// <summary>
     /// Whether <paramref name="backupRoot"/> currently exists — a bare read-only existence probe
@@ -324,8 +307,7 @@ public sealed class BackupService
                         return null;
                     }
                 })
-                .Where(b => b is not null)
-                .Select(b => b!)
+                .OfType<BackupArchive>()
                 .OrderByDescending(b => b.TakenAt)
                 .ThenByDescending(b => b.FilePath, StringComparer.OrdinalIgnoreCase)
                 .ToList();
@@ -836,7 +818,6 @@ public sealed class BackupService
         }
         catch
         {
-            freeBytes = 0;
             return false;
         }
     }

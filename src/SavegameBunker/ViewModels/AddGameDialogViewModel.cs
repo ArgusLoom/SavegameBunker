@@ -77,9 +77,6 @@ public sealed partial class AddGameDialogViewModel : CommunityToolkitObservableO
     [ObservableProperty]
     public partial KnownGame? SelectedSuggestion { get; set; }
 
-    /// <summary>The ids already in the catalog. Read by 02-03's collision check.</summary>
-    public IReadOnlyCollection<string> ExistingIds => _existingIds;
-
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(OpenWikiSearchCommand))]
     public partial string DisplayName { get; set; } = "";

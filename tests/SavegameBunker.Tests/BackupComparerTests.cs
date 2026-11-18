@@ -22,7 +22,6 @@ public sealed class BackupComparerTests
         var comparison = BackupComparer.Compare(saveStatus, backupRootReachable: false, backups);
 
         Assert.Equal(BackupComparisonKind.BackupFolderNotAvailable, comparison.Kind);
-        Assert.False(comparison.BackupRootReachable);
     }
 
     [Fact]

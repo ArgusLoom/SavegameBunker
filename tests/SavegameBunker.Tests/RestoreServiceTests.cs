@@ -757,7 +757,7 @@ public sealed class RestoreServiceTests : IDisposable
     }
 
     [Fact]
-    public void DescribeArchiveLimitFailure_is_null_for_a_normal_backup()
+    public void ExceedsArchiveLimits_is_false_for_a_normal_backup()
     {
         var game = GameWithSaves();
         var backupRoot = Path.Combine(_dir, "backups");
@@ -765,11 +765,11 @@ public sealed class RestoreServiceTests : IDisposable
         Assert.True(backupResult.Success, backupResult.Message);
         var archive = Assert.Single(Directory.GetFiles(BackupDirFor(backupRoot, game), "*.zip"));
 
-        Assert.Null(RestoreService.DescribeArchiveLimitFailure(archive));
+        Assert.False(RestoreService.ExceedsArchiveLimits(archive));
     }
 
     [Fact]
-    public void DescribeArchiveLimitFailure_trips_when_entry_count_exceeds_the_cap()
+    public void ExceedsArchiveLimits_trips_when_entry_count_exceeds_the_cap()
     {
         var archive = Path.Combine(_dir, "many.zip");
         using (var zip = ZipFile.Open(archive, ZipArchiveMode.Create))
@@ -779,12 +779,12 @@ public sealed class RestoreServiceTests : IDisposable
             zip.CreateEntry("c.dat");
         }
 
-        Assert.NotNull(RestoreService.DescribeArchiveLimitFailure(archive, maxEntries: 2));
-        Assert.Null(RestoreService.DescribeArchiveLimitFailure(archive, maxEntries: 3));
+        Assert.True(RestoreService.ExceedsArchiveLimits(archive, maxEntries: 2));
+        Assert.False(RestoreService.ExceedsArchiveLimits(archive, maxEntries: 3));
     }
 
     [Fact]
-    public void DescribeArchiveLimitFailure_trips_when_uncompressed_size_exceeds_the_cap()
+    public void ExceedsArchiveLimits_trips_when_uncompressed_size_exceeds_the_cap()
     {
         var archive = Path.Combine(_dir, "fat.zip");
         using (var zip = ZipFile.Open(archive, ZipArchiveMode.Create))
@@ -794,8 +794,8 @@ public sealed class RestoreServiceTests : IDisposable
             stream.Write(new byte[10]);
         }
 
-        Assert.NotNull(RestoreService.DescribeArchiveLimitFailure(archive, maxUncompressedBytes: 9));
-        Assert.Null(RestoreService.DescribeArchiveLimitFailure(archive, maxUncompressedBytes: 10));
+        Assert.True(RestoreService.ExceedsArchiveLimits(archive, maxUncompressedBytes: 9));
+        Assert.False(RestoreService.ExceedsArchiveLimits(archive, maxUncompressedBytes: 10));
     }
 
     /// <summary>

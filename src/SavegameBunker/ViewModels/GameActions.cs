@@ -70,21 +70,16 @@ internal sealed class GameActions
             return OperationResult.Fail(Strings.Format("str_restore_noBackupFolder", row.DisplayName));
         }
 
-        var (reachable, listable, backups) = await Task.Run(() =>
+        var (listable, backups) = await Task.Run(() =>
         {
             if (!_backup.IsBackupRootReachable(configuredBackupRoot))
             {
-                return (false, false, (IReadOnlyList<BackupArchive>)[]);
+                return (false, (IReadOnlyList<BackupArchive>)[]);
             }
 
             var ok = _backup.TryListBackups(configuredBackupRoot, row.Game.Id, out var found);
-            return (true, ok, found);
+            return (ok, found);
         });
-
-        if (!reachable)
-        {
-            return OperationResult.Fail(Strings.Format("str_restore_folderUnreachable", row.DisplayName, configuredBackupRoot));
-        }
 
         if (!listable)
         {

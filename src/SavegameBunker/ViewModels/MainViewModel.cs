@@ -281,11 +281,19 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// <summary>
     /// Whether any row is mid-flight on its own backup or restore — including a restore still in
     /// its preflight (precondition check, folder picker), before <see cref="IsRestoreRunning"/> is
-    /// raised. <see cref="RestoreAsync"/>'s own doc comment explains why that flag stays unset until
-    /// a restore plan is in hand; <c>row.IsBusy</c> is the one signal set for the whole window
+    /// raised. <see cref="RowActionsCoordinator.RestoreAsync"/>'s doc comment explains why that flag
+    /// stays unset until a restore plan is in hand; <c>row.IsBusy</c> is the one signal set for the whole window
     /// instead, so this is what closing the window and starting a bulk run must both gate on.
     /// </summary>
     public bool IsAnyRowBusy => Games.Any(row => row.IsBusy);
+
+    /// <summary>
+    /// Whether anything that writes to disk is in flight: a row's own action (preflight
+    /// included), a single backup or restore, or a bulk run. The one gate for closing the window,
+    /// refreshing, changing the backup folder and starting another bulk run.
+    /// </summary>
+    public bool IsAnyOperationRunning =>
+        IsAnyRowBusy || IsBackupRunning || IsRestoreRunning || IsBulkBackupRunning;
 
     /// <summary>How many rows are currently checked — the durable count the bulk actions gate on.</summary>
     public int SelectedCount => Games.Count(row => row.IsSelected);
@@ -1044,8 +1052,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// folder mid-preflight would leave its safety backup written to a folder the picker no longer
     /// points at.
     /// </summary>
-    private bool CanRefreshOrChangeBackupRoot() =>
-        !IsAnyRowBusy && !IsBackupRunning && !IsRestoreRunning && !IsBulkBackupRunning;
+    private bool CanRefreshOrChangeBackupRoot() => !IsAnyOperationRunning;
 
     /// <summary>
     /// Runs <paramref name="action"/> on the UI thread when there is one, and inline when there is
@@ -1395,8 +1402,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// The reverse — a single-row action on a row the bulk run has claimed — is already refused by
     /// that row's <c>IsBusy</c>.
     /// </summary>
-    private bool CanBackupAllChanged() =>
-        !IsAnyRowChecking && !IsAnyRowBusy && !IsBackupRunning && !IsRestoreRunning && !IsBulkBackupRunning;
+    private bool CanBackupAllChanged() => !IsAnyRowChecking && !IsAnyOperationRunning;
 
     /// <summary>
     /// Backs up every checked row — the target set is the selection itself,
@@ -1419,12 +1425,11 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     }
 
     /// <summary>
-    /// <see cref="CanBackupAllChanged"/>'s five terms plus a leading non-empty-selection check —
-    /// the extra term that makes an empty-handed "Back up selected" run unreachable, since nothing
+    /// <see cref="CanBackupAllChanged"/> plus a non-empty-selection check — the extra term that
+    /// makes an empty-handed "Back up selected" run unreachable, since nothing
     /// else in this gate would otherwise stop it from running against zero targets.
     /// </summary>
-    private bool CanBackupSelected() =>
-        HasAnySelected && !IsAnyRowChecking && !IsAnyRowBusy && !IsBackupRunning && !IsRestoreRunning && !IsBulkBackupRunning;
+    private bool CanBackupSelected() => HasAnySelected && CanBackupAllChanged();
 
     /// <summary>
     /// Restores every checked row from its newest ordinary backup, no picker. The sequential
@@ -1475,8 +1480,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// <summary>
     /// Same terms as <see cref="CanBackupSelected"/> — empty selection is unreachable.
     /// </summary>
-    private bool CanRestoreSelected() =>
-        HasAnySelected && !IsAnyRowChecking && !IsAnyRowBusy && !IsBackupRunning && !IsRestoreRunning && !IsBulkBackupRunning;
+    private bool CanRestoreSelected() => CanBackupSelected();
 
     /// <summary>
     /// Returns the configured backup folder, asking for one the first time it is needed. Backing

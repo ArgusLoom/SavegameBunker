@@ -116,10 +116,7 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
     {
-        // IsAnyRowBusy catches a restore still in its preflight (precondition check, folder
-        // picker) — the window where row.IsBusy is set but IsRestoreRunning is not raised yet.
-        if (!ViewModel.IsBackupRunning && !ViewModel.IsRestoreRunning && !ViewModel.IsBulkBackupRunning
-            && !ViewModel.IsAnyRowBusy)
+        if (!ViewModel.IsAnyOperationRunning)
             return;
 
         e.Cancel = true;

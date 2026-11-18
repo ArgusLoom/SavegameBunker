@@ -82,8 +82,7 @@ public sealed class RestoreService
                 return OperationResult.Fail(
                     $"Archive is not a backup of {game.DisplayName} in the configured backup folder: {archivePath}");
 
-            var limitFailure = DescribeArchiveLimitFailure(archivePath);
-            if (limitFailure is not null)
+            if (ExceedsArchiveLimits(archivePath))
                 return OperationResult.Fail(Strings.Format("str_restore_archiveTooLarge", game.DisplayName));
 
             // Clears this one game's own leftover restore siblings before anything else runs, so
@@ -222,11 +221,13 @@ public sealed class RestoreService
     }
 
     /// <summary>
-    /// Reads the archive's central directory only — no extraction — and refuses a restore whose
-    /// declared entry count or uncompressed size exceeds the zip-bomb caps. Returns null when the
-    /// archive is within limits. Exposed internal so tests can drive the caps without a 32 GB file.
+    /// Whether the archive's declared entry count or uncompressed size exceeds the zip-bomb caps.
+    /// Reads the central directory only — no extraction. Restore refuses such an archive, and
+    /// <see cref="BackupService"/> warns when it has just written one. An unreadable archive
+    /// counts as within limits: restore then fails at extraction with the real IO error. The
+    /// limits are parameters so tests can drive the caps without a 32 GB file.
     /// </summary>
-    internal static string? DescribeArchiveLimitFailure(
+    internal static bool ExceedsArchiveLimits(
         string archivePath,
         int maxEntries = MaxArchiveEntries,
         long maxUncompressedBytes = MaxArchiveUncompressedBytes)
@@ -244,15 +245,14 @@ public sealed class RestoreService
                 entries++;
                 uncompressed += entry.Length;
                 if (entries > maxEntries || uncompressed > maxUncompressedBytes)
-                    return "over cap";
+                    return true;
             }
 
-            return null;
+            return false;
         }
         catch
         {
-            // Unreadable archives fail at ExtractToDirectory with the real IO error, not this cap.
-            return null;
+            return false;
         }
     }
 
