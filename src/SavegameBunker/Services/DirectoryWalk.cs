@@ -58,7 +58,7 @@ internal static class DirectoryWalk
         // app below it, so nothing there is pruned — its subfolders are archived like any others.
         var excludedWithinRoot = excludedDirs is null
             ? []
-            : excludedDirs.Where(excluded => BackupService.IsSameOrInside(excluded, rootDir)).ToList();
+            : excludedDirs.Where(excluded => PathCompare.IsSameOrInside(excluded, rootDir)).ToList();
 
         void Walk(string current)
         {
@@ -129,8 +129,8 @@ internal static class DirectoryWalk
                 // - save folder inside the backup root or inside its own archive folder: prune
                 //   nothing — no archive of this app lives below it, so its subfolders are archived.
                 if (excludedDirs is not null
-                    && (excludedDirs.Any(excluded => BackupService.IsSameOrInside(excluded, sub))
-                        || excludedWithinRoot.Any(excluded => BackupService.IsSameOrInside(sub, excluded))))
+                    && (excludedDirs.Any(excluded => PathCompare.IsSameOrInside(excluded, sub))
+                        || excludedWithinRoot.Any(excluded => PathCompare.IsSameOrInside(sub, excluded))))
                 {
                     Exclude(sub);
                     continue;

@@ -118,7 +118,7 @@ public sealed class BackupService
             // any other destination — but the walk must step over it, or every backup would pack
             // all earlier archives (and trip over its own half-written staging file). targetDir is
             // listed too for the case where the backup folder IS the save folder.
-            var excludedDirs = new[] { NormalizeDir(backupRoot), NormalizeDir(targetDir) };
+            var excludedDirs = new[] { PathCompare.Normalize(backupRoot), PathCompare.Normalize(targetDir) };
 
             Dictionary<string, string> entryHashes;
             try
@@ -817,23 +817,6 @@ public sealed class BackupService
         {
             return false;
         }
-    }
-
-    /// <summary>Full path without a trailing separator, so two spellings of one folder compare equal.</summary>
-    private static string NormalizeDir(string path) =>
-        Path.TrimEndingDirectorySeparator(Path.GetFullPath(path));
-
-    /// <summary>
-    /// Whether <paramref name="candidate"/> is <paramref name="parent"/> itself or sits anywhere
-    /// beneath it. Restore asks this about the backup folder and a save folder it is about to
-    /// replace wholesale.
-    /// </summary>
-    internal static bool IsSameOrInside(string candidate, string parent)
-    {
-        var child = NormalizeDir(candidate);
-        var root = NormalizeDir(parent);
-        return child.Equals(root, StringComparison.OrdinalIgnoreCase)
-            || child.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase);
     }
 
     /// <summary>Best-effort cleanup — a failed delete must never replace the original error.</summary>
