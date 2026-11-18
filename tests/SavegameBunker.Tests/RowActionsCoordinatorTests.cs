@@ -123,6 +123,27 @@ public sealed class RowActionsCoordinatorTests : IDisposable
         Assert.False(row.IsBusy);
     }
 
+    // The picker can delete archives before the user cancels it; without a rescan the row kept
+    // showing the deleted archive's verdict ("Up to date") until the next Refresh.
+    [Fact]
+    public async Task RestoreAsync_rescans_the_row_when_the_picker_is_cancelled()
+    {
+        var backup = new BackupService();
+        var game = GameWithSaves("game-a", "Game A");
+        var row = new GameRowViewModel(game);
+        var backupRoot = Path.Combine(_dir, "backups");
+        Assert.True(backup.Backup(game, backupRoot).Success);
+
+        var host = new FakeRowActionHost { HasConfiguredRoot = true, ConfiguredRoot = backupRoot };
+
+        // The default RecordingDialogService picker returns null — a cancelled picker.
+        await Coordinator(backup, host).RestoreAsync(row, new StepRecorder());
+
+        Assert.DoesNotContain("RestoreStarted", host.Calls);
+        Assert.Contains("Rescan:game-a", host.Calls);
+        Assert.False(row.IsBusy);
+    }
+
     [Fact]
     public async Task BackupAsync_reports_then_rescans_after_a_successful_write_and_balances_the_in_flight_count()
     {

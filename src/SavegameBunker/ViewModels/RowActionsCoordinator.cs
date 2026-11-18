@@ -142,6 +142,9 @@ internal sealed class RowActionsCoordinator
                 // A cancelled picker is not a failure — no dialog, just the status line, matching
                 // how ChangeBackupRootAsync treats a cancelled folder picker.
                 _host.SetStatus(Strings.Get("str_restore_cancelled"));
+                // The picker can delete archives before it is cancelled, so the row's verdict
+                // may name an archive that no longer exists.
+                _host.Rescan(row);
                 return;
             }
 
