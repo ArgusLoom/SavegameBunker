@@ -560,4 +560,15 @@ public sealed class AddGameDialogViewModelTests : IDisposable
         await Task.Delay(300);
         Assert.Equal("Folder does not exist yet", vm.ResolvedStatus);
     }
+
+    [Fact]
+    public void Browse_puts_the_picked_folder_in_as_a_template()
+    {
+        var dialog = new ThrowingDialogService { FolderToReturn = Path.Combine(_dir, "picked") };
+        var vm = new AddGameDialogViewModel([], dialog);
+
+        vm.BrowseCommand.Execute(null);
+
+        Assert.Equal(PathResolver.ToTemplate(Path.Combine(_dir, "picked")), vm.SaveFolder);
+    }
 }
