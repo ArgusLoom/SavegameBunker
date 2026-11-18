@@ -161,44 +161,13 @@ public sealed class BackupService
             // Invariant, matching ParseTakenAt: the user's culture may default to a non-Gregorian
             // calendar (th-TH, fa-IR, ar-SA) and would name the archive in that calendar's year.
             var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HHmmss", CultureInfo.InvariantCulture);
-            var finalPath = Path.Combine(targetDir, $"{timestamp}{suffix}.zip");
 
+            string finalPath;
             try
             {
-                // The two-argument Move overload, not a swap-style replace: finalPath is never
-                // overwritten. A same-second collision (two backups of the same game in one
-                // second, or the same wall-clock second recurring across a DST fall-back) must not
-                // cost the already-verified staging file, so the name is suffixed -1, -2, … and
-                // retried until MaxRenameRetries is exhausted. ParseTakenAt's last-write-time
-                // fallback keeps a suffixed archive visible in the listing.
-                for (var attempt = 0; ; attempt++)
-                {
-                    var candidate = attempt == 0
-                        ? finalPath
-                        : Path.Combine(targetDir, $"{timestamp}{suffix}-{attempt}.zip");
-                    try
-                    {
-                        File.Move(tempPath, candidate);
-                        finalPath = candidate;
-                        break;
-                    }
-                    catch (IOException) when (attempt < MaxRenameRetries && File.Exists(candidate))
-                    {
-                        // Candidate pre-exists: try the next suffix. Anything other than a
-                        // name collision (disk full, vanished target dir, …) escapes to the
-                        // catch below and is reported with its own message.
-                    }
-                    catch (IOException) when (attempt == MaxRenameRetries && File.Exists(candidate))
-                    {
-                        // The suffix ladder is exhausted — the bare name and every numbered
-                        // variant are taken. Distinguishable from a disk error, so the user is
-                        // told to make room or point the backup somewhere else rather than
-                        // reading a File.Move exception as a failing disk.
-                        TryDelete(tempPath);
-                        return OperationResult.Fail(
-                            $"Backup failed for {game.DisplayName}: rename retry limit reached — {timestamp}{suffix}.zip and every numbered variant up to -{MaxRenameRetries} already exist in {targetDir}.");
-                    }
-                }
+                var limitFailure = MoveStagedArchiveIntoPlace(tempPath, targetDir, timestamp, suffix, game.DisplayName, out finalPath);
+                if (limitFailure is not null)
+                    return limitFailure;
             }
             catch (Exception ex)
             {
@@ -223,6 +192,61 @@ public sealed class BackupService
         catch (Exception ex)
         {
             return OperationResult.Fail($"Backup failed for {game.DisplayName}: {ex.Message}");
+        }
+    }
+
+    /// <summary>
+    /// Renames the already-verified staging file at <paramref name="tempPath"/> into its final
+    /// name under <paramref name="targetDir"/> — the bare <c>{timestamp}{suffix}.zip</c> name
+    /// first, then <c>-1</c> through <c>-<see cref="MaxRenameRetries"/></c> on a same-second
+    /// collision. Never overwrites an existing file — the two-argument
+    /// <see cref="File.Move(string, string)"/> overload fails on a pre-existing candidate rather
+    /// than replacing it, which is exactly the collision this ladder works around.
+    /// </summary>
+    /// <returns>
+    /// <c>null</c> with <paramref name="finalPath"/> set to the name the file was moved to, or
+    /// the rename-retry-limit failure once every suffix up to <see cref="MaxRenameRetries"/> is
+    /// taken. Any other <see cref="IOException"/> (disk full, a vanished target directory, …)
+    /// escapes to the caller's own catch instead of being folded into the limit message.
+    /// </returns>
+    private static OperationResult? MoveStagedArchiveIntoPlace(
+        string tempPath, string targetDir, string timestamp, string suffix, string gameDisplayName, out string finalPath)
+    {
+        finalPath = Path.Combine(targetDir, $"{timestamp}{suffix}.zip");
+
+        // The two-argument Move overload, not a swap-style replace: finalPath is never
+        // overwritten. A same-second collision (two backups of the same game in one
+        // second, or the same wall-clock second recurring across a DST fall-back) must not
+        // cost the already-verified staging file, so the name is suffixed -1, -2, … and
+        // retried until MaxRenameRetries is exhausted. ParseTakenAt's last-write-time
+        // fallback keeps a suffixed archive visible in the listing.
+        for (var attempt = 0; ; attempt++)
+        {
+            var candidate = attempt == 0
+                ? finalPath
+                : Path.Combine(targetDir, $"{timestamp}{suffix}-{attempt}.zip");
+            try
+            {
+                File.Move(tempPath, candidate);
+                finalPath = candidate;
+                return null;
+            }
+            catch (IOException) when (attempt < MaxRenameRetries && File.Exists(candidate))
+            {
+                // Candidate pre-exists: try the next suffix. Anything other than a
+                // name collision (disk full, vanished target dir, …) escapes to the
+                // catch below and is reported with its own message.
+            }
+            catch (IOException) when (attempt == MaxRenameRetries && File.Exists(candidate))
+            {
+                // The suffix ladder is exhausted — the bare name and every numbered
+                // variant are taken. Distinguishable from a disk error, so the user is
+                // told to make room or point the backup somewhere else rather than
+                // reading a File.Move exception as a failing disk.
+                TryDelete(tempPath);
+                return OperationResult.Fail(
+                    $"Backup failed for {gameDisplayName}: rename retry limit reached — {timestamp}{suffix}.zip and every numbered variant up to -{MaxRenameRetries} already exist in {targetDir}.");
+            }
         }
     }
 
