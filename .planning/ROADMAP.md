@@ -79,6 +79,68 @@ workflow token hardening, release SDK pin, restore-picker cancel rescan) already
    3 s `WaitForAsync` when the suite runs right after a build. Both route through the unset-root
    `DriveHints` probe, which touches real drives.
 
+### Clean-code and modernization backlog (2026-11-18 clean-code scan)
+
+Structural items too large for the quick-fix pass. Patterns only where they remove real
+duplication; no speculative abstraction (CLAUDE.md).
+
+**Services**
+4. **One path-comparison rule.** `BackupService.NormalizeDir`/`IsSameOrInside`,
+   `PathResolver.ToTemplate` and `KnownGamesScanner` each normalize paths differently
+   (`TrimEnd` turns `C:\` into `C:`); `DirectoryWalk` depends on `BackupService` only for this.
+   Extract an internal `PathCompare` helper.
+5. **`ReparseFile.HasAnyFile` ignores exclusions.** It is a second recursive walk beside
+   `DirectoryWalk`; a save folder whose only files sit in a nested backup folder passes the
+   empty-check and yields an empty archive. Build it on `DirectoryWalk` with early exit and the
+   same exclusions (test first).
+6. **Split `BackupService.Backup`** (~143 lines) into validate / write-and-verify /
+   commit-with-suffix-ladder / compose-message; collapse the duplicated inner and outer catch.
+7. **Untangle `DescribeVerificationFailure`** (three modes behind two optional flags; the
+   name+length-only mode is used by tests only).
+8. **Result records instead of `out` + result.** `Backup(..., out string?)` and
+   `TryListBackups(..., out)` become e.g. `BackupOutcome(OperationResult, string? Path)`.
+9. **One file-system-fault predicate and best-effort helpers.** Exception lists differ per file
+   (`IOException` listed beside its own subclasses); stale-temp cleanup exists twice in two
+   shapes.
+10. **User-facing service messages through `Strings`.** `RestoreService`, `GameCatalog` and
+    `BackupService` mix resourced and hard-coded English failure text, sometimes in one method;
+    `ElapsedFormat` builds English outside the resource.
+11. **`DialogService` constructs `new BackupService()`** for the picker's delete; pass the
+    delegate from the view model. Decide whether the unreachable UI-thread branch of `Confirm`
+    should route through the dialog queue or be removed.
+12. **Shared parallelism constant** for the status sweep and the known-games scan.
+
+**ViewModels**
+13. **Operation scope instead of Started/Finished pairs.** `IRowActionHost` has nine members,
+    four of them two counters; replace with a disposable operation scope and give the
+    coordinator `CatalogSession` directly.
+14. **One `RequeryOperationGates()`** instead of three different `NotifyCanExecuteChanged`
+    wirings (`[NotifyCanExecuteChangedFor]` lists that already differ, hand calls in two lambdas).
+15. **Bulk progress API.** Backup takes `IProgress<(int,string)>`, restore `Action<int,string>`;
+    unify, and move the bulk-progress state out of `MainViewModel`. Drop the double empty-target
+    check (view model and coordinator).
+16. **Shared save-folder probe** for `AddGameDialogViewModel` and
+    `ChangeSaveFolderDialogViewModel` (~35 duplicated lines); `BrowseAsync` returning
+    `Task.CompletedTask` becomes a synchronous command.
+17. **Shorter `StartStatusScan`, startup prompt and `FindGamesAsync`** via extracted helpers.
+18. **`ChangeSaveFolderCommand`/`RemoveGameCommand` get a `CanExecute`** like Backup/Restore.
+
+**Views**
+19. **Toolbar button template.** Ten buttons repeat the same 9-line content block; the overflow
+    menu repeats its header three times with three near-identical Click handlers.
+20. **Shared row-action button style, empty-state template, dialog footer style** (footer
+    margins/widths already disagree across the four dialogs).
+21. **Spacing tokens.** 59 raw margin/size literals against 10 token uses; `lg`, `xl`,
+    `radiusControl*` unused; uniform-Thickness tokens add unintended vertical space. Also
+    `PaletteRed*` breaks the `SavegameBunker*` resource prefix.
+
+**Tests**
+22. **Shared fixtures.** Temp-dir setup/Dispose copied into ~20 classes, `WaitForAsync` 5x,
+    `GameWithSaves` 5x, `RecordingDialogService` living inside `MainViewModelTests.cs`.
+23. **Split `MainViewModelTests.cs`** (3,269 lines) along its existing sections.
+24. **No fixed waits.** `Thread.Sleep` polling without a final assert, `Task.Delay(300)` as a
+    proof, timeouts of 3 s and 15 s scattered; one named timeout constant.
+
 **Requirements**: TBD
 **Depends on:** Phase 1
 **Plans:** 0 plans
