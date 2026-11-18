@@ -503,21 +503,18 @@ public sealed class BackupService
     /// Verification still fails for any OTHER mismatch — a file that vanished, shrank or grew.
     /// </param>
     /// <param name="expectedHashes">
-    /// Optional entry-name-to-SHA-256 map recorded during the archive write. When present, each
-    /// entry's decompressed content is re-hashed from the archive and compared — the content
-    /// check that catches a file torn mid-write whose length happens to be intact.
-    /// Null keeps the name-and-length-only check.
-    /// </param>
-    /// <param name="verifyContent">
-    /// Used by the restore path (which has no recorded hashes): when true, both the archive
-    /// entry's decompressed content AND the corresponding file on disk are hashed and compared —
-    /// proving the extraction wrote what the archive holds, not merely that lengths agree.
-    /// Ignored when <paramref name="expectedHashes"/> is present.
+    /// The content check always runs; this chooses which content it compares against. A non-null
+    /// entry-name-to-SHA-256 map recorded during the archive write (the backup path) re-hashes
+    /// each archive entry's decompressed content and compares it against the recorded hash. Null
+    /// (the restore path, which has no recorded hashes — .NET does not validate an entry's CRC-32
+    /// on read and no hash sidecar exists) hashes the corresponding file under
+    /// <paramref name="sourceDir"/> instead and compares that against the archive entry's hash,
+    /// proving the extraction wrote what the archive holds.
     /// </param>
     internal static string? DescribeVerificationFailure(
         string archivePath, string sourceDir, IReadOnlyCollection<string>? excludedDirs = null,
         IReadOnlyCollection<string>? skipped = null,
-        IReadOnlyDictionary<string, string>? expectedHashes = null, bool verifyContent = false)
+        IReadOnlyDictionary<string, string>? expectedHashes = null)
     {
         Dictionary<string, long> sourceFiles;
         try
@@ -558,44 +555,41 @@ public sealed class BackupService
             archiveFiles = realEntries.ToDictionary(e => e.FullName, e => e.Length, StringComparer.OrdinalIgnoreCase);
 
             // Content check: a torn mid-write file whose length survived is invisible to the
-            // name+length comparison, so each entry's decompressed stream is hashed. With
-            // expectedHashes (backup path) the hash was recorded from the copy stream; with
-            // verifyContent (restore path, which has no recorded hashes) the file on disk is
-            // hashed too. A call site that passes neither keeps the name+length-only check.
-            if (expectedHashes is not null || verifyContent)
+            // name+length comparison, so each entry's decompressed stream is always hashed. With
+            // expectedHashes (backup path) the hash was recorded from the copy stream; with no
+            // expectedHashes (restore path, which has no recorded hashes) the file on disk is
+            // hashed instead and compared against the archive entry's hash.
+            foreach (var entry in realEntries)
             {
-                foreach (var entry in realEntries)
+                string entryHash;
+                try
                 {
-                    string entryHash;
+                    using var entryStream = entry.Open();
+                    entryHash = ComputeSha256(entryStream);
+                }
+                catch (Exception ex)
+                {
+                    return $"\"{entry.FullName}\" could not be read from the archive ({ex.Message})";
+                }
+
+                if (expectedHashes is not null)
+                {
+                    if (!expectedHashes.TryGetValue(entry.FullName, out var expected)
+                        || !string.Equals(expected, entryHash, StringComparison.OrdinalIgnoreCase))
+                        return $"\"{entry.FullName}\" content does not match the source file (hash mismatch)";
+                }
+                else
+                {
+                    var fullPath = Path.Combine(sourceDir, entry.FullName.Replace('/', Path.DirectorySeparatorChar));
                     try
                     {
-                        using var entryStream = entry.Open();
-                        entryHash = ComputeSha256(entryStream);
+                        using var fileStream = File.OpenRead(fullPath);
+                        if (!string.Equals(ComputeSha256(fileStream), entryHash, StringComparison.OrdinalIgnoreCase))
+                            return $"\"{entry.FullName}\" content differs between the archive and the extracted copy (hash mismatch)";
                     }
                     catch (Exception ex)
                     {
-                        return $"\"{entry.FullName}\" could not be read from the archive ({ex.Message})";
-                    }
-
-                    if (expectedHashes is not null)
-                    {
-                        if (!expectedHashes.TryGetValue(entry.FullName, out var expected)
-                            || !string.Equals(expected, entryHash, StringComparison.OrdinalIgnoreCase))
-                            return $"\"{entry.FullName}\" content does not match the source file (hash mismatch)";
-                    }
-                    else if (verifyContent)
-                    {
-                        var fullPath = Path.Combine(sourceDir, entry.FullName.Replace('/', Path.DirectorySeparatorChar));
-                        try
-                        {
-                            using var fileStream = File.OpenRead(fullPath);
-                            if (!string.Equals(ComputeSha256(fileStream), entryHash, StringComparison.OrdinalIgnoreCase))
-                                return $"\"{entry.FullName}\" content differs between the archive and the extracted copy (hash mismatch)";
-                        }
-                        catch (Exception ex)
-                        {
-                            return $"\"{entry.FullName}\" could not be read back from {sourceDir} ({ex.Message})";
-                        }
+                        return $"\"{entry.FullName}\" could not be read back from {sourceDir} ({ex.Message})";
                     }
                 }
             }

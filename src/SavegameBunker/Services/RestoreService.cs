@@ -133,11 +133,12 @@ public sealed class RestoreService
             // opposite direction — this is the round-trip proof. Nothing about the live save
             // path has been touched yet.
             //
-            // verifyContent: true also hashes every entry's decompressed stream against the
-            // extracted file on disk — .NET 10 does not validate an entry's CRC-32 on read and no
-            // stored hash sidecar exists, so hashing both sides is what detects a bit flip inside
-            // a structurally valid archive. Extracted-but-corrupt fails before the swap, never after.
-            var verificationFailure = BackupService.DescribeVerificationFailure(archivePath, tempDir, verifyContent: true);
+            // No expectedHashes: restore has none recorded, so the no-hashes mode hashes every
+            // entry's decompressed stream against the extracted file on disk — .NET 10 does not
+            // validate an entry's CRC-32 on read and no stored hash sidecar exists, so hashing
+            // both sides is what detects a bit flip inside a structurally valid archive.
+            // Extracted-but-corrupt fails before the swap, never after.
+            var verificationFailure = BackupService.DescribeVerificationFailure(archivePath, tempDir);
             if (verificationFailure is not null)
             {
                 TryDeleteDirectory(tempDir);

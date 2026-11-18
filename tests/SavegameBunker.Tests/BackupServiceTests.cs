@@ -1,6 +1,8 @@
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.RegularExpressions;
 using SavegameBunker.Models;
 using SavegameBunker.Services;
@@ -303,7 +305,15 @@ public sealed class BackupServiceTests : IDisposable
         var saveDir = Path.Combine(_dir, "saves");
         File.WriteAllText(Path.Combine(saveDir, "save.dat"), "payload-grown-considerably");
 
-        var detail = BackupService.DescribeVerificationFailure(archive, saveDir);
+        // Recorded hashes (the backup mode) match the archive entry ("payload", unchanged), so
+        // the content check passes and the comparison falls through to the byte-count mismatch —
+        // the disk-hash mode would instead trip the content check first, since the source file on
+        // disk has since grown past what the archive holds.
+        var expectedHashes = new Dictionary<string, string>
+        {
+            ["save.dat"] = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes("payload"))),
+        };
+        var detail = BackupService.DescribeVerificationFailure(archive, saveDir, expectedHashes: expectedHashes);
 
         Assert.NotNull(detail);
         Assert.Contains("bytes in the archive", detail);
