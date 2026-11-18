@@ -164,7 +164,7 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
         await WaitForAsync(() => dialog.ConfirmMessages.Count == 1);
 
         // Long enough for the pre-fix direct-call path to have written an archive; none may appear.
-        await Task.Delay(300);
+        await Task.Delay(NegativeProofDelayMs);
 
         Assert.False(Directory.Exists(Path.Combine(backupRoot, "game-1")));
         Assert.False(vm.IsBulkBackupRunning);
@@ -248,7 +248,7 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
         // backup was started by the dead prompt.
         Assert.Single(dialogs.ConfirmMessages);
         vm2.PromptUnsecuredGamesOnce();
-        await Task.Delay(50);
+        await Task.Delay(NegativeProofDelayMs);
         Assert.Single(dialogs.ConfirmMessages);
         Assert.Single(dialogs.ErrorMessages);
         Assert.False(Directory.Exists(Path.Combine(backupRoot, "game-0")));
@@ -303,7 +303,7 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
         vm.RefreshCommand.Execute(null);
         await WaitForAsync(() =>
             vm.Games.Count == 1 && vm.Games.All(row => row.ComparisonKind != BackupComparisonKind.Checking));
-        await Task.Delay(300);
+        await Task.Delay(NegativeProofDelayMs);
 
         Assert.Empty(dialog.ConfirmMessages);
     }

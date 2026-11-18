@@ -89,7 +89,7 @@ public sealed class MainViewModelGuardPinTests : IDisposable
         };
 
         vm.BackupAllChangedCommand.Execute(null);
-        await WaitForAsync(() => vm.BackupAllChangedCommand.CanExecute(null), timeoutMs: 15000);
+        await WaitForAsync(() => vm.BackupAllChangedCommand.CanExecute(null), timeoutMs: RealIoTimeoutMs);
 
         Assert.True(captured);
         Assert.All(capturedKinds!, kind => Assert.Equal(BackupComparisonKind.Checking, kind));
@@ -144,7 +144,7 @@ public sealed class MainViewModelGuardPinTests : IDisposable
         };
 
         vm.BackupAllChangedCommand.Execute(null);
-        await WaitForAsync(() => vm.BackupAllChangedCommand.CanExecute(null), timeoutMs: 15000);
+        await WaitForAsync(() => vm.BackupAllChangedCommand.CanExecute(null), timeoutMs: RealIoTimeoutMs);
 
         Assert.True(captured);
         Assert.All(capturedKinds, kind => Assert.Equal(BackupComparisonKind.Checking, kind));
@@ -181,7 +181,7 @@ public sealed class MainViewModelGuardPinTests : IDisposable
 
         // No archives exist for either game, so the run fails both and reports exactly once —
         // the shared outcome-report call, not one dialog per failed game.
-        await WaitForAsync(() => !vm.IsBulkBackupRunning && dialog.ErrorMessages.Count == 1, timeoutMs: 15000);
+        await WaitForAsync(() => !vm.IsBulkBackupRunning && dialog.ErrorMessages.Count == 1, timeoutMs: RealIoTimeoutMs);
 
         Assert.True(captured);
         Assert.All(capturedKinds, kind => Assert.Equal(BackupComparisonKind.Checking, kind));

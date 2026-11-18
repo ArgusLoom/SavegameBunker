@@ -540,7 +540,7 @@ public sealed class AddGameDialogViewModelTests : IDisposable
 
         // Give the superseded resolve time to finish in the background and confirm it never
         // clobbers the newer result once it completes.
-        await Task.Delay(300);
+        await Task.Delay(NegativeProofDelayMs);
         Assert.Equal("Folder does not exist yet", vm.ResolvedStatus);
     }
 
