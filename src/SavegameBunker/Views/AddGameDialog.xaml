@@ -18,9 +18,9 @@
         <DockPanel Grid.Row="1" Margin="16">
             <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
                         HorizontalAlignment="Right" Margin="0,24,0,0">
-                <ui:Button x:Name="AddButton" Content="{DynamicResource str_addGame_confirm}" MinWidth="80" Margin="0,0,8,0"
+                <ui:Button x:Name="AddButton" Content="{DynamicResource str_addGame_confirm}" Style="{StaticResource DialogFooterButton}" Margin="0,0,8,0"
                         Appearance="Primary" IsDefault="True" IsEnabled="{Binding CanAdd}" b:DialogResultBehavior.DialogResult="True"/>
-                <ui:Button Content="{DynamicResource str_common_cancel}" MinWidth="80" IsCancel="True"/>
+                <ui:Button Content="{DynamicResource str_common_cancel}" Style="{StaticResource DialogFooterButton}" IsCancel="True"/>
             </StackPanel>
 
             <StackPanel>

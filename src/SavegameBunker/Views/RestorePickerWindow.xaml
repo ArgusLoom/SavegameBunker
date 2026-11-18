@@ -23,9 +23,9 @@
                  spacing-scale value, so the two are not meant to match. -->
             <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
                         HorizontalAlignment="Right" Margin="0,24,0,0">
-                <ui:Button Content="{DynamicResource str_common_restore}" MinWidth="90" Margin="0,0,8,0"
+                <ui:Button Content="{DynamicResource str_common_restore}" Style="{StaticResource DialogFooterButton}" Margin="0,0,8,0"
                         Appearance="Primary" IsDefault="True" IsEnabled="{Binding CanRestore}" b:DialogResultBehavior.DialogResult="True"/>
-                <ui:Button Content="{DynamicResource str_common_cancel}" MinWidth="90" IsCancel="True"/>
+                <ui:Button Content="{DynamicResource str_common_cancel}" Style="{StaticResource DialogFooterButton}" IsCancel="True"/>
             </StackPanel>
 
             <ListBox ItemsSource="{Binding Rows}" SelectedItem="{Binding SelectedBackup, Mode=TwoWay}"

@@ -124,6 +124,19 @@
         </Style.Triggers>
     </Style>
 
+    <!--
+        Every dialog's confirm and cancel buttons share one minimum — the width that fits the
+        longest footer label, "Update folder" — so the four dialogs line up instead of carrying
+        80/90/110 each (D-12: the one intended visible change of ITEM-20). Per-dialog margins,
+        Appearance, IsDefault/IsCancel and the DialogResult behaviour stay at the use site.
+    -->
+    <Style
+        x:Key="DialogFooterButton"
+        BasedOn="{StaticResource {x:Type ui:Button}}"
+        TargetType="ui:Button">
+        <Setter Property="MinWidth" Value="110" />
+    </Style>
+
     <!--  MenuItem.Icon sits under a Control whose Foreground is not the item's — bind the glyph to MenuItem.  -->
     <Style x:Key="OverflowMenuGlyphPath" TargetType="Path">
         <Setter Property="Stretch" Value="Uniform" />
