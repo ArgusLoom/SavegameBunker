@@ -1,66 +1,60 @@
 ---
-last_mapped_commit: 83ebbea19dcfdb14b3bc7077fb16fedb14c1475f
-last_mapped_at: 2026-11-17
+last_mapped_commit: 02dc0e339858df545077056bf299b0007a8d4dfd
+last_mapped_at: 2026-11-18
 ---
 # Testing Patterns
 
-**Analysis Date:** 2026-11-17
+**Analysis Date:** 2026-11-18
 
 ## Test Framework
 
 **Runner:**
-- xUnit 2.9.3 (`xunit`), with `xunit.runner.visualstudio` 4.0.1 and `Microsoft.NET.Test.Sdk` 18.12.0.
-- Config: no `xunit.runner.json` is committed. Defaults apply.
-- Project: `tests/SavegameBunker.Tests/SavegameBunker.Tests.csproj`, targeting `net10.0-windows` with WPF enabled.
-- `Xunit` is a global using (`<Using Include="Xunit" />`), so test files do not need `using Xunit;`.
+- xUnit 2.9.3 (`xunit` package) with `xunit.runner.visualstudio` 4.0.1 and `Microsoft.NET.Test.Sdk` 18.12.0
+- Config: `tests/SavegameBunker.Tests/SavegameBunker.Tests.csproj`. No separate `xunit.runner.json` is committed.
+- Target: `net10.0-windows` with `<UseWPF>true</UseWPF>`. The suite runs on Windows only.
+- Implicit usings are enabled and `Xunit` is added as a global `<Using Include="Xunit" />`, so test files do not declare `using Xunit;`.
 
-**Assertion Library:**
-- xUnit's built-in `Assert` class. No FluentAssertions, Shouldly or other assertion package is referenced.
-- Most-used assertions in the suite: `Assert.Equal` (about 437 uses), `Assert.True` and `Assert.False` (about 432), `Assert.Contains`, `Assert.Throws`.
+**Assertion library:**
+- xUnit's built-in `Assert` class only. No FluentAssertions, Shouldly, or similar package is referenced.
+- Common calls: `Assert.True`, `Assert.Equal`, `Assert.Single`, `Assert.NotNull`, `Assert.Throws<T>`, `Assert.ThrowsAsync<T>`. Pass the failure message as the second argument when the result carries one: `Assert.True(result.Success, result.Message);`
 
-**Mocking:**
-- No mocking library. `Moq`, `NSubstitute` and similar are not referenced (zero occurrences in `tests/`).
-- Fakes are hand-written and live in test files or shared helpers (see Mocking below).
-
-**Run Commands:**
+**Run commands:**
 ```powershell
-dotnet test SavegameBunker.sln                              # Run all tests (Windows only)
-dotnet test SavegameBunker.sln -c Release --no-build        # Run the same way CI does, after a build
+dotnet test SavegameBunker.sln                               # Run the full suite (Windows)
+dotnet test SavegameBunker.sln -c Release --no-build        # What CI runs after a Release build
 dotnet test tests/SavegameBunker.Tests --filter "FullyQualifiedName~BackupServiceTests"   # One class
-dotnet test SavegameBunker.sln --collect:"XPlat Code Coverage"   # Coverage (collector not configured in repo)
+dotnet build SavegameBunker.sln                              # Compile check; works on Linux/macOS too (EnableWindowsTargeting)
 ```
+- No watch mode and no coverage tooling is configured. A coverage run would need an external collector.
 
-- The suite runs only on Windows, because the test project targets `net10.0-windows` and uses WPF types. `dotnet build` also works on Linux and macOS (`EnableWindowsTargeting`), but `dotnet test` does not.
-- CI: `.github/workflows/test.yml` runs `dotnet build SavegameBunker.sln -c Release` and then `dotnet test SavegameBunker.sln -c Release --no-build` on `windows-latest` for every pull request to `main`. `.github/workflows/release.yml` calls the same workflow first, so a red suite blocks a release.
-- `global.json` pins the SDK to 10.0.400 with `latestFeature` roll-forward, so the test host uses the same SDK as CI.
+**CI:** `.github/workflows/test.yml` builds and tests on `windows-latest` for every pull request to `main`, on `workflow_dispatch`, and via `workflow_call` from `release.yml`. The SDK comes from `global.json`. NuGet packages are cached by the hash of the csproj and `Directory.Build.props`.
 
 ## Test File Organization
 
 **Location:**
-- All tests live in one project, `tests/SavegameBunker.Tests/`, separate from `src/`. Tests are not co-located with source.
+- All tests live in one separate project: `tests/SavegameBunker.Tests/`. Tests are not co-located with source.
+- The namespace is `SavegameBunker.Tests` for every file.
 
 **Naming:**
-- One test class per subject: `<Subject>Tests.cs`, for example `BackupServiceTests.cs`, `GameCatalogTests.cs`, `MainViewModelTests.cs`.
-- Some tests cover a workflow rather than a class: `AddGameFlowTests.cs`, `StartupUnsecuredPromptTests.cs`.
-- Test helpers have no `Tests` suffix: `TestFileSystem.cs` (`internal static class TestFileSystem`).
-- Fake dialog services are defined in the file that first needs them and reused from there: `ThrowingDialogService` is declared in `AddGameDialogViewModelTests.cs`, and `RecordingDialogService` is declared in `MainViewModelTests.cs`.
-
-**Namespace:**
-- All test code is in `SavegameBunker.Tests`, file-scoped, and references `SavegameBunker.Models`, `SavegameBunker.Services` and `SavegameBunker.ViewModels` directly.
+- One test class per production type, named `<Type>Tests.cs`: `BackupServiceTests.cs` tests `src/SavegameBunker/Services/BackupService.cs`; `MainViewModelTests.cs` tests `MainViewModel.cs`.
+- Some classes split by concern when one type grows: `MainViewModelGuardPinTests.cs`, `StartupUnsecuredPromptTests.cs`, `AddGameFlowTests.cs` alongside `AddGameDialogViewModelTests.cs`.
+- Shared helpers have their own file: `TestFileSystem.cs`, the `RecordingDialogService` and `ThrowingDialogService` fakes.
+- `ServiceContractTests.cs` and `ResourceKeyTests.cs` check cross-cutting rules rather than one class.
 
 **Structure:**
 ```
 tests/SavegameBunker.Tests/
-├── <Subject>Tests.cs           # one class per subject, sealed
-├── TestFileSystem.cs           # shared filesystem helpers (ACL deny, junctions)
+├── <Type>Tests.cs           # one per production type, sealed
+├── TestFileSystem.cs        # shared ACL/junction helpers (internal static)
+├── RecordingDialogService.cs or inline fakes   # IDialogService doubles
 └── SavegameBunker.Tests.csproj
 ```
 
 ## Test Structure
 
 **Class shape:**
-- Test classes are `public sealed class`. Those that create temp state implement `IDisposable`.
-- Set-up is done in the constructor, and tear-down is in `Dispose()`. xUnit creates a new instance per test, so each `[Fact]` gets fresh state.
+- Test classes are `public sealed class`, per the project convention. Helper classes that hold state use `private sealed class`.
+- Classes that need per-test setup and teardown implement `IDisposable` and create a unique temp folder in the constructor. `BackupServiceTests` is the model:
 
 ```csharp
 // tests/SavegameBunker.Tests/BackupServiceTests.cs
@@ -84,177 +78,143 @@ public sealed class BackupServiceTests : IDisposable
             Directory.Delete(_dir, recursive: true);
         }
         catch (IOException) { /* A leftover temp directory must not fail the test run. */ }
-        catch (UnauthorizedAccessException) { /* ... */ }
+        catch (UnauthorizedAccessException) { /* Same. */ }
     }
 }
 ```
 
 **Test naming:**
-- Test method names are full sentences in snake_case with the first letter capitalised, describing behaviour rather than the method under test: `Fresh_view_model_has_add_disabled`, `Empty_template_is_rejected`, `Wiki_search_escapes_spaces_in_the_typed_name`, `A_known_key_returns_its_authored_sentence`.
-- Do not use `MethodName_Scenario_Expected` names. Follow the sentence style used across the suite.
+- Test method names are full sentences in snake_case, describing behaviour rather than method name: `Backup_writes_to_the_configured_folder_on_an_ordinary_fixed_volume`, `Refresh_and_change_backup_folder_are_disabled_while_a_backup_runs`, `Every_SavegameBunker_owned_palette_resource_referenced_in_XAML_is_also_defined`
+- Prefix with the subject under test (`Backup_`, `Restore_`, `ListBackups_`) when a class covers one service
+- Keep the snake_case convention in new tests. Do not switch to `Should...` or `MethodName_State_Expected` style.
 
-**Patterns:**
-- Set-up: build the fixture inline with a private helper that returns an object, e.g. `GameWithSaves(fileName, content)` and `GameWithEmptySaveDir()` in `BackupServiceTests.cs`. Each returns a `Game` whose `SaveDirTemplate` points into the per-test temp folder, with forward slashes, as the catalog requires.
-- Arrange-Act-Assert with blank-line separation. Assertions are plain `Assert.*` calls at the end of the test.
-- Doc comments on the test class explain which SPEC rule is being pinned. For example, `BackupServiceTests` says nothing in the tests "may reintroduce a volume check". New tests for a rule should carry this kind of comment on the class.
+**Setup helpers:** private factory methods build fixtures on demand, named for the scenario they produce:
+- `GameWithSaves(fileName, content)` creates a save folder with one file
+- `GameWithEmptySaveDir()` creates an existing but empty folder
+- `GameWithNestedSaves()` seeds nested content so archive structure can be pinned
+- `SeedArchiveFile(backupRoot, gameId, fileName, bytes)` writes an archive by name, bypassing `Backup`, when only the listing rules are under test
 
-**Theories:**
-- Used for input variations (17 `[Theory]` attributes in the suite):
+**Fact vs Theory:** about 595 `[Fact]` and 19 `[Theory]` attributes. Use `[Theory]` with `[InlineData]` for boundary tables, for example the size thresholds in `SaveStatusScannerTests.cs` (line 150): `[InlineData(20_001, 0, true)]`.
 
-```csharp
-// tests/SavegameBunker.Tests/PathResolverTests.cs
-[Theory]
-[InlineData(null)]
-[InlineData("")]
-[InlineData("   ")]
-public void Empty_template_is_rejected(string? template)
-{
-    Assert.False(PathResolver.TryResolve(template, null, out _, out var error));
-}
-```
-
-**Facts:**
-- About 538 `[Fact]` attributes. Prefer `[Fact]` for single scenarios.
+**Patterns (one assertion focus per test):**
+- Arrange the state on disk or through a fake, act once, then assert on the returned `OperationResult` and on the filesystem
+- Assert the on-disk outcome, not only the return value: check that the archive exists in the folder and is readable (`Directory.GetFiles(..., "*.zip")` followed by `Assert.Single`)
 
 ## Async Testing
 
-**Pattern:** async tests return `Task` and `await` the operation under test.
+**Pattern:** tests that use `async` await the subject directly. Do not block with `.Result` or `.Wait()`.
 
-**Settling asynchronous state:**
-- The test host has no `SynchronizationContext`, so `Progress<T>` reports arrive on the thread pool and may land after a command returns. Assert settled state with a polling helper, not a snapshot taken right after the command finishes (`CLAUDE.md`).
-- Each file that needs it currently defines its own copy of a `WaitForAsync` helper with the same signature and a 3000 ms default timeout:
+**Settling state:** the test host has no `SynchronizationContext`, so `Progress<T>` reports arrive on the thread pool and can land late. Assert settled state with a polling helper, not a snapshot taken right after a command finishes:
 
 ```csharp
+// tests/SavegameBunker.Tests/AddGameDialogViewModelTests.cs (line 58) and MainViewModelTests.cs (line 176)
 private static async Task WaitForAsync(Func<bool> condition, int timeoutMs = 3000)
+{
+    var deadline = Environment.TickCount64 + timeoutMs;
+    while (!condition() && Environment.TickCount64 < deadline)
+        await Task.Delay(5);
+}
+
+await WaitForAsync(() => vm.ResolvedStatus == "42 files, 3.1 MB");
 ```
 
-- The helper is defined in `AddGameDialogViewModelTests.cs`, `ChangeSaveFolderDialogViewModelTests.cs`, `MainViewModelTests.cs` and `StartupUnsecuredPromptTests.cs`. When a new test needs it, reuse the same signature. When you touch these files, consider moving the helper into `TestFileSystem.cs` or a new shared `TestWait.cs`, but do not do it as part of an unrelated change.
+- Copies of `WaitForAsync` exist in more than one test file. Move a shared version into a helper if a third copy appears.
+- Use a `Task`-returning test method. `async void` is not used.
 
-**Command tests:**
-- `AsyncRelayCommand` returns a `Task` from `ExecuteAsync`. Tests call `await vm.SomeCommand.ExecuteAsync(null)` when they need the result, and `WaitForAsync` when the work is started from a `Progress` callback.
+**Exceptions from async code:** `Assert.ThrowsAsync<KeyNotFoundException>(() => coordinator.BackupAsync(...))` in `BulkBackupCoordinatorTests.cs`.
 
 ## Mocking
 
-**Framework:** None. Hand-written fakes.
+**Framework:** none. There is no Moq, NSubstitute, or FakeItEasy reference. Test doubles are hand-written classes that implement the production interface.
 
-**Dialog fakes:**
-- `ThrowingDialogService` (`tests/SavegameBunker.Tests/AddGameDialogViewModelTests.cs`) implements `IDialogService` and throws on any call. Use it when a test must prove that no dialog is shown.
-- `RecordingDialogService` (`tests/SavegameBunker.Tests/MainViewModelTests.cs`) records every call into `InfoMessages`, `ErrorMessages`, `ConfirmMessages` and the `ConfirmReturnSequence` queue. It also exposes an `OnReport` hook, which tests use to observe the view model mid-operation without a timing assumption.
+**Dialog doubles:** `IDialogService` is the seam for every UI interaction. Two doubles are in use:
 
-```csharp
-var dialog = new RecordingDialogService { ConfirmToReturn = true };
-var vm = new MainViewModel(load, dialog);
-```
+- `RecordingDialogService` (in `tests/SavegameBunker.Tests/MainViewModelTests.cs`) records messages, returns scripted values, and exposes an `OnReport` hook to observe state mid-operation:
+  - `ConfirmToReturn` for a fixed answer, or `ConfirmReturnSequence` (a `Queue<bool>`) for a sequence
+  - `FolderToReturn` for `PickFolder`
+  - `AddGameToReturn` for `ShowAddGameDialog`
+- `ThrowingDialogService` (in `tests/SavegameBunker.Tests/AddGameDialogViewModelTests.cs`) throws `InvalidOperationException` from every method. Use it when a test must prove the view model did not show a dialog.
+
+**Host-owned fake:** `FakeRowActionHost : IRowActionHost` is a `private sealed class` nested inside `RowActionsCoordinatorTests.cs` (line 36).
 
 **What to Mock:**
-- Anything behind `IDialogService`: folder pickers, message boxes, confirmations.
-- Filesystem state that is hard to create, such as a locked subfolder, by applying real ACLs through `TestFileSystem.TryDenyAccess`.
+- Anything that would show UI: implement `IDialogService` by hand
+- Interactions with the outside world that a test cannot reproduce on a developer machine, such as a locked folder or a junction
 
 **What NOT to Mock:**
-- Services (`BackupService`, `RestoreService`, `GameCatalog`, `PathResolver`). They are concrete and cheap; tests run them against a real temp folder with real zip files.
-- The filesystem itself. Tests create `Path.GetTempPath()/SavegameBunkerTests/<guid>` directories and real archives.
+- Filesystem. Tests create real temp folders under `Path.GetTempPath()\SavegameBunkerTests\<guid>` and clean them up in `Dispose`. `BackupService`, `RestoreService`, and `GameCatalog` are exercised directly.
+- Real OS locations. `KnownFolders` is `internal` and is asserted against its real value, not mocked (`SavegameBunker.csproj` InternalsVisibleTo comment)
+- `Strings`. Tests load the real `Themes/Strings.en.xaml` through the embedded-resource fallback. Assert on the real text or on the key lookup result.
 
-**Filesystem helpers:**
-- `tests/SavegameBunker.Tests/TestFileSystem.cs` is the single home for filesystem tricks:
-  - `TryDenyAccess(path)` applies a Deny ACE for the current user, then confirms the ACL actually blocks enumeration. It returns `false` when the environment cannot enforce the rule, so the test no-ops instead of failing.
-  - `RemoveDenyRules(path)` lifts ACEs level by level before recursive delete.
-  - `RemoveJunctions(path)` unlinks junctions without descending into them.
-- Tests that need a locked folder call `TryDenyAccess` and return early when it returns `false`.
+**Access to privates:** prefer public seams. `InternalsVisibleTo("SavegameBunker.Tests")` covers the internal seams that tests need. Do not use reflection.
 
 ## Fixtures and Factories
 
-**Test Data:**
-- Built inline per test. Helper methods on the test class create the scenario (`GameWithSaves`, `GameWithEmptySaveDir`). No shared fixture classes or `IClassFixture<T>` are used.
-- Model objects are created with object initialisers: `new Game { Id = "test-game", DisplayName = "Test Game", SaveDirTemplate = saveDir.Replace('\\', '/') }`.
-- Files are written with `File.WriteAllText` and archives with `ZipFile` directly.
+**Test data:**
+- Build `Game` records inline with object initialisers. Use stable ids such as `Id = "test-game"` and `DisplayName = "Test Game"`
+- Save paths are built from the temp directory and converted to forward slashes before they reach the model: `SaveDirTemplate = saveDir.Replace('\\', '/')`. This matches how the catalog stores paths
 
-**Location:**
-- No fixture directory. Test data is generated into per-test temp folders and removed in `Dispose`.
-- Shipped data used by tests: `src/SavegameBunker/games.json` and `src/SavegameBunker/Data/known-games.json` are read as-is by `GameCatalogTests.cs` and `KnownGamesCatalogTests.cs`.
+**Filesystem helpers (`tests/SavegameBunker.Tests/TestFileSystem.cs`):**
+- `TryDenyAccess(path)` applies a Deny ACE to simulate a locked subfolder. It verifies the deny rule takes effect before returning true. It returns false on environments where the ACL cannot be set, and tests must then skip their assertion rather than fail
+- `RemoveDenyRules(dir)` lifts Deny ACEs level by level, so the folder can be listed and deleted
+- `RemoveJunctions(dir)` unlinks reparse points without descending into them
 
-**Temp folder rule:**
-- Every test that writes to disk uses `Path.Combine(Path.GetTempPath(), "SavegameBunkerTests", Guid.NewGuid().ToString("N"))` and deletes it in `Dispose`. Cleanup is wrapped in `try`/`catch` for `IOException` and `UnauthorizedAccessException`, so a leftover folder does not fail the run.
+**Location:** all fixtures are built inside each test class. There is no shared fixture folder and no `[ClassData]` or `[MemberData]` provider.
 
 ## Coverage
 
-**Requirements:** None enforced. No threshold is set in the test project, the solution or the CI workflow.
+**Requirements:** None enforced. No coverage threshold, collector, or report is configured in CI.
 
-**View Coverage:**
-```powershell
-dotnet test SavegameBunker.sln --collect:"XPlat Code Coverage"
-```
+**Coverage approach:** the suite checks behaviour through named scenarios, and the important rules are pinned by name. Examples: `Backup_accepts_a_destination_on_the_save_data_own_volume` pins the no-volume-restriction rule from SPEC; `ResourceKeyTests` guards against an undefined `DynamicResource` silently rendering the default colour.
 
-- No coverage tool is referenced by the test project. Add `coverlet.collector` only if coverage reporting is required.
+**View Coverage:** not configured. Adding a collector would be a new test-only package, which the hard constraints permit.
 
 ## Test Types
 
 **Unit Tests:**
-- The majority of the suite. Services are tested directly with real files. View models are tested with fake dialogs and real services.
-- Examples: `BackupServiceTests.cs`, `RestoreServiceTests.cs`, `PathResolverTests.cs`, `GameCatalogTests.cs`, `ElapsedFormatTests.cs`.
+- Most of the suite. Services are tested directly against real temp folders. View models are tested with hand-written dialog doubles.
+- Example: `BackupServiceTests.cs`, `RestoreServiceTests.cs`, `BackupComparerTests.cs`, `ElapsedFormatTests.cs`
 
 **Integration Tests:**
-- Multi-step workflows across view models and services: `AddGameFlowTests.cs`, `CatalogSessionTests.cs`, `StartupUnsecuredPromptTests.cs`, `SaveStatusScannerTests.cs`.
-- There is no separate integration project and no test database or HTTP host.
+- Filesystem-backed tests are the nearest equivalent. They exercise the real `ZipArchive`, `File.Replace`, and directory renames.
+- `MainViewModelTests.cs` builds a `MainViewModel` from a saved catalog on disk (`CreateViewModelWithSavedCatalogAsync`), so it crosses `GameCatalog`, `CatalogSession`, and the coordinators.
+- `KnownGamesScannerTests.cs` and `SaveStatusScannerTests.cs` run against real folder trees.
 
-**Resource and Contract Tests:**
-- `StringsTests.cs` and `ResourceKeyTests.cs` check that every key used in code exists in `src/SavegameBunker/Themes/Strings.en.xaml`. Add a key to the XAML before using it in code, or these tests fail.
-- `WikiUrlTests.cs` and `HelpPathTests.cs` pin URL and path shapes.
+**Contract tests:**
+- `ServiceContractTests.cs` checks the error contract: `The_public_service_surface_is_exactly_the_cases_plus_the_documented_exemptions` and `Every_public_service_method_returns_instead_of_throwing_on_hostile_input`.
+- `ResourceKeyTests.cs` scans every `.xaml` file under `src/SavegameBunker` to confirm each `DynamicResource` palette key is defined. It locates the source folder by walking up from `AppContext.BaseDirectory`.
+- `StringsTests.cs` checks lookup behaviour: an unknown key throws with the key name, concurrent first access resolves every key, and toolbar mnemonics are distinct.
+- `WikiUrlTests.cs` and `HelpPathTests.cs` pin help-link rules.
 
-**E2E Tests:**
-- Not used. The WPF UI is verified manually. The `dotnet run` command is the manual check.
+**E2E Tests:** not used. The WPF UI is not driven by automation. Manual walkthroughs are part of the release process, per the comments in `ResourceKeyTests.cs`.
 
 ## Common Patterns
 
-**Testing a `Try`-style method:**
+**Asserting a failure result:**
 ```csharp
-Assert.True(PathResolver.TryResolve(template, null, out var saveDir, out var error));
-Assert.Equal(expected, saveDir);
-```
-
-**Testing an `OperationResult`:**
-```csharp
-var result = _service.Backup(game, _backupRoot);
-Assert.True(result.Success, result.Message);
-```
-- Pass `result.Message` as the second argument to `Assert.True` so a failure shows the reason.
-
-**Testing a cancelled confirmation:**
-- Use `dialog.ConfirmToReturn = false` (or a `ConfirmReturnSequence` queue for multiple prompts) and assert `result.Cancelled` rather than `result.Success == false`.
-
-**Testing error messages:**
-```csharp
-var result = _service.Backup(GameWithEmptySaveDir(), _backupRoot);
+var result = _service.Restore(game, archive);
 Assert.False(result.Success);
-Assert.Contains("Save folder is empty", result.Message);
+Assert.Contains("...", result.Message);
 ```
-- Assert on a stable fragment of the message, not the whole string.
 
-**Testing exceptions that must not escape:**
-- Services should never throw across their boundary. Test this by asserting on the `OperationResult`. Use `Assert.Throws<T>` only for code that is documented to throw (`Strings.Get` on a missing key).
-
-**Testing a locked folder:**
+**Asserting an exception type:**
 ```csharp
-if (!TestFileSystem.TryDenyAccess(lockedDir))
-    return; // This environment cannot enforce an ACL deny; nothing to assert.
-var result = _service.Backup(game, _backupRoot);
-Assert.False(result.Success);
+Assert.Throws<ArgumentNullException>(() => CrashReport.Describe(null!, "backing up"));
+Assert.Throws<NotSupportedException>(() => ...);
 ```
 
-**Testing async view model commands:**
-```csharp
-await vm.BackupCommand.ExecuteAsync(game);
-await WaitForAsync(() => dialog.InfoMessages.Count == 1);
-Assert.Equal("Backup created.", dialog.InfoMessages[0]);
-```
+**Conditional skip when the environment cannot simulate the case:**
+- Tests that rely on ACLs or junctions check `TestFileSystem.TryDenyAccess` (or the equivalent) and return early when it returns false. They must not fail on a machine where the deny rule cannot be applied.
 
-## Writing a New Test
+**Pinning SPEC rules:** name the test after the rule it defends, and put the SPEC reference in a comment when the rule is subtle. Keep the test even when it looks obvious. The destination rule is pinned by `Backup_accepts_a_destination_on_the_save_data_own_volume`.
 
-1. Create `tests/SavegameBunker.Tests/<Subject>Tests.cs` if the subject has no test class yet. Use the file-scoped namespace `SavegameBunker.Tests;`.
-2. Declare the class `public sealed`. Implement `IDisposable` if the test writes to disk and create the temp folder in the constructor as shown above.
-3. Name each test as a sentence in snake_case that states the behaviour, for example `Restore_refuses_when_the_safety_backup_fails`.
-4. Use `[Theory]` with `[InlineData]` only when the same assertion holds across several inputs.
-5. Verify with `dotnet test SavegameBunker.sln --filter "FullyQualifiedName~<Subject>Tests"`, then the full suite before pushing.
+**Adding a test:**
+1. Create or extend `tests/SavegameBunker.Tests/<Type>Tests.cs`. Make it `public sealed`.
+2. Build temp state under `Path.GetTempPath()` with a `Guid` folder name, and implement `IDisposable` to delete it.
+3. Use the existing hand-written `IDialogService` doubles for any UI interaction.
+4. Name the method as a sentence in snake_case.
+5. Run `dotnet test SavegameBunker.sln` before committing. Use `WaitForAsync` for any state that a background `Progress<T>` or `Task.Run` settles.
 
 ---
 
-*Testing analysis: 2026-11-17*
+*Testing analysis: 2026-11-18*

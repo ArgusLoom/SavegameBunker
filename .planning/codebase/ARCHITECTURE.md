@@ -1,257 +1,245 @@
 ---
-last_mapped_commit: 83ebbea19dcfdb14b3bc7077fb16fedb14c1475f
-last_mapped_at: 2026-11-17
+last_mapped_commit: 02dc0e339858df545077056bf299b0007a8d4dfd
+last_mapped_at: 2026-11-18
 ---
-<!-- refreshed: 2026-11-17 -->
+<!-- refreshed: 2026-11-18 -->
 # Architecture
 
-**Analysis Date:** 2026-11-17
+**Analysis Date:** 2026-11-18
 
 ## System Overview
 
 ```text
 ┌──────────────────────────────────────────────────────────────────────┐
-│                 Startup / composition root                           │
-│   `src/SavegameBunker/App.xaml.cs` (OnStartup)                       │
-└───────────────┬──────────────────────────────┬───────────────────────┘
-                │ constructs                   │ constructs
-                ▼                              ▼
-┌───────────────────────────────┐   ┌──────────────────────────────────┐
-│ Views (WPF / WPF-UI)          │   │ DialogService                    │
-│ `src/SavegameBunker/Views/`   │◀──│ `Services/DialogService.cs`      │
-│ `MainWindow.xaml(.cs)`        │   │ (only WPF-aware dialog impl.)    │
-│ Behaviors/ Converters/        │   └───────────────▲──────────────────┘
-└───────────────┬───────────────┘                   │ IDialogService
-                │ DataContext / bindings            │
-                ▼                                   │
-┌──────────────────────────────────────────────────────────────────────┐
-│ ViewModels  `src/SavegameBunker/ViewModels/`                         │
-│  MainViewModel ─┬─ GameActions (internal)   ── backup/restore flows  │
-│                 ├─ CatalogSession (internal) ── sole catalog writer  │
-│                 ├─ GameRowViewModel, *DialogViewModel, ScanWindowVM  │
-└─────────────────┬────────────────────────────────────────────────────┘
-                  │ calls (no reverse dependency)
-                  ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│ Services  `src/SavegameBunker/Services/` (no WPF references)         │
-│  GameCatalog · BackupService · RestoreService · PathResolver         │
-│  SaveStatusScanner · KnownGamesScanner/Catalog · BackupComparer      │
-│  KnownFolders · DriveHints · DropFolder · HelpPath · Strings …       │
-└─────────────────┬────────────────────────────────────────────────────┘
-                  ▼
-┌──────────────────────────────────────────────────────────────────────┐
-│ Data and OS:  games.json (catalog) · backup root folder (zip files)  │
-│  save folders (templates) · Known Folders / environment variables    │
+│                 WPF presentation (Views + code-behind)                │
+│  `src/SavegameBunker/MainWindow.xaml`  `src/SavegameBunker/Views/*`    │
+├──────────────────────────────────────────────────────────────────────┤
+│                 ViewModels (CommunityToolkit.Mvvm)                    │
+│  `ViewModels/MainViewModel.cs` (root, composition of collaborators)   │
+│   ├─ CatalogSession   ├─ GameActions    ├─ BulkBackupCoordinator      │
+│   ├─ RowActionsCoordinator             ├─ StatusSweepCoordinator     │
+│   └─ Dialog VMs (AddGame, ChangeSaveFolder, RestorePicker, ScanWindow)│
+├──────────────────────────────────────────────────────────────────────┤
+│      IDialogService  (implemented by `Services/DialogService.cs`)     │
+├──────────────────────────────────────────────────────────────────────┤
+│                 Services (stateless, return OperationResult)          │
+│  `GameCatalog` `BackupService` `RestoreService` `PathResolver`        │
+│  `SaveStatusScanner` `BackupComparer` `KnownGamesScanner` ...         │
+├──────────────────────────────────────────────────────────────────────┤
+│  Models (records/classes)   │  Filesystem: games.json, save dirs,     │
+│  `Models/*.cs`              │  backup root (zip archives)             │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
+Entry point and composition root: `src/SavegameBunker/App.xaml.cs` (`App.OnStartup`).
+
 ## Pattern Overview
 
-**Overall:** Hand-rolled MVVM over a service layer, single WPF process, no DI container, no framework beyond WPF-UI and CommunityToolkit.Mvvm.
+**Overall:** Hand-rolled MVVM over a service layer, with no DI container and no framework beyond WPF-UI and CommunityToolkit.Mvvm. The project ships exactly two NuGet packages (`src/SavegameBunker/SavegameBunker.csproj`: WPF-UI 4.3.0, CommunityToolkit.Mvvm 8.4.2).
 
 **Key Characteristics:**
-- One composition root: `App.OnStartup` in `src/SavegameBunker/App.xaml.cs` constructs every object by hand (`new MainWindow()`, `new DialogService(...)`, `new MainViewModel(load, dialogService)`). Per the comment there, no DI container is used.
-- One-directional dependencies: Views → ViewModels → Services → filesystem. Services never reference WPF, never reference ViewModels.
-- Services are stateless and return values instead of throwing across their boundary (`OperationResult` in `src/SavegameBunker/Models/OperationResult.cs`; `CatalogLoad` returned by `GameCatalog.LoadAsync`).
-- View models reach UI only through `IDialogService` (`src/SavegameBunker/Services/IDialogService.cs`). They never call `MessageBox` or pickers directly.
-- Filesystem work runs off the UI thread via `Task.Run` (inside `GameActions`, `BackupService` callers) and `AsyncRelayCommand` from CommunityToolkit.Mvvm.
-- The catalog file is the entire configuration: `games.json` holds `backupRoot` and the game list.
+- One composition root: `App.OnStartup` constructs every object by hand and wires them as plain locals or fields. There is no service locator and no DI container.
+- One dependency direction: Views -> ViewModels -> Services -> Models. Services never reference ViewModels or Views.
+- Services are stateless and never throw across their boundary. They return `OperationResult` (`src/SavegameBunker/Models/OperationResult.cs`) or a dedicated result record (`CatalogLoad`, `ScanResult`, `BackupComparison`).
+- All UI interaction goes through `IDialogService` (`src/SavegameBunker/Services/IDialogService.cs`). View models never call `MessageBox`, folder pickers or WPF dialog types directly.
+- Filesystem work runs off the UI thread via `Task.Run` (wrapped in `AsyncRelayCommand` or in coordinators). Progress is reported through `IProgress<T>` constructed on the UI thread.
+- Only one destructive operation exists (restore). Its ordering is load-bearing (see Data Flow).
+- The catalog file `games.json` is the entire configuration. There is no settings file.
 
 ## Layers
 
-**Startup / Composition:**
-- Purpose: Resolve the catalog path, load it, build the window and services, apply theme, handle unhandled exceptions.
+**Startup / Composition Root:**
+- Purpose: Resolve the catalog path, load it, build the WPF window and services, and show the UI. Startup has no fatal path: a missing catalog is seeded, a malformed one is reported in the running window.
 - Location: `src/SavegameBunker/App.xaml.cs`, `src/SavegameBunker/App.xaml`
-- Contains: `OnStartup`, `OnDispatcherUnhandledException`, `OnUnobservedTaskException`, theme application (`ApplyTheme`, `UseSystemColoursForAccent`).
-- Depends on: `GameCatalog`, `DialogService`, `MainViewModel`, `MainWindow`, WPF-UI services.
-- Used by: The WPF runtime only.
+- Contains: Theme selection (Light/Dark/High Contrast via WPF-UI), `DispatcherUnhandledException` and `UnobservedTaskException` handlers, debug-only self-test switches (`--selftest-*`).
+- Depends on: `GameCatalog`, `MainViewModel`, `MainWindow`, `DialogService`, WPF-UI `ContentDialogService` and `SnackbarService`.
+- Used by: The OS (process entry).
 
-**Views:**
-- Purpose: XAML layout and code-behind that only wires things WPF cannot bind declaratively.
-- Location: `src/SavegameBunker/MainWindow.xaml(.cs)`, `src/SavegameBunker/Views/*.xaml(.cs)`
-- Contains: `MainWindow` (FluentWindow with `RootDialogHost` and `RootSnackbarPresenter`), `AddGameDialog`, `ChangeSaveFolderDialog`, `RestorePickerWindow`, `ScanWindow`.
-- Depends on: ViewModels via `DataContext`; `Behaviors/` and `Converters/`.
-- Used by: `App.OnStartup`.
+**Presentation (Views):**
+- Purpose: XAML layout and thin code-behind. Views bind to view models and do not carry business logic.
+- Location: `src/SavegameBunker/MainWindow.xaml(.cs)`, `src/SavegameBunker/Views/` (AddGameDialog, ChangeSaveFolderDialog, RestorePickerWindow, ScanWindow)
+- Contains: XAML, `DialogResultBehavior` and `CornerClip` in `src/SavegameBunker/Behaviors/`, value converters in `src/SavegameBunker/Converters/`.
+- Depends on: ViewModels, WPF-UI controls.
+- Used by: `App.OnStartup` (creates `MainWindow`), `DialogService` (creates dialog windows).
 
 **ViewModels:**
-- Purpose: Observable state and commands. Orchestrate flows; delegate every file operation to services.
+- Purpose: Own bound state and commands. Delegate to coordinators for multi-step flows.
 - Location: `src/SavegameBunker/ViewModels/`
-- Contains: `MainViewModel` (the hub, about 1,900 lines), `GameRowViewModel`, `GameActions`, `CatalogSession`, `AddGameDialogViewModel`, `ChangeSaveFolderDialogViewModel`, `RestorePickerViewModel`, `ScanWindowViewModel`, `ScanHitRowViewModel`.
+- Contains:
+  - `MainViewModel.cs` (root, 1500+ lines): bound collections, toolbar commands, aggregate guards (`HasBackupTargets`, `IsAnyRowChecking`, `IsAnyRowBusy`), status line, header.
+  - `CatalogSession.cs` (internal): the only holder of the loaded catalog record and the only caller of `GameCatalog.SaveAsync`.
+  - `GameActions.cs` (internal): per-game backup/restore orchestration and the three pre-flight refusals.
+  - `BulkBackupCoordinator.cs` (internal): "Back up all changed", "Back up selected", "Restore selected" loops.
+  - `RowActionsCoordinator.cs` (internal): per-row Back up / Restore / Open save folder flows through `IRowActionHost`.
+  - `StatusSweepCoordinator.cs` (internal): background save-status sweep and free-space advisory I/O.
+  - `BulkRunRules.cs` (internal static): pure rules for bulk runs.
+  - `GameRowViewModel.cs`, `ScanHitRowViewModel.cs`, `RestorePickerViewModel.cs` (`RestorePickerRowViewModel`), `AddGameDialogViewModel.cs`, `ChangeSaveFolderDialogViewModel.cs`, `ScanWindowViewModel.cs`.
 - Depends on: Services, Models, `IDialogService`.
-- Used by: Views (bindings), `App.OnStartup` (construction).
+- Used by: Views via data binding.
 
 **Services:**
-- Purpose: All filesystem, catalog, path and backup logic. Stateless, testable without WPF.
+- Purpose: All filesystem, catalog, archive and path logic. Stateless, no WPF types in the core services.
 - Location: `src/SavegameBunker/Services/`
-- Contains: `GameCatalog` (static load/validate/save), `BackupService` (zip write, verify, list), `RestoreService` (destructive swap), `PathResolver` (template expansion), `SaveStatusScanner`, `KnownGamesScanner`, `KnownGamesCatalog`, `BackupComparer`, `DropFolder`, `DriveHints`, `HelpPath`, `WikiUrl`, `Strings`, `DialogService`.
-- Depends on: Models only (and the BCL / Windows APIs).
+- Contains: `GameCatalog` (load/validate/save `games.json`), `BackupService` (zip write, verify, list, delete, free space), `RestoreService` (safety backup, extract, swap), `PathResolver` (template expansion), `SaveStatusScanner`, `BackupComparer`, `KnownGamesCatalog` / `KnownGamesScanner` (find games), `DropFolder`, `HelpPath`, `WikiUrl`, `ShellOpen`, `Strings`, `CrashReport`, plus small helpers (`IdSlug`, `SizeFormat`, `ElapsedFormat`, `DirectoryWalk`, `ReparseFile`, `KnownFolders`, `DriveHints`).
+- Exception to the no-WPF rule: `src/SavegameBunker/Services/DialogService.cs` is the only WPF-aware type in the folder. It implements `IDialogService`, owns the `Window` and WPF-UI services, and marshals every call onto the UI thread with `Dispatcher.CheckAccess()` / `InvokeAsync`.
+- Depends on: Models only (and `Strings` for authored text).
 - Used by: ViewModels.
 
 **Models:**
-- Purpose: Plain data carriers and small enums.
+- Purpose: Data carriers and result types.
 - Location: `src/SavegameBunker/Models/`
-- Contains: `Catalog`, `Game` (init-only), `KnownGame`, `OperationResult`, `BackupArchive`, `BackupComparison`, `SaveStatus`, `ScanResult`, `RestorePrompt`, `RowSeverity`, `AddGameResult`.
-- Depends on: Nothing.
-- Used by: Everything above.
+- Contains: `Catalog` (class, `BackupRoot`, `Games`), `Game` (class, `Id`, `DisplayName`, `SaveDirTemplate`), `KnownGame`, `OperationResult` (record: `Success`, `Message`, `Cancelled`), `BackupArchive`, `BackupComparison`, `SaveStatus`, `ScanResult`/`ScanHit`, `RestorePrompt`, `AddGameResult`, `RowSeverity`.
+- Depends on: nothing in the app.
+- Used by: everything.
 
 ## Data Flow
 
-### Primary Request Path (startup and catalog load)
+### Primary Request Path: Startup
 
-1. `App.OnStartup` resolves the catalog path from command-line args, falling back to `games.json` beside the executable (`src/SavegameBunker/App.xaml.cs`, `GameCatalog.ResolvePath` in `src/SavegameBunker/Services/GameCatalog.cs`).
-2. `GameCatalog.LoadAsync(path)` returns a `CatalogLoad`. An absent file is seeded with a commented template and an empty list; a malformed file yields `FatalError` and is left untouched.
-3. `MainWindow` is constructed, its dialog and snackbar hosts are wired into `DialogService`, and `MainViewModel(load, dialogService)` is set as `DataContext`.
-4. `vm.ReportLoad()` (`src/SavegameBunker/ViewModels/MainViewModel.cs`, around line 710) reports problems and seeding to the status line and dialog.
-5. The status sweep (`SaveStatusScanner`, `BackupService.ListBackups`) runs on background threads and updates `GameRowViewModel` rows.
+1. `App.OnStartup` sets the theme and calls `Strings.Preload()` on the UI thread (`src/SavegameBunker/App.xaml.cs`).
+2. `GameCatalog.ResolvePath(args)` picks the catalog path, falling back to `games.json` beside the exe (`src/SavegameBunker/Services/GameCatalog.cs`).
+3. `GameCatalog.LoadAsync(path)` returns a `CatalogLoad` (path, valid games, per-entry problems, `Seeded`, `FatalError`). It seeds a commented template when the file is absent and reports, but never overwrites, a malformed file.
+4. `MainWindow` is constructed, then `ContentDialogService` and `SnackbarService` are attached to its named hosts (`RootDialogHost`, `RootSnackbarPresenter`).
+5. `new DialogService(window, ...)` and `new MainViewModel(load, dialogService)` are created; `window.DataContext = vm`; `window.Show()`.
+6. `vm.ReportLoad()` surfaces problems; `vm.RequestStartupUnsecuredPrompt()` arms a once-per-session prompt that the first full status sweep decides.
 
-### Backup Flow
+### Primary Request Path: Backup (single row)
 
-1. User action on a row or the toolbar triggers an `AsyncRelayCommand` on `MainViewModel`.
-2. `MainViewModel` delegates to `GameActions.BackupAsync` (`src/SavegameBunker/ViewModels/GameActions.cs`), which runs `BackupService.Backup` inside `Task.Run`.
-3. `BackupService` writes a zip beside the backup root using its own directory walk, not `ZipFile.CreateFromDirectory`, so directory junctions are not followed (`src/SavegameBunker/Services/BackupService.cs`, around line 108). It then verifies the archive.
-4. Result is an `OperationResult`; `MainViewModel.Report()` pushes it to `StatusMessage` and to a dialog through `IDialogService`.
+1. Row button -> `RowActionsCoordinator` (`src/SavegameBunker/ViewModels/RowActionsCoordinator.cs`).
+2. Resolve the backup root from `CatalogSession.TryGetConfiguredBackupRoot`; if unset, `IDialogService.PickFolder` opens the first-backup picker.
+3. `GameActions.BackupAsync` -> `Task.Run(() => BackupService.Backup(game, root, progress))`.
+4. `BackupService` expands `SaveDirTemplate` through `PathResolver.TryResolve`, writes a zip, verifies it, and returns `OperationResult`.
+5. The result is shown via `MainViewModel.Report` (status line plus dialog or snackbar) and the row's comparison is refreshed.
 
-### Restore Flow (destructive; order is load-bearing)
+### Primary Request Path: Restore (the only destructive flow)
 
-1. `GameActions.CheckRestorePreconditionsAsync` and `PickRestoreAsync` run the pre-flight refusals and the restore picker.
-2. `RestoreService` (`src/SavegameBunker/Services/RestoreService.cs`) executes, in this exact order:
-   - a. Safety backup via `BackupService.Backup(game, backupRoot, "-pre-restore")` (around line 90)
-   - b. Confirm with user through a callback (around line 95); declining deletes the safety archive
-   - c. Extract the chosen archive to a temp sibling directory (`ZipFile.ExtractToDirectory`, around line 114)
-   - d. Move the live save directory aside (`Directory.Move`, around line 151)
-   - e. Rename the temp directory into place (`Directory.Move`, around line 167); on failure, move the old directory back (around line 175)
-3. The restore never short-circuits this sequence.
+Owned by `RestoreService.Restore` (`src/SavegameBunker/Services/RestoreService.cs`), reached through `GameActions`. The order is load-bearing and must not be reordered or short-circuited:
 
-### Catalog Write Flow
+1. **Safety backup**: `_backup.Backup(game, backupRoot, "-pre-restore", out safetyPath)`. Aborts the restore if it fails. Skipped only when the save directory is empty or absent.
+2. **Confirm**: `confirm(new RestorePrompt(saveDir, safetyPath))`. If declined, the safety archive is deleted.
+3. **Extract** the chosen archive to a temp sibling directory (`ZipFile.ExtractToDirectory`), with archive-size limits (`MaxArchiveEntries`, `MaxArchiveUncompressedBytes`).
+4. **Move aside** the current save directory (`Directory.Move(saveDir, oldAsideDir)`).
+5. **Rename** the temp directory into place (`Directory.Move(tempDir, saveDir)`). On failure, the old directory is moved back.
+6. **Cleanup** of the old aside directory is best-effort.
 
-1. Any catalog mutation (add game, change backup folder, change save folder, remove game) goes through `CatalogSession` (`src/SavegameBunker/ViewModels/CatalogSession.cs`).
-2. `CatalogSession` calls `GameCatalog.SaveAsync(path, catalog, lastWriteTimeUtc)`, the only catalog writer in the tree. The last-write stamp detects a file edited externally.
-3. On failure, the in-memory change is rolled back at the same index.
+### Secondary Flow: Save status sweep
+
+1. `MainViewModel` constructor calls `StartStatusScan()`, which delegates to `StatusSweepCoordinator`.
+2. Each row's save directory is compared with its newest backup through `SaveStatusScanner` and `BackupComparer`, on worker threads, reporting into the row through `OnUi` (the UI-thread dispatcher).
+3. A per-row token captured in a closure prevents stale results from overwriting newer ones.
+
+### Secondary Flow: Catalog write
+
+1. A command in `MainViewModel` (Add Game, Change Save Folder, Remove, Refresh) calls `CatalogSession`.
+2. `CatalogSession.SaveAsync` calls `GameCatalog.SaveAsync(path, catalog, lastWriteTimeUtc)`. The stamp check refuses the write if the file changed on disk since it was loaded, which protects hand-edits.
+3. On success the session refreshes its stamp and `MainViewModel` rebuilds the affected `GameRowViewModel`s.
 
 **State Management:**
-- Observable UI state lives on `MainViewModel` and `GameRowViewModel` (CommunityToolkit `[ObservableProperty]` and `ObservableObject`).
-- Catalog state lives in `CatalogSession`, which is internal and held as a private field.
-- Selection is tracked by id in `MainViewModel._selectedIds`; collection access is guarded by `_gamesSyncLock`.
-- Nothing is persisted besides `games.json` and backup archives. Theme is re-derived from Windows on every launch.
+- The authoritative state is `games.json` plus the backup root on disk. In memory, `CatalogSession` holds the last loaded record (replaced by `with` copies).
+- UI state lives on `MainViewModel` and `GameRowViewModel` (`ObservableObject`). Row selection is a `HashSet<string>` keyed by `Game.Id`, not by row reference, because rows are rebuilt on refresh.
+- No state is persisted besides the catalog. Theme choice and the startup prompt are session-only.
 
 ## Key Abstractions
 
 **`OperationResult`:**
-- Purpose: Success/failure with a user-facing message, returned by every mutating service method.
+- Purpose: The universal service return type; carries success, a user-facing message and a cancel flag.
 - Examples: `src/SavegameBunker/Models/OperationResult.cs`
-- Pattern: `OperationResult.Fail(message)` / `Ok`; services never throw across their boundary.
+- Pattern: Services return it instead of throwing. `MainViewModel.Report()` turns it into a status line and a dialog.
 
 **`CatalogLoad`:**
-- Purpose: Everything the app learns from loading `games.json`: path, valid entries, per-entry problems, seeded flag, fatal error.
-- Examples: returned by `GameCatalog.LoadAsync` in `src/SavegameBunker/Services/GameCatalog.cs`.
-- Pattern: Immutable record, reassigned via `with` in `CatalogSession`.
+- Purpose: The full result of loading the catalog, including problems and seed state.
+- Examples: `src/SavegameBunker/Services/GameCatalog.cs` (record at line 23)
+- Pattern: Load never throws; fatal conditions go into `FatalError`.
 
 **`IDialogService`:**
-- Purpose: The single seam between view models and any dialog, message, picker or shell-open action.
-- Examples: `src/SavegameBunker/Services/IDialogService.cs` (interface), `src/SavegameBunker/Services/DialogService.cs` (WPF implementation, marshals to UI thread).
-- Pattern: Interface plus one WPF-aware implementation; view models stay thread-agnostic.
+- Purpose: Every user-facing dialog, folder picker and external open.
+- Examples: `src/SavegameBunker/Services/IDialogService.cs`, implemented by `src/SavegameBunker/Services/DialogService.cs`
+- Pattern: Interface in the same folder as its only WPF implementation. Calls are marshalled to the UI thread internally, so callers may be on any thread.
 
-**`GameActions` and `CatalogSession`:**
-- Purpose: Extracted internal collaborators that `MainViewModel` owns privately to keep it from growing further. `GameActions` owns per-game backup and restore orchestration; `CatalogSession` owns the catalog record and the only path to `GameCatalog.SaveAsync`.
-- Examples: `src/SavegameBunker/ViewModels/GameActions.cs`, `src/SavegameBunker/ViewModels/CatalogSession.cs`
-- Pattern: `internal sealed`, `private readonly` field only. Never exposed as a public property, so XAML cannot bind to them.
+**`IRowActionHost`:**
+- Purpose: Lets `RowActionsCoordinator` read and update the root view model without a reference to it.
+- Examples: `src/SavegameBunker/ViewModels/RowActionsCoordinator.cs`, implemented by `MainViewModel`.
+- Pattern: Narrow host interface for a collaborator.
 
-**`PathResolver`:**
-- Purpose: Expands save-folder templates: `%APPDATA%`, `%LOCALAPPDATA%`, `%USERPROFILE%`, plus the pseudo-variables `%DOCUMENTS%` and `%SAVEDGAMES%` resolved from `SpecialFolder.MyDocuments` and `SHGetKnownFolderPath(FOLDERID_SavedGames)`.
-- Examples: `src/SavegameBunker/Services/PathResolver.cs`, `src/SavegameBunker/Services/KnownFolders.cs`
-- Pattern: Static pure function with `TryResolve`. Pseudo-variables are used instead of hardcoded `%USERPROFILE%\Documents` because of OneDrive Known Folder Move.
+**Coordinators (`internal sealed`):**
+- Purpose: Each owns one multi-step flow and reports back through callbacks (`Action<Action> onUi`) and `IProgress<T>` instances built by the view model.
+- Examples: `BulkBackupCoordinator`, `RowActionsCoordinator`, `StatusSweepCoordinator`, `GameActions`
+- Pattern: Held as `private readonly` fields of `MainViewModel`, never exposed as public properties, so XAML cannot bind to them.
 
-**`Game` and `Catalog`:**
-- Purpose: Catalog entries (`Id`, `DisplayName`, `SaveDirTemplate`) and the file root (`BackupRoot`, `Games`).
-- Examples: `src/SavegameBunker/Models/Game.cs`, `src/SavegameBunker/Models/Catalog.cs`
-- Pattern: `Game` is init-only; edits construct a new instance. The `Id` names the backup folder and must never change on edit.
+**`PathResolver` templates:**
+- Purpose: Turn catalog strings such as `%SAVEDGAMES%\Game\Saves` into absolute paths.
+- Examples: `src/SavegameBunker/Services/PathResolver.cs`
+- Pattern: `%APPDATA%`, `%LOCALAPPDATA%`, `%USERPROFILE%` are environment variables. `%DOCUMENTS%` and `%SAVEDGAMES%` are substituted from `SpecialFolder.MyDocuments` and the Known Folder API first, so OneDrive-relocated folders resolve correctly.
 
 ## Entry Points
 
-**`App.OnStartup`:**
-- Location: `src/SavegameBunker/App.xaml.cs`
-- Triggers: Process start of `SavegameBunker.exe`.
-- Responsibilities: Theme and high-contrast setup, path resolution, catalog load, window and service composition, `ReportLoad`, unsecured-games prompt arming. Startup has no fatal path; the outer try/catch is a last resort.
+**Application entry:**
+- Location: `src/SavegameBunker/App.xaml.cs` (`OnStartup`).
+- Triggers: Launch of `SavegameBunker.exe`.
+- Responsibilities: Composition root (see Data Flow above).
 
-**`GameCatalog.ResolvePath`:**
-- Location: `src/SavegameBunker/Services/GameCatalog.cs`
-- Triggers: `OnStartup`.
-- Responsibilities: First command-line argument, or `games.json` beside the exe. In DEBUG builds the `--selftest-` switches are filtered out first in `App.xaml.cs`.
+**Catalog path argument:**
+- Location: `GameCatalog.ResolvePath` (`src/SavegameBunker/Services/GameCatalog.cs`)
+- Triggers: `dotnet run --project src/SavegameBunker -- D:\retro.json` or `SavegameBunker.exe D:\retro.json`.
+- Responsibilities: Choose the catalog file. Falls back to `games.json` beside the exe.
 
-**`MainWindow`:**
-- Location: `src/SavegameBunker/MainWindow.xaml.cs`
-- Triggers: Constructed in `OnStartup`.
-- Responsibilities: Hosts the main view and the root dialog and snackbar presenters.
-
-**Test host:**
-- Location: `tests/SavegameBunker.Tests/`
-- Triggers: `dotnet test SavegameBunker.sln`
-- Responsibilities: Exercises services and view models directly. There is no `SynchronizationContext`, so assert settled state with `WaitForAsync`.
+**Test entry:**
+- Location: `tests/SavegameBunker.Tests/` (xUnit, `SavegameBunker.Tests.csproj`). Tests reach `internal` types through `InternalsVisibleTo` in `SavegameBunker.csproj`.
+- Triggers: `dotnet test SavegameBunker.sln` and CI (`.github/workflows/test.yml`).
 
 ## Architectural Constraints
 
-- **Threading:** WPF UI thread for view models and dialogs. Filesystem work runs on thread pool via `Task.Run`. `DialogService` marshals every call onto the UI thread because services can call back from background threads. `Progress<T>` callbacks may arrive late on the test host.
-- **Global state:** `App.Current` resources (accent colour, `Strings` loaded with `Strings.Preload()` on the UI thread before worker threads read it). `Strings` is a static lookup in `src/SavegameBunker/Services/Strings.cs`.
-- **No DI container:** Construction is manual. Adding a dependency means adding a constructor parameter and passing it in `App.OnStartup` or the owning view model.
-- **Single catalog writer:** Only `CatalogSession` calls `GameCatalog.SaveAsync`. Adding a second writer breaks the stamp check and the rollback logic.
-- **Circular imports:** Not applicable to .NET project references; no project cycles observed. `GameActions` constructs its own `RestoreService` from the `BackupService` it receives.
-- **Dependency limit:** Exactly two shipping NuGet packages (WPF-UI 4.3.0, CommunityToolkit.Mvvm 8.4.2), per `src/SavegameBunker/SavegameBunker.csproj` and CLAUDE.md.
-- **Trimming:** Off. Reflection-based WPF-UI resource loading depends on it.
-- **No registry access:** Nothing reads `InstallLocation` or `UninstallString`; do not add it.
-- **No volume policy:** The backup destination is honoured as chosen. No code may refuse, redirect or warn based on the volume type.
+- **Threading:** WPF UI thread for all bound state. Filesystem work runs on thread-pool threads via `Task.Run`. `DialogService` and `MainViewModel.OnUi` are the marshalling points. `Games` is synchronized with `EnableCollectionSynchronization` so tests without a dispatcher stay safe.
+- **Global state:** `App.CurrentTheme` and `App.IsHighContrastActive` are static properties in `src/SavegameBunker/App.xaml.cs`. `Strings` holds a static authored dictionary loaded by `Strings.Preload()` (`src/SavegameBunker/Services/Strings.cs`). `GameCatalog.DefaultPath` depends on `AppContext.BaseDirectory`.
+- **Circular imports:** Not applicable (C#). No project-reference cycles: `SavegameBunker.Tests` references the app project only.
+- **Single catalog writer:** Only `CatalogSession` calls `GameCatalog.SaveAsync`. This is the structural "no second writer" rule.
+- **No backup-location policy:** `BackupService` and `RestoreService` accept any folder the user chose. There is no code path that refuses, redirects or relocates a backup based on its volume.
+- **Trimming disabled:** WPF-UI resolves resources reflectively; the project must not enable trimming (`SavegameBunker.csproj` comments).
+- **Forbidden registry access:** Nothing reads `InstallLocation` or `UninstallString`. Game launch and installation detection are out of scope.
 
 ## Anti-Patterns
 
-### Dialogs or message boxes from a view model
+### Restoring without the safety backup first
 
-**What happens:** Some code in a view model or service calls `MessageBox` or a picker directly.
-**Why it's wrong:** Breaks testability and thread-agnosticism; the test host has no WPF dispatcher.
-**Do this instead:** Add a method to `IDialogService` (`src/SavegameBunker/Services/IDialogService.cs`) and implement it in `DialogService`.
+**What happens:** Any new code path that replaces a save directory without first calling `BackupService.Backup(..., "-pre-restore", ...)`.
+**Why it's wrong:** Deleting the current save set is only defensible because the safety step has already put that set on the backup volume.
+**Do this instead:** Extend `RestoreService.Restore` (`src/SavegameBunker/Services/RestoreService.cs`) and keep the order: safety backup -> extract to temp sibling -> move aside -> rename in.
 
-### Growing `MainViewModel` further
+### Writing the catalog from anywhere but `CatalogSession`
 
-**What happens:** `src/SavegameBunker/ViewModels/MainViewModel.cs` is about 1,900 lines and already hosts many commands, status sweep and advisory logic.
-**Why it's wrong:** Every new flow adds to the largest file and to the hardest-to-test surface.
-**Do this instead:** Follow the `GameActions` / `CatalogSession` pattern: a new `internal sealed` collaborator under `src/SavegameBunker/ViewModels/`, held as a private readonly field, with no WPF types.
+**What happens:** Calling `GameCatalog.SaveAsync` from a view model method directly.
+**Why it's wrong:** It bypasses the changed-on-disk stamp check in `CatalogSession.SaveAsync` and the stamp refresh, so a hand-edited `games.json` can be overwritten.
+**Do this instead:** Add a method to `CatalogSession` (`src/SavegameBunker/ViewModels/CatalogSession.cs`) and call it from `MainViewModel`.
 
-### Services throwing across their boundary
+### Showing dialogs or touching WPF from a service or view model
 
-**What happens:** A service method throws for an expected failure, such as a missing folder or locked file.
-**Why it's wrong:** Command handlers passed to `AsyncRelayCommand` must not throw; an escaping exception surfaces on the UI thread.
-**Do this instead:** Catch at the service boundary and return `OperationResult.Fail(...)`. The one permitted bare catch is in `BackupService` read-only listing (around line 253).
+**What happens:** A service calls `MessageBox.Show` or a view model opens a folder picker.
+**Why it's wrong:** It breaks testability (xUnit has no UI) and the thread marshalling that `DialogService` guarantees.
+**Do this instead:** Add a member to `IDialogService` and implement it in `src/SavegameBunker/Services/DialogService.cs`.
 
-### Writing the catalog without `CatalogSession`
+### Throwing from a service
 
-**What happens:** Code calls `GameCatalog.SaveAsync` directly.
-**Why it's wrong:** Bypasses the last-write stamp check and the rollback-on-failure path.
-**Do this instead:** Add a method to `CatalogSession` and call it from `MainViewModel`.
-
-### Reordering restore steps
-
-**What happens:** Deleting or moving the live save before the safety backup is written.
-**Why it's wrong:** The deletion is only defensible because the safety backup already exists.
-**Do this instead:** Keep the sequence in `RestoreService` exactly: safety backup, extract to temp, move old aside, move new in.
+**What happens:** A service method lets an exception escape to the caller.
+**Why it's wrong:** `AsyncRelayCommand` handlers that throw surface on the UI thread and break the "report, do not crash" contract.
+**Do this instead:** Catch inside the service and return `OperationResult.Fail(...)` or the matching result record.
 
 ## Error Handling
 
-**Strategy:** Return values, not exceptions. Surface every failure to the user.
+**Strategy:** Results, not exceptions, across service boundaries. Startup and background faults are caught at the application level and reported through `IDialogService.Error`.
 
 **Patterns:**
-- Services return `OperationResult`; `MainViewModel.Report()` writes to `StatusMessage` and shows a dialog.
-- Load problems are carried in `CatalogLoad.Problems` (per-entry) and `CatalogLoad.FatalError` (whole file).
-- Unhandled exceptions: `App.OnDispatcherUnhandledException` and `OnUnobservedTaskException` report through `DialogService` when available and fall back to a plain message box otherwise. `CrashReport` (`src/SavegameBunker/Services/CrashReport.cs`) formats the report.
-- Best-effort cleanup (deleting an unwanted safety archive, removing a temp directory) is wrapped in `try { } catch { /* best effort */ }` and never changes the reported result.
+- Services return `OperationResult` (`Success`, `Message`, `Cancelled`).
+- `GameCatalog.LoadAsync` returns problems and a fatal error instead of throwing. A malformed catalog is reported and the file is left untouched.
+- `App.OnDispatcherUnhandledException` marks the exception handled and reports it through `CrashReport.Describe` (`src/SavegameBunker/Services/CrashReport.cs`). `OnUnobservedTaskException` calls `SetObserved()` first.
+- A last-resort `try/catch` in `App.OnStartup` shows a native `MessageBox` for failures before any window exists.
 
 ## Cross-Cutting Concerns
 
-**Logging:** No logging library (constraint). Failures are reported to the user via `OperationResult`, the status line, and dialogs.
-
-**Validation:** Catalog validation in `GameCatalog.LoadAsync` (per-entry problems, id checks via `IdSlug` in `src/SavegameBunker/Services/IdSlug.cs`). Path templates validated by `PathResolver`. Add-game flow in `AddGameDialogViewModel` and `CatalogSession.PartitionNewGames`.
-
-**Authentication:** Not applicable. The app is local-only.
-
-**Localisation:** All UI strings come from `src/SavegameBunker/Themes/Strings.en.xaml` through `src/SavegameBunker/Services/Strings.cs`. Everything written to disk is English.
+**Logging:** No logging framework. Problems are surfaced to the user through the status line and dialogs.
+**Validation:** Catalog entries are validated in `GameCatalog` (`src/SavegameBunker/Services/GameCatalog.cs`), with per-entry problems returned to the UI. Template expansion validates through `PathResolver.TryResolve`.
+**Authentication:** Not applicable. The app is local-only and has no network service.
+**Localization:** Authored strings are loaded from `src/SavegameBunker/Themes/Strings.en.xaml` (embedded as a resource) through `Strings.Get(key)`. A test (`tests/SavegameBunker.Tests/ResourceKeyTests.cs`) checks key usage.
 
 ---
 
-*Architecture analysis: 2026-11-17*
+*Architecture analysis: 2026-11-18*
