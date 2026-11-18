@@ -261,7 +261,7 @@ Plans:
 - [x] 02-05-PLAN.md — Item 3: DriveType before IsReady, drive-probe seam (D-05), reachable bulk picker-cancel fact (D-04, D-13)
 
 **Wave 3** *(blocked on Wave 2 completion)*
-- [ ] 02-06-PLAN.md — Items 1–2: startup prompt evaluated on arming after the first sweep; IsBulkPreparing guard
+- [x] 02-06-PLAN.md — Items 1–2: startup prompt evaluated on arming after the first sweep; IsBulkPreparing guard
 
 **Wave 4** *(blocked on Wave 3 completion)*
 - [ ] 02-07-PLAN.md — Items 4–5: PathCompare at drive roots, ToTemplate root fix, no empty archives
