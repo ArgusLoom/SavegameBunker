@@ -33,15 +33,24 @@ internal static class DirectoryWalk
     /// </param>
     /// <param name="onSkipped">
     /// Optional: called with the path of every subtree or file the walk could not read — a
-    /// directory whose listing threw, a file whose attributes threw. Deliberate skips (reparse
-    /// points, excluded directories) are never reported: those are rules, not failures. Null
-    /// skips silently, for callers that have no channel to report through.
+    /// directory whose listing threw, a file whose attributes threw. Reparse points and excluded
+    /// directories are deliberate rules, not failures, so they go to <paramref name="onExcluded"/>
+    /// or nowhere, never here. Null skips silently, for callers that have no channel to report
+    /// through.
+    /// </param>
+    /// <param name="onExcluded">
+    /// Optional: called with the walk-root-relative path of each subfolder the walk steps over
+    /// because of <paramref name="excludedDirs"/> — a deliberate rule, reported apart from
+    /// <paramref name="onSkipped"/> so it is never counted as unreadable. Only the outermost
+    /// pruned folder is reported, because the walk never descends into it. Reparse points are
+    /// still stepped over silently. Null excludes silently.
     /// </param>
     public static void ForEachFile(
         string rootDir, Action<FileInfo> onFile, IReadOnlyCollection<string>? excludedDirs = null,
-        Action<string>? onSkipped = null)
+        Action<string>? onSkipped = null, Action<string>? onExcluded = null)
     {
         void Skip(string path) => onSkipped?.Invoke(Path.GetRelativePath(rootDir, path));
+        void Exclude(string path) => onExcluded?.Invoke(Path.GetRelativePath(rootDir, path));
 
         // Excluded folders that are the walk root itself or lie inside it. Only these can ever
         // justify pruning a subfolder for lying *inside* an exclusion: a save folder that merely
@@ -123,6 +132,7 @@ internal static class DirectoryWalk
                     && (excludedDirs.Any(excluded => BackupService.IsSameOrInside(excluded, sub))
                         || excludedWithinRoot.Any(excluded => BackupService.IsSameOrInside(sub, excluded))))
                 {
+                    Exclude(sub);
                     continue;
                 }
 
@@ -151,7 +161,8 @@ internal static class DirectoryWalk
 
     /// <summary>
     /// The one display shape for a skipped-path list, shared by <see cref="BackupService"/>'s own
-    /// warning and the scan row's — so the two surfaces cannot drift apart. Names the first five,
+    /// warning, the scan row's, and the left-out note BackupService appends for folders the walk
+    /// leaves out on purpose — so the surfaces cannot drift apart. Names the first five,
     /// comma-joined, and counts the rest (<c>", and {n} more"</c>) when there are more than five.
     /// </summary>
     public static string FormatSkippedList(IReadOnlyCollection<string> skippedPaths)

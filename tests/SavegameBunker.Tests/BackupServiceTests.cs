@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
+using System.Text.RegularExpressions;
 using SavegameBunker.Models;
 using SavegameBunker.Services;
 
@@ -1266,5 +1267,46 @@ public sealed class BackupServiceTests : IDisposable
         using var zip = ZipFile.OpenRead(archive);
         var names = zip.Entries.Select(e => e.FullName).ToList();
         Assert.Equal(["a.dat", "sub/b.dat"], names);
+    }
+
+    // D-01: a folder the walk leaves out on purpose (the backup folder inside the save folder) is
+    // named once, in a plain note — never with the unreadable-path warning wording, which would
+    // read as a fault in a layout the user chose on purpose.
+    [Fact]
+    public void A_backup_folder_inside_the_save_folder_is_named_as_left_out_not_as_unreadable()
+    {
+        var game = GameWithSaves();
+        var backupRoot = Path.Combine(_dir, "saves", "backups");
+
+        Assert.True(_service.Backup(game, backupRoot).Success);
+        var second = _service.Backup(game, backupRoot, "-second", out var secondPath);
+        Assert.True(second.Success, second.Message);
+
+        Assert.Single(Regex.Matches(second.Message, "Left out:"));
+        Assert.Contains("Left out: backups (backup folder).", second.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("NOT in this backup", second.Message, StringComparison.Ordinal);
+        using var zip = ZipFile.OpenRead(secondPath!);
+        Assert.Equal("save.dat", Assert.Single(zip.Entries).FullName);
+    }
+
+    // D-01, plural form: with the backup root AT a shared save folder, both games' archive folders
+    // are named and the note ends "(backup folders).".
+    [Fact]
+    public void A_backup_root_equal_to_a_shared_save_folder_names_the_other_games_archive_folders_as_left_out()
+    {
+        var shared = Path.Combine(_dir, "shared-saves");
+        Directory.CreateDirectory(shared);
+        File.WriteAllText(Path.Combine(shared, "save.dat"), "payload");
+        var gameA = new Game { Id = "game-a", DisplayName = "Game A", SaveDirTemplate = shared.Replace('\\', '/') };
+        var gameB = new Game { Id = "game-b", DisplayName = "Game B", SaveDirTemplate = shared.Replace('\\', '/') };
+        var backupRoot = shared;
+
+        Assert.True(_service.Backup(gameA, backupRoot).Success);
+        var second = _service.Backup(gameB, backupRoot);
+        Assert.True(second.Success, second.Message);
+
+        Assert.Contains("game-a", second.Message, StringComparison.Ordinal);
+        Assert.Contains("game-b", second.Message, StringComparison.Ordinal);
+        Assert.Contains("(backup folders).", second.Message, StringComparison.Ordinal);
     }
 }
