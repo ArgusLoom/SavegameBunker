@@ -406,7 +406,7 @@ public sealed class MainViewModelTests : IDisposable
         // Real zip write + verify to disk; the default 3s budget was observed flaky under
         // full-suite parallel load (passes in isolation), the same real-I/O contention the bulk
         // backup/restore tests below already budget 15s for.
-        await WaitForAsync(() => dialog.InfoMessages.Count == 1, timeoutMs: 15000);
+        await WaitForAsync(() => dialog.InfoMessages.Count == 1, timeoutMs: RealIoTimeoutMs);
 
         var reloaded = await GameCatalog.LoadAsync(catalogPath);
         Assert.Equal(picked.Replace('\\', '/'), reloaded.Catalog.BackupRoot);
@@ -2448,9 +2448,10 @@ public sealed class MainViewModelTests : IDisposable
         // dispatcher-bound GamesView below is never touched from a different thread) keeps that
         // sweep from racing with this test's own manual ApplyBackupComparison calls and stomping
         // them back to a scanned verdict.
-        var sweepDeadline = DateTime.UtcNow.AddSeconds(3);
+        var sweepDeadline = DateTime.UtcNow.AddMilliseconds(DefaultTimeoutMs);
         while (vm.Games.Any(row => row.ComparisonKind == BackupComparisonKind.Checking) && DateTime.UtcNow < sweepDeadline)
             Thread.Sleep(5);
+        Assert.DoesNotContain(vm.Games, row => row.ComparisonKind == BackupComparisonKind.Checking);
 
         vm.SearchText = "alpha";
         vm.GamesView.Refresh();
@@ -2826,7 +2827,7 @@ public sealed class MainViewModelTests : IDisposable
         }
 
         vm.RestoreSelectedCommand.Execute(null);
-        await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: 15000);
+        await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: RealIoTimeoutMs);
 
         Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(Path.Combine(_dir, "saves-0", "save.dat")));
         Assert.Equal(new byte[] { 9, 9, 9 }, File.ReadAllBytes(Path.Combine(_dir, "saves-1", "save.dat")));
@@ -2868,7 +2869,7 @@ public sealed class MainViewModelTests : IDisposable
         File.WriteAllBytes(savePath, [9, 9, 9]);
 
         vm.RestoreSelectedCommand.Execute(null);
-        await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: 15000);
+        await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: RealIoTimeoutMs);
 
         Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(savePath));
         Assert.Empty(dialog.RestorePickerCalls);
@@ -2888,7 +2889,7 @@ public sealed class MainViewModelTests : IDisposable
 
         vm.Games[0].IsSelected = true;
         vm.RestoreSelectedCommand.Execute(null);
-        await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: 15000);
+        await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: RealIoTimeoutMs);
 
         Assert.Equal(new byte[] { 9, 9, 9 }, File.ReadAllBytes(savePath));
         Assert.Empty(dialog.ConfirmMessages);
@@ -2912,7 +2913,7 @@ public sealed class MainViewModelTests : IDisposable
         File.WriteAllBytes(Path.Combine(_dir, "saves-1", "save.dat"), [9, 9, 9]);
 
         vm.RestoreSelectedCommand.Execute(null);
-        await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: 15000);
+        await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: RealIoTimeoutMs);
 
         Assert.Equal(new byte[] { 9, 9, 9 }, File.ReadAllBytes(Path.Combine(_dir, "saves-0", "save.dat")));
         Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(Path.Combine(_dir, "saves-1", "save.dat")));
@@ -2940,7 +2941,7 @@ public sealed class MainViewModelTests : IDisposable
         File.WriteAllBytes(savePath, [9, 9, 9]);
 
         vm.RestoreSelectedCommand.Execute(null);
-        await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: 15000);
+        await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: RealIoTimeoutMs);
 
         Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(savePath));
         Assert.True(hidden.IsSelected);
@@ -2959,7 +2960,7 @@ public sealed class MainViewModelTests : IDisposable
 
         vm.Games[0].ApplyBackupComparison(BackupComparison.UpToDate(DateTime.Now));
         vm.RestoreSelectedCommand.Execute(null);
-        await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: 15000);
+        await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: RealIoTimeoutMs);
 
         Assert.Single(dialog.ConfirmMessages);
         Assert.Empty(dialog.RestorePickerCalls);
@@ -2978,7 +2979,7 @@ public sealed class MainViewModelTests : IDisposable
         await WaitForAsync(() => vm.BackupSelectedCommand.CanExecute(null));
 
         vm.RestoreSelectedCommand.Execute(null);
-        await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: 15000);
+        await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: RealIoTimeoutMs);
 
         Assert.True(vm.Games[0].IsSelected);
         Assert.False(vm.Games[1].IsSelected);
@@ -3002,7 +3003,7 @@ public sealed class MainViewModelTests : IDisposable
         vm.Games[0].IsBusy = true;
 
         vm.RestoreSelectedCommand.Execute(null);
-        await WaitForAsync(() => !vm.IsBulkBackupRunning && dialog.ConfirmMessages.Count == 1, timeoutMs: 15000);
+        await WaitForAsync(() => !vm.IsBulkBackupRunning && dialog.ConfirmMessages.Count == 1, timeoutMs: RealIoTimeoutMs);
 
         Assert.Equal(new byte[] { 9, 9, 9 }, File.ReadAllBytes(Path.Combine(_dir, "saves-0", "save.dat")));
         Assert.Equal(new byte[] { 1, 2, 3 }, File.ReadAllBytes(Path.Combine(_dir, "saves-1", "save.dat")));
@@ -3022,7 +3023,7 @@ public sealed class MainViewModelTests : IDisposable
         Directory.CreateDirectory(backupRoot);
         await vm.RefreshCommand.ExecuteAsync(null);
         await WaitForAsync(
-            () => vm.Games.All(row => row.ComparisonKind == BackupComparisonKind.NeverBackedUp), timeoutMs: 15000);
+            () => vm.Games.All(row => row.ComparisonKind == BackupComparisonKind.NeverBackedUp), timeoutMs: RealIoTimeoutMs);
         dialog.InfoMessages.Clear();
 
         var other = vm.Games[1];
@@ -3040,7 +3041,7 @@ public sealed class MainViewModelTests : IDisposable
         await WaitForAsync(
             () => dialog.InfoMessages.Count == 1
                 && vm.Games[0].ComparisonKind is BackupComparisonKind.UpToDate or BackupComparisonKind.SavesChangedSinceBackup,
-            timeoutMs: 15000);
+            timeoutMs: RealIoTimeoutMs);
 
         Assert.Empty(otherKinds);
         Assert.Equal(BackupComparisonKind.NeverBackedUp, other.ComparisonKind);
@@ -3055,7 +3056,7 @@ public sealed class MainViewModelTests : IDisposable
 
         vm.BackupCommand.Execute(vm.Games[0]);
 
-        await WaitForAsync(() => vm.Games[1].ComparisonKind == BackupComparisonKind.NeverBackedUp, timeoutMs: 15000);
+        await WaitForAsync(() => vm.Games[1].ComparisonKind == BackupComparisonKind.NeverBackedUp, timeoutMs: RealIoTimeoutMs);
     }
 
     [Fact]
@@ -3070,7 +3071,7 @@ public sealed class MainViewModelTests : IDisposable
         await WaitForAsync(
             () => dialog.InfoMessages.Count == 1
                 && vm.Games.All(row => row.ComparisonKind != BackupComparisonKind.Checking),
-            timeoutMs: 15000);
+            timeoutMs: RealIoTimeoutMs);
     }
 
     [Fact]
@@ -3134,7 +3135,7 @@ public sealed class MainViewModelTests : IDisposable
         dialog.InfoMessages.Clear();
 
         vm.RestoreSelectedCommand.Execute(null);
-        await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: 15000);
+        await WaitForAsync(() => vm.RestoreSelectedCommand.CanExecute(null), timeoutMs: RealIoTimeoutMs);
 
         var outcome = Assert.Single(dialog.InfoMessages);
         Assert.Contains("Restored 1 of 2 selected", outcome, StringComparison.Ordinal);
@@ -3165,7 +3166,7 @@ public sealed class MainViewModelTests : IDisposable
 
         vm.Games[0].IsSelected = true;
         vm.RestoreSelectedCommand.Execute(null);
-        await WaitForAsync(() => dialog.ErrorMessages.Count == 1, timeoutMs: 15000);
+        await WaitForAsync(() => dialog.ErrorMessages.Count == 1, timeoutMs: RealIoTimeoutMs);
 
         Assert.Contains("Failed: Game 0", dialog.ErrorMessages[0], StringComparison.Ordinal);
         Assert.Contains("No restorable backup for Game 0", dialog.ErrorMessages[0], StringComparison.Ordinal);
@@ -3181,7 +3182,7 @@ public sealed class MainViewModelTests : IDisposable
         vm.Games[0].IsSelected = true;
         vm.Games[1].IsSelected = true;
         vm.BackupSelectedCommand.Execute(null);
-        await WaitForAsync(() => dialog.ErrorMessages.Count == 1, timeoutMs: 15000);
+        await WaitForAsync(() => dialog.ErrorMessages.Count == 1, timeoutMs: RealIoTimeoutMs);
 
         Assert.Contains("Backed up 1 of 2 selected. Failed: Game 1.", dialog.ErrorMessages[0], StringComparison.Ordinal);
         Assert.Contains("Save folder is empty", dialog.ErrorMessages[0], StringComparison.Ordinal);
