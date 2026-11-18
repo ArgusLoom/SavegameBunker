@@ -2,6 +2,7 @@ using System.IO;
 using SavegameBunker.Models;
 using SavegameBunker.Services;
 using SavegameBunker.ViewModels;
+using static SavegameBunker.Tests.TestWait;
 
 namespace SavegameBunker.Tests;
 
@@ -14,39 +15,15 @@ namespace SavegameBunker.Tests;
 /// </summary>
 public sealed class MainViewModelGuardPinTests : IDisposable
 {
+    private readonly TempDir _temp = new();
     private readonly string _dir;
 
     public MainViewModelGuardPinTests()
     {
-        _dir = Path.Combine(Path.GetTempPath(), "SavegameBunkerTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_dir);
+        _dir = _temp.DirectoryPath;
     }
 
-    public void Dispose()
-    {
-        try
-        {
-            TestFileSystem.RemoveDenyRules(_dir);
-            Directory.Delete(_dir, recursive: true);
-        }
-        catch (IOException)
-        {
-            // A leftover temp directory must not fail the test run.
-        }
-        catch (UnauthorizedAccessException)
-        {
-            // A Deny ACE that could not be lifted must not fail the whole run.
-        }
-    }
-
-    private static async Task WaitForAsync(Func<bool> condition, int timeoutMs = 3000)
-    {
-        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
-        while (!condition() && DateTime.UtcNow < deadline)
-            await Task.Delay(5);
-
-        Assert.True(condition(), "Timed out waiting for the expected view model state.");
-    }
+    public void Dispose() => _temp.Dispose();
 
     /// <summary>
     /// Copied verbatim from <see cref="MainViewModelTests"/>'s own private fixture of the same
