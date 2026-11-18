@@ -236,6 +236,8 @@
     <sys:String x:Key="str_scan_headerZero">No known games with save data found on this machine.</sys:String>
     <sys:String x:Key="str_scan_headerOne">1 folder with save data found</sys:String>
     <sys:String x:Key="str_scan_headerMany">{0} folders with save data found</sys:String>
+    <sys:String x:Key="str_scan_hitFileCountOne">1 file</sys:String>
+    <sys:String x:Key="str_scan_hitFileCount">{0} files</sys:String>
     <sys:String x:Key="str_scan_addLabel">Add ({0})</sys:String>
     <sys:String x:Key="str_scan_selectAll">All</sys:String>
     <sys:String x:Key="str_scan_selectNone">None</sys:String>

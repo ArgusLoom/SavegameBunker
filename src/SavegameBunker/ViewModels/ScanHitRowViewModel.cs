@@ -34,7 +34,9 @@ public sealed partial class ScanHitRowViewModel : CommunityToolkitObservableObje
 
     public string ResolvedPath => Hit.ResolvedPath;
 
-    public string FileCountText => $"{Hit.FileCount} files";
+    public string FileCountText => Hit.FileCount == 1
+        ? Strings.Get("str_scan_hitFileCountOne")
+        : Strings.Format("str_scan_hitFileCount", Hit.FileCount);
 
     public string SizeText => SizeFormat.Describe(Hit.TotalBytes);
 }
