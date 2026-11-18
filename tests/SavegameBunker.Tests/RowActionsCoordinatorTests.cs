@@ -14,19 +14,15 @@ namespace SavegameBunker.Tests;
 /// </summary>
 public sealed class RowActionsCoordinatorTests : IDisposable
 {
+    private readonly TempDir _temp = new();
     private readonly string _dir;
 
     public RowActionsCoordinatorTests()
     {
-        _dir = Path.Combine(Path.GetTempPath(), "SavegameBunkerTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_dir);
+        _dir = _temp.DirectoryPath;
     }
 
-    public void Dispose()
-    {
-        try { Directory.Delete(_dir, recursive: true); }
-        catch (IOException) { /* a leftover temp directory must not fail the test run */ }
-    }
+    public void Dispose() => _temp.Dispose();
 
     /// <summary>
     /// Records every host call in order as a readable string, returns a configurable backup
@@ -69,20 +65,6 @@ public sealed class RowActionsCoordinatorTests : IDisposable
         public void RestoreFinished() => Calls.Add("RestoreFinished");
     }
 
-    private Game GameWithSaves(string id, string displayName)
-    {
-        var saveDir = Path.Combine(_dir, "saves-" + id);
-        Directory.CreateDirectory(saveDir);
-        File.WriteAllText(Path.Combine(saveDir, "save.dat"), "payload");
-
-        return new Game
-        {
-            Id = id,
-            DisplayName = displayName,
-            SaveDirTemplate = saveDir.Replace('\\', '/'),
-        };
-    }
-
     private GameRowViewModel RowWithTemplate(string id, string displayName, string template) =>
         new(new Game { Id = id, DisplayName = displayName, SaveDirTemplate = template });
 
@@ -93,7 +75,7 @@ public sealed class RowActionsCoordinatorTests : IDisposable
     public async Task BackupAsync_marks_the_row_busy_before_resolving_the_backup_folder()
     {
         var backup = new BackupService();
-        var game = GameWithSaves("game-a", "Game A");
+        var game = TestGames.WithNamedSaves(_dir, "game-a", "Game A");
         var row = new GameRowViewModel(game);
         var busyInsideEnsureRoot = default(bool?);
 
@@ -112,7 +94,7 @@ public sealed class RowActionsCoordinatorTests : IDisposable
     public async Task BackupAsync_with_a_cancelled_folder_choice_releases_the_row_and_never_starts_a_backup()
     {
         var backup = new BackupService();
-        var row = new GameRowViewModel(GameWithSaves("game-a", "Game A"));
+        var row = new GameRowViewModel(TestGames.WithNamedSaves(_dir, "game-a", "Game A"));
 
         var host = new FakeRowActionHost { EnsureRootResult = null };
 
@@ -129,7 +111,7 @@ public sealed class RowActionsCoordinatorTests : IDisposable
     public async Task RestoreAsync_rescans_the_row_when_the_picker_is_cancelled()
     {
         var backup = new BackupService();
-        var game = GameWithSaves("game-a", "Game A");
+        var game = TestGames.WithNamedSaves(_dir, "game-a", "Game A");
         var row = new GameRowViewModel(game);
         var backupRoot = Path.Combine(_dir, "backups");
         Assert.True(backup.Backup(game, backupRoot).Success);
@@ -148,7 +130,7 @@ public sealed class RowActionsCoordinatorTests : IDisposable
     public async Task BackupAsync_reports_then_rescans_after_a_successful_write_and_balances_the_in_flight_count()
     {
         var backup = new BackupService();
-        var row = new GameRowViewModel(GameWithSaves("game-a", "Game A"));
+        var row = new GameRowViewModel(TestGames.WithNamedSaves(_dir, "game-a", "Game A"));
         var backupRoot = Path.Combine(_dir, "backups");
 
         var host = new FakeRowActionHost { EnsureRootResult = backupRoot };
@@ -190,7 +172,7 @@ public sealed class RowActionsCoordinatorTests : IDisposable
     public async Task BackupAsync_ignores_a_null_or_already_busy_row()
     {
         var backup = new BackupService();
-        var busyRow = new GameRowViewModel(GameWithSaves("game-a", "Game A"))
+        var busyRow = new GameRowViewModel(TestGames.WithNamedSaves(_dir, "game-a", "Game A"))
         {
             IsBusy = true
         };
@@ -209,7 +191,7 @@ public sealed class RowActionsCoordinatorTests : IDisposable
     public async Task RestoreAsync_refuses_without_a_configured_backup_folder_and_releases_the_row()
     {
         var backup = new BackupService();
-        var row = new GameRowViewModel(GameWithSaves("game-a", "Game A"));
+        var row = new GameRowViewModel(TestGames.WithNamedSaves(_dir, "game-a", "Game A"));
 
         var host = new FakeRowActionHost { HasConfiguredRoot = false };
 

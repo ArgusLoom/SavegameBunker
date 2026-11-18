@@ -13,33 +13,15 @@ namespace SavegameBunker.Tests;
 /// </summary>
 public sealed class StatusSweepCoordinatorTests : IDisposable
 {
+    private readonly TempDir _temp = new();
     private readonly string _dir;
 
     public StatusSweepCoordinatorTests()
     {
-        _dir = Path.Combine(Path.GetTempPath(), "SavegameBunkerTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_dir);
+        _dir = _temp.DirectoryPath;
     }
 
-    public void Dispose()
-    {
-        try { Directory.Delete(_dir, recursive: true); }
-        catch (IOException) { /* a leftover temp directory must not fail the test run */ }
-    }
-
-    private Game GameWithSaves(string id, string displayName)
-    {
-        var saveDir = Path.Combine(_dir, "saves-" + id);
-        Directory.CreateDirectory(saveDir);
-        File.WriteAllText(Path.Combine(saveDir, "save.dat"), "payload");
-
-        return new Game
-        {
-            Id = id,
-            DisplayName = displayName,
-            SaveDirTemplate = saveDir.Replace('\\', '/'),
-        };
-    }
+    public void Dispose() => _temp.Dispose();
 
     private static GameRowViewModel Row(Game game) => new(game);
 
@@ -48,7 +30,7 @@ public sealed class StatusSweepCoordinatorTests : IDisposable
     {
         var backup = new BackupService();
         var coordinator = new StatusSweepCoordinator(backup, action => action());
-        var rows = new[] { Row(GameWithSaves("a", "A")), Row(GameWithSaves("b", "B")) };
+        var rows = new[] { Row(TestGames.WithNamedSaves(_dir, "a", "A")), Row(TestGames.WithNamedSaves(_dir, "b", "B")) };
 
         var before = rows.Select(r => r.ScanToken).ToArray();
         var snapshot = coordinator.Reset(rows);
@@ -88,7 +70,7 @@ public sealed class StatusSweepCoordinatorTests : IDisposable
             action();
         });
 
-        var rows = new[] { Row(GameWithSaves("a", "A")), Row(GameWithSaves("b", "B")) };
+        var rows = new[] { Row(TestGames.WithNamedSaves(_dir, "a", "A")), Row(TestGames.WithNamedSaves(_dir, "b", "B")) };
         var snapshot = coordinator.Reset(rows);
 
         var root = Path.Combine(_dir, "backups");
@@ -109,7 +91,7 @@ public sealed class StatusSweepCoordinatorTests : IDisposable
         var backup = new BackupService();
         var coordinator = new StatusSweepCoordinator(backup, action => action());
 
-        var rows = new[] { Row(GameWithSaves("a", "A")), Row(GameWithSaves("b", "B")) };
+        var rows = new[] { Row(TestGames.WithNamedSaves(_dir, "a", "A")), Row(TestGames.WithNamedSaves(_dir, "b", "B")) };
         var snapshot = coordinator.Reset(rows);
 
         // A newer scan claims row[0] after this snapshot was taken.
@@ -129,7 +111,7 @@ public sealed class StatusSweepCoordinatorTests : IDisposable
     {
         var backup = new BackupService();
         var coordinator = new StatusSweepCoordinator(backup, action => action());
-        var row = Row(GameWithSaves("a", "A"));
+        var row = Row(TestGames.WithNamedSaves(_dir, "a", "A"));
         var root = Path.Combine(_dir, "backups");
 
         // Missing root: not reachable.
@@ -168,7 +150,7 @@ public sealed class StatusSweepCoordinatorTests : IDisposable
     {
         var backup = new BackupService();
         var coordinator = new StatusSweepCoordinator(backup, action => action());
-        var game = GameWithSaves("a", "A");
+        var game = TestGames.WithNamedSaves(_dir, "a", "A");
 
         var (_, selected, _) = await coordinator.ComputeAdvisoryAsync(
             hasRoot: false, root: "", selectedGames: [game], changedGames: []);

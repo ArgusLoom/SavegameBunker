@@ -14,39 +14,21 @@ namespace SavegameBunker.Tests;
 /// </summary>
 public sealed class BulkBackupCoordinatorTests : IDisposable
 {
+    private readonly TempDir _temp = new();
     private readonly string _dir;
 
     public BulkBackupCoordinatorTests()
     {
-        _dir = Path.Combine(Path.GetTempPath(), "SavegameBunkerTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_dir);
+        _dir = _temp.DirectoryPath;
     }
 
-    public void Dispose()
-    {
-        try { Directory.Delete(_dir, recursive: true); }
-        catch (IOException) { /* a leftover temp directory must not fail the test run */ }
-    }
+    public void Dispose() => _temp.Dispose();
 
     private sealed class ByteProgressRecorder : IProgress<long>
     {
         public List<long> Reports { get; } = [];
 
         public void Report(long value) => Reports.Add(value);
-    }
-
-    private Game GameWithSaves(string id, string displayName)
-    {
-        var saveDir = Path.Combine(_dir, "saves-" + id);
-        Directory.CreateDirectory(saveDir);
-        File.WriteAllText(Path.Combine(saveDir, "save.dat"), "payload");
-
-        return new Game
-        {
-            Id = id,
-            DisplayName = displayName,
-            SaveDirTemplate = saveDir.Replace('\\', '/'),
-        };
     }
 
     private List<GameRowViewModel> Rows(params Game[] games) =>
@@ -65,7 +47,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
     public async Task BackupAsync_resets_targets_to_checking_and_reports_the_start_before_claiming_any_row()
     {
         var backup = new BackupService();
-        var rows = Rows(GameWithSaves("game-a", "Game A"), GameWithSaves("game-b", "Game B"));
+        var rows = Rows(TestGames.WithNamedSaves(_dir, "game-a", "Game A"), TestGames.WithNamedSaves(_dir, "game-b", "Game B"));
         var seenAtStart = default(List<(BackupComparisonKind Kind, bool Busy)>);
 
         var coordinator = new BulkBackupCoordinator(
@@ -96,7 +78,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
     public async Task BackupAsync_releases_every_target_and_calls_onFinished_once_after_the_loop()
     {
         var backup = new BackupService();
-        var rows = Rows(GameWithSaves("game-a", "Game A"), GameWithSaves("game-b", "Game B"));
+        var rows = Rows(TestGames.WithNamedSaves(_dir, "game-a", "Game A"), TestGames.WithNamedSaves(_dir, "game-b", "Game B"));
         var releasedAtFinish = default(List<bool>);
         var finishCount = 0;
 
@@ -124,7 +106,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
     public async Task BackupAsync_still_releases_and_calls_onFinished_when_the_loop_throws()
     {
         var backup = new BackupService();
-        var rows = Rows(GameWithSaves("game-a", "Game A"), GameWithSaves("game-b", "Game B"));
+        var rows = Rows(TestGames.WithNamedSaves(_dir, "game-a", "Game A"), TestGames.WithNamedSaves(_dir, "game-b", "Game B"));
         var finishCount = 0;
 
         var coordinator = new BulkBackupCoordinator(
@@ -149,7 +131,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
     public async Task BackupAsync_with_no_targets_returns_null_and_touches_nothing()
     {
         var backup = new BackupService();
-        var rows = Rows(GameWithSaves("game-a", "Game A"));
+        var rows = Rows(TestGames.WithNamedSaves(_dir, "game-a", "Game A"));
         var started = 0;
         var finished = 0;
 
@@ -181,7 +163,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
             DisplayName = "Broken Game",
             SaveDirTemplate = "%UNRESOLVED%/saves",
         };
-        var good = GameWithSaves("game-good", "Good Game");
+        var good = TestGames.WithNamedSaves(_dir, "game-good", "Good Game");
         var rows = Rows(broken, good);
 
         var coordinator = new BulkBackupCoordinator(
@@ -208,7 +190,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
     public async Task BackupAsync_routes_every_loop_row_write_through_onUi()
     {
         var backup = new BackupService();
-        var rows = Rows(GameWithSaves("game-a", "Game A"), GameWithSaves("game-b", "Game B"));
+        var rows = Rows(TestGames.WithNamedSaves(_dir, "game-a", "Game A"), TestGames.WithNamedSaves(_dir, "game-b", "Game B"));
         var onUiCalls = 0;
 
         var coordinator = new BulkBackupCoordinator(
@@ -233,8 +215,8 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
     {
         var backup = new BackupService();
         var backupRoot = Path.Combine(_dir, "backups");
-        var gameA = GameWithSaves("game-a", "Game A");
-        var gameB = GameWithSaves("game-b", "Game B");
+        var gameA = TestGames.WithNamedSaves(_dir, "game-a", "Game A");
+        var gameB = TestGames.WithNamedSaves(_dir, "game-b", "Game B");
         var rows = Rows(gameA, gameB);
 
         var coordinator = new BulkBackupCoordinator(
@@ -273,8 +255,8 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
         var backup = new BackupService();
         var backupRoot = Path.Combine(_dir, "backups");
 
-        var first = GameWithSaves("game-first", "First Game");
-        var second = GameWithSaves("game-second", "Second Game");
+        var first = TestGames.WithNamedSaves(_dir, "game-first", "First Game");
+        var second = TestGames.WithNamedSaves(_dir, "game-second", "Second Game");
         await WriteOrdinaryBackupAsync(backup, first, backupRoot);
         await WriteOrdinaryBackupAsync(backup, second, backupRoot);
 
@@ -322,7 +304,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
     public async Task RestoreAsync_with_no_targets_returns_null_and_touches_nothing()
     {
         var backup = new BackupService();
-        var rows = Rows(GameWithSaves("game-a", "Game A"));
+        var rows = Rows(TestGames.WithNamedSaves(_dir, "game-a", "Game A"));
         var started = 0;
         var items = 0;
         var finished = 0;
@@ -348,8 +330,8 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
         var backupRoot = Path.Combine(_dir, "backups");
 
         // First game has no archive under the backup root at all; the second one does.
-        var missing = GameWithSaves("game-missing", "Missing Game");
-        var present = GameWithSaves("game-present", "Present Game");
+        var missing = TestGames.WithNamedSaves(_dir, "game-missing", "Missing Game");
+        var present = TestGames.WithNamedSaves(_dir, "game-present", "Present Game");
         await WriteOrdinaryBackupAsync(backup, present, backupRoot);
 
         var dialog = new RecordingDialogService { ConfirmToReturn = true };

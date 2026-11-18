@@ -46,35 +46,18 @@ public sealed class ServiceContractTests : IDisposable
                 "Same unknown-key contract as Strings.Get(String) — a bad format key must throw, not render a placeholder sentence.",
         };
 
+    private readonly TempDir _temp = new();
     private readonly string _dir;
     private readonly BackupService _service = new();
     private readonly Dictionary<string, List<Action>> _cases;
 
     public ServiceContractTests()
     {
-        _dir = Path.Combine(Path.GetTempPath(), "SavegameBunkerTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_dir);
+        _dir = _temp.DirectoryPath;
         _cases = BuildCases();
     }
 
-    public void Dispose()
-    {
-        try
-        {
-            // A denied-ACL subdirectory must be re-permitted before it can be deleted, the same
-            // cleanup order every filesystem-touching test file here follows.
-            TestFileSystem.RemoveDenyRules(_dir);
-            Directory.Delete(_dir, recursive: true);
-        }
-        catch (IOException)
-        {
-            // A leftover temp directory must not fail the test run.
-        }
-        catch (UnauthorizedAccessException)
-        {
-            // A Deny ACE that could not be lifted must not fail the whole run.
-        }
-    }
+    public void Dispose() => _temp.Dispose();
 
     [Fact]
     public void The_public_service_surface_is_exactly_the_cases_plus_the_documented_exemptions()
