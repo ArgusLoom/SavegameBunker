@@ -4,12 +4,32 @@ using SavegameBunker.Services;
 namespace SavegameBunker.Tests;
 
 /// <summary>
-/// Pins <see cref="DriveHints.ChooseStartFolder"/>'s selection matrix and
+/// Pins <see cref="DriveHints.ChooseStartFolder"/>'s selection matrix,
+/// <see cref="DriveHints.ShouldProbeReadiness"/>'s DriveType gate and
 /// <see cref="DriveHints.SuggestBackupStartFolder"/>'s never-throw contract on the real machine.
 /// </summary>
 public sealed class DriveHintsTests
 {
     private const string SystemRoot = @"C:\";
+
+    /// <summary>
+    /// <see cref="DriveInfo.IsReady"/> on a stale mapped network drive blocks for the SMB timeout
+    /// and is slow on optical drives, and only Fixed and Removable volumes can ever be chosen by
+    /// <see cref="DriveHints.ChooseStartFolder"/> — so the readiness probe is skipped for every
+    /// other drive type.
+    /// </summary>
+    [Theory]
+    [InlineData(DriveType.Fixed, true)]
+    [InlineData(DriveType.Removable, true)]
+    [InlineData(DriveType.Network, false)]
+    [InlineData(DriveType.CDRom, false)]
+    [InlineData(DriveType.Ram, false)]
+    [InlineData(DriveType.NoRootDirectory, false)]
+    [InlineData(DriveType.Unknown, false)]
+    public void Readiness_is_probed_only_for_fixed_and_removable_drives(DriveType type, bool expected)
+    {
+        Assert.Equal(expected, DriveHints.ShouldProbeReadiness(type));
+    }
 
     [Fact]
     public void No_qualifying_volume_yields_null()

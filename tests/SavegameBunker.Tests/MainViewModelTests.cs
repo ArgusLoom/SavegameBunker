@@ -149,11 +149,13 @@ public sealed class RecordingDialogService : IDialogService
 public sealed class MainViewModelTests : IDisposable
 {
     private readonly string _dir;
+    private readonly string _suggestedStartFolder;
 
     public MainViewModelTests()
     {
         _dir = Path.Combine(Path.GetTempPath(), "SavegameBunkerTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_dir);
+        _suggestedStartFolder = Path.Combine(_dir, "suggested-start");
     }
 
     public void Dispose()
@@ -200,7 +202,7 @@ public sealed class MainViewModelTests : IDisposable
 
         var dialog = new RecordingDialogService();
         var load = new CatalogLoad(catalogPath, catalog, [], false, null);
-        var vm = new MainViewModel(load, dialog);
+        var vm = new MainViewModel(load, dialog, () => _suggestedStartFolder);
         return (vm, dialog, catalogPath);
     }
 
@@ -421,7 +423,7 @@ public sealed class MainViewModelTests : IDisposable
 
         await WaitForAsync(() => dialog.PickFolderCalls == 1);
 
-        Assert.Equal(DriveHints.SuggestBackupStartFolder(), Assert.Single(dialog.PickFolderInitialDirectories));
+        Assert.Equal(_suggestedStartFolder, Assert.Single(dialog.PickFolderInitialDirectories));
     }
 
     [Fact]
@@ -489,8 +491,8 @@ public sealed class MainViewModelTests : IDisposable
         var zips = Directory.GetFiles(Path.Combine(picked, "test-game"), "*.zip");
         Assert.Single(zips);
 
-        var suggested = DriveHints.SuggestBackupStartFolder();
-        Assert.True(suggested is null || !string.Equals(suggested, reloaded.Catalog.BackupRoot, StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(_suggestedStartFolder, Assert.Single(dialog.PickFolderInitialDirectories));
+        Assert.NotEqual(_suggestedStartFolder.Replace('\\', '/'), reloaded.Catalog.BackupRoot);
     }
 
     [Fact]

@@ -43,6 +43,17 @@ internal static class DriveHints
     }
 
     /// <summary>
+    /// Whether <see cref="DriveInfo.IsReady"/> may be read for a volume of the given type.
+    /// IsReady on a stale mapped network drive blocks for the SMB timeout and is slow on optical
+    /// drives, and only Fixed and Removable volumes can ever be chosen by
+    /// <see cref="ChooseStartFolder"/>, so the readiness probe is skipped for every other type.
+    /// </summary>
+    internal static bool ShouldProbeReadiness(DriveType type)
+    {
+        return type == DriveType.Fixed || type == DriveType.Removable;
+    }
+
+    /// <summary>
     /// Enumerates the machine's drives and hands them to <see cref="ChooseStartFolder"/>. Never
     /// throws across its boundary — same never-throw-across-the-boundary contract every other
     /// service in <c>Services/</c> holds — because a failure here must never block the picker.
@@ -68,7 +79,8 @@ internal static class DriveHints
         {
             try
             {
-                volumes.Add((drive.RootDirectory.FullName, drive.DriveType, drive.IsReady));
+                var type = drive.DriveType;
+                volumes.Add((drive.RootDirectory.FullName, type, ShouldProbeReadiness(type) && drive.IsReady));
             }
             catch (IOException) { continue; }
             catch (UnauthorizedAccessException) { continue; }

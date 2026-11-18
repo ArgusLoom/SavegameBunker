@@ -94,8 +94,26 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         Interval = TimeSpan.FromMilliseconds(150),
     };
 
+    private readonly Func<string?> _suggestBackupStartFolder;
+
+    /// <summary>
+    /// Production construction: the start-folder probe is the real drive enumeration
+    /// (<see cref="DriveHints.SuggestBackupStartFolder"/>).
+    /// </summary>
     public MainViewModel(CatalogLoad load, IDialogService dialog)
+        : this(load, dialog, DriveHints.SuggestBackupStartFolder)
     {
+    }
+
+    /// <summary>
+    /// The start-folder probe is the picker path's only touch of the machine's real drives;
+    /// it is injected so tests can pass a fixed folder instead of walking actual volumes (D-05).
+    /// Production always uses <see cref="DriveHints.SuggestBackupStartFolder"/> via the public
+    /// constructor.
+    /// </summary>
+    internal MainViewModel(CatalogLoad load, IDialogService dialog, Func<string?> suggestBackupStartFolder)
+    {
+        _suggestBackupStartFolder = suggestBackupStartFolder;
         _session = new CatalogSession(load);
         _dialog = dialog;
         // In dependency order: GameActions first, because the bulk and row coordinators take it.
@@ -1464,7 +1482,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
             return existing;
         }
 
-        var start = await Task.Run(DriveHints.SuggestBackupStartFolder);
+        var start = await Task.Run(_suggestBackupStartFolder);
         var picked = _dialog.PickFolder(Strings.Get("str_common_pickBackupFolderTitle"), start);
         if (picked is null)
         {
