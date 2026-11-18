@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Fixed
+
+- **Backups now show the right date with Thai, Persian or Arabic regional formats.** With one of
+  those Windows formats, backups were named in that calendar's year (for example 2569 instead of
+  2026). A Thai-format PC then showed every game as "up to date" even after its saves had
+  changed, so "Back up all changed" skipped it. Backups made from now on use the usual date.
+  Older archives keep their names.
+- **Deleting a backup in the restore list and then cancelling now updates the game's row.**
+  Before, the row kept showing the deleted backup until you clicked Refresh.
+
 ## [1.0.1] - 2026-11-18
 
 A maintenance release: two clearer error situations and a lot of work under the hood. Nothing
