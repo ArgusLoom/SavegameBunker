@@ -1940,9 +1940,11 @@ public sealed class MainViewModelTests : IDisposable
         // window-level bar is gone.
         Assert.False(vm.IsBulkBackupRunning);
         Assert.Equal(0, vm.BulkBackupTotal);
-        // Count/name reports travel through Progress<T> and may land after the command settles on
-        // a test host without a SynchronizationContext; the view model drops them once the run ended.
-        await WaitForAsync(() => vm.BulkBackupCurrent == 0 && vm.BulkBackupCurrentGameName is null);
+        // Count/name reports now travel through onUi inside the run, never after it — the closing
+        // counter clear in RunBulkBackupAsync's onFinished has already run by the time the command
+        // settles, so no wait is needed here.
+        Assert.Equal(0, vm.BulkBackupCurrent);
+        Assert.Null(vm.BulkBackupCurrentGameName);
         Assert.NotEmpty(dialog.InfoMessages);
         // Every target row's own byte state is back at zero too — the bulk game-count
         // surface above is unrelated per-row byte state, and both must clear independently.

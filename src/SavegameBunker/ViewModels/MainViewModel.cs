@@ -1471,20 +1471,12 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         if (root is null)
             return; // Either the user cancelled the picker or saving the choice failed — both routes already told the user what happened.
 
-        var progress = new Progress<(int Index, string Name)>(p =>
-        {
-            // A report posted before the run ended can arrive after the reset; drop it.
-            if (!IsBulkBackupRunning)
-                return;
-            SetBulkProgress(p.Index, p.Name);
-        });
-
         var byteProgress = targets.ToDictionary(row => row, CreateByteProgress);
 
         var run = await _bulk.BackupAsync(
             targets,
             root,
-            progress,
+            SetBulkProgress,
             byteProgress,
             (total, first) => BeginBulkProgress(total, first, isRestore: false),
             () =>

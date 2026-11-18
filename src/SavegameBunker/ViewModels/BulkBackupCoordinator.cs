@@ -47,9 +47,12 @@ internal sealed class BulkBackupCoordinator
     /// before touching anything — the view model already guards, this keeps the coordinator
     /// total.
     /// </summary>
-    /// <param name="progress">
-    /// The (index, display-name) reporter for the window-level progress sentence, constructed by
-    /// the caller on the UI thread.
+    /// <param name="onItem">
+    /// Called at the top of each iteration with the 1-based index and the display name, invoked
+    /// through <c>onUi</c> like every other row write in this loop — the same callback shape
+    /// <see cref="RestoreAsync"/> already uses. Because it runs through <c>onUi</c> before that
+    /// row's write begins, the view model's counters move on the UI thread before the row's
+    /// write starts, and no report can arrive after the run ends.
     /// </param>
     /// <param name="byteProgress">
     /// One per-row byte reporter per target, each constructed by the caller on the UI thread.
@@ -67,7 +70,7 @@ internal sealed class BulkBackupCoordinator
     public async Task<BulkBackupRun?> BackupAsync(
         IReadOnlyList<GameRowViewModel> targets,
         string backupRoot,
-        IProgress<(int Index, string Name)> progress,
+        Action<int, string> onItem,
         IReadOnlyDictionary<GameRowViewModel, IProgress<long>> byteProgress,
         Action<int, string> onStarted,
         Action onFinished)
@@ -101,7 +104,8 @@ internal sealed class BulkBackupCoordinator
                 for (var i = 0; i < targets.Count; i++)
                 {
                     var row = targets[i];
-                    progress.Report((i + 1, row.DisplayName));
+                    var index = i + 1;
+                    _onUi(() => onItem(index, row.DisplayName));
 
                     // Set before this row's write starts, same as the per-row BackupAsync command —
                     // the determinate-vs-indeterminate decision is made before the first byte.

@@ -28,14 +28,6 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
         catch (IOException) { /* a leftover temp directory must not fail the test run */ }
     }
 
-    /// <summary>A synchronous recording stand-in for the (index, name) bulk reporter.</summary>
-    private sealed class RecordingIndexProgress : IProgress<(int Index, string Name)>
-    {
-        public List<(int Index, string Name)> Reports { get; } = [];
-
-        public void Report((int Index, string Name) value) => Reports.Add(value);
-    }
-
     private sealed class ByteProgressRecorder : IProgress<long>
     {
         public List<long> Reports { get; } = [];
@@ -80,7 +72,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
             backup, new GameActions(backup, new RecordingDialogService()), _ => { });
 
         var run = await coordinator.BackupAsync(
-            rows, Path.Combine(_dir, "backups"), new RecordingIndexProgress(), ByteProgressFor(rows),
+            rows, Path.Combine(_dir, "backups"), (_, _) => { }, ByteProgressFor(rows),
             (total, first) =>
             {
                 Assert.Equal(2, total);
@@ -112,7 +104,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
             backup, new GameActions(backup, new RecordingDialogService()), _ => { });
 
         var run = await coordinator.BackupAsync(
-            rows, Path.Combine(_dir, "backups"), new RecordingIndexProgress(), ByteProgressFor(rows),
+            rows, Path.Combine(_dir, "backups"), (_, _) => { }, ByteProgressFor(rows),
             (_, _) => { },
             () =>
             {
@@ -143,7 +135,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
         var byteProgress = ByteProgressFor([rows[0]]);
 
         var exception = await Assert.ThrowsAsync<KeyNotFoundException>(() => coordinator.BackupAsync(
-            rows, Path.Combine(_dir, "backups"), new RecordingIndexProgress(), byteProgress,
+            rows, Path.Combine(_dir, "backups"), (_, _) => { }, byteProgress,
             (_, _) => { },
             () => finishCount++));
 
@@ -165,7 +157,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
             backup, new GameActions(backup, new RecordingDialogService()), _ => { });
 
         var run = await coordinator.BackupAsync(
-            new List<GameRowViewModel>(), Path.Combine(_dir, "backups"), new RecordingIndexProgress(),
+            new List<GameRowViewModel>(), Path.Combine(_dir, "backups"), (_, _) => { },
             ByteProgressFor(rows),
             (_, _) => started++,
             () => finished++);
@@ -193,11 +185,12 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
         var rows = Rows(broken, good);
 
         var coordinator = new BulkBackupCoordinator(
-            backup, new GameActions(backup, new RecordingDialogService()), _ => { });
+            backup, new GameActions(backup, new RecordingDialogService()), action => action());
 
-        var indexProgress = new RecordingIndexProgress();
+        var reported = new List<(int Index, string Name)>();
         var run = await coordinator.BackupAsync(
-            rows, backupRoot, indexProgress, ByteProgressFor(rows), (_, _) => { }, () => { });
+            rows, backupRoot, (index, name) => reported.Add((index, name)), ByteProgressFor(rows),
+            (_, _) => { }, () => { });
 
         Assert.NotNull(run);
         Assert.Equal(["Broken Game"], run.Failed);
@@ -208,7 +201,7 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
         Assert.Single(Directory.GetFiles(gameDir, "*.zip"));
         Assert.Equal(
             new[] { (1, "Broken Game"), (2, "Good Game") },
-            indexProgress.Reports.Select(report => (report.Index, report.Name)).ToArray());
+            reported.ToArray());
     }
 
     [Fact]
@@ -219,16 +212,51 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
         var onUiCalls = 0;
 
         var coordinator = new BulkBackupCoordinator(
-            backup, new GameActions(backup, new RecordingDialogService()), _ => onUiCalls++);
+            backup, new GameActions(backup, new RecordingDialogService()), action =>
+            {
+                onUiCalls++;
+                action();
+            });
 
         var run = await coordinator.BackupAsync(
-            rows, Path.Combine(_dir, "backups"), new RecordingIndexProgress(), ByteProgressFor(rows),
+            rows, Path.Combine(_dir, "backups"), (_, _) => { }, ByteProgressFor(rows),
             (_, _) => { }, () => { });
 
         Assert.NotNull(run);
-        // Three routed writes per successful row: the byte-total set, the RestoredArchiveTakenAt
-        // clear and the closing counter clear — 3 × 2 targets = 6.
-        Assert.Equal(6, onUiCalls);
+        // Four routed calls per successful row: the progress report, the byte-total set, the
+        // RestoredArchiveTakenAt clear and the closing counter clear — 4 × 2 targets = 8.
+        Assert.Equal(8, onUiCalls);
+    }
+
+    [Fact]
+    public async Task BackupAsync_reports_each_game_before_writing_its_archive()
+    {
+        var backup = new BackupService();
+        var backupRoot = Path.Combine(_dir, "backups");
+        var gameA = GameWithSaves("game-a", "Game A");
+        var gameB = GameWithSaves("game-b", "Game B");
+        var rows = Rows(gameA, gameB);
+
+        var coordinator = new BulkBackupCoordinator(
+            backup, new GameActions(backup, new RecordingDialogService()), action => action());
+
+        var reported = new List<(int Index, string Name, int ArchiveCountSoFar)>();
+
+        var run = await coordinator.BackupAsync(
+            rows, backupRoot,
+            (index, name) =>
+            {
+                var gameId = index == 1 ? gameA.Id : gameB.Id;
+                var gameDir = Path.Combine(backupRoot, gameId);
+                var archiveCount = Directory.Exists(gameDir) ? Directory.GetFiles(gameDir, "*.zip").Length : 0;
+                reported.Add((index, name, archiveCount));
+            },
+            ByteProgressFor(rows), (_, _) => { }, () => { });
+
+        Assert.NotNull(run);
+        Assert.Equal(
+            new[] { (1, "Game A", 0), (2, "Game B", 0) },
+            reported);
     }
 
     private static async Task WriteOrdinaryBackupAsync(BackupService backup, Game game, string backupRoot)
