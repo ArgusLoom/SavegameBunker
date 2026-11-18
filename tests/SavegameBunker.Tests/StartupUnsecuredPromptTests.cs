@@ -2,6 +2,7 @@ using System.IO;
 using SavegameBunker.Models;
 using SavegameBunker.Services;
 using SavegameBunker.ViewModels;
+using static SavegameBunker.Tests.TestWait;
 
 namespace SavegameBunker.Tests;
 
@@ -15,25 +16,15 @@ namespace SavegameBunker.Tests;
 /// </summary>
 public sealed class StartupUnsecuredPromptTests : IDisposable
 {
+    private readonly TempDir _temp = new();
     private readonly string _dir;
 
     public StartupUnsecuredPromptTests()
     {
-        _dir = Path.Combine(Path.GetTempPath(), "SavegameBunkerTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_dir);
+        _dir = _temp.DirectoryPath;
     }
 
-    public void Dispose()
-    {
-        try
-        {
-            Directory.Delete(_dir, recursive: true);
-        }
-        catch (IOException)
-        {
-            // A leftover temp directory must not fail the test run.
-        }
-    }
+    public void Dispose() => _temp.Dispose();
 
     /// <summary>
     /// Builds a view model over <paramref name="gameCount"/> games, each with a real, non-empty
@@ -80,15 +71,6 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
         await WaitForAsync(() => vm.IsFirstFullSweepSettled);
 
         return (vm, dialog, backupRoot);
-    }
-
-    private static async Task WaitForAsync(Func<bool> condition, int timeoutMs = 3000)
-    {
-        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
-        while (!condition() && DateTime.UtcNow < deadline)
-            await Task.Delay(5);
-
-        Assert.True(condition(), "Timed out waiting for the expected view model state.");
     }
 
     [Fact]

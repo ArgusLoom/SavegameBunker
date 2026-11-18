@@ -2,6 +2,7 @@ using System.IO;
 using SavegameBunker.Models;
 using SavegameBunker.Services;
 using SavegameBunker.ViewModels;
+using static SavegameBunker.Tests.TestWait;
 
 namespace SavegameBunker.Tests;
 
@@ -154,25 +155,15 @@ public sealed class RestorePickerViewModelTests
 /// </summary>
 public sealed class RestorePickerDeleteTests : IDisposable
 {
+    private readonly TempDir _temp = new();
     private readonly string _dir;
 
     public RestorePickerDeleteTests()
     {
-        _dir = Path.Combine(Path.GetTempPath(), "SavegameBunkerTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_dir);
+        _dir = _temp.DirectoryPath;
     }
 
-    public void Dispose()
-    {
-        try
-        {
-            Directory.Delete(_dir, recursive: true);
-        }
-        catch (IOException)
-        {
-            // A leftover temp directory must not fail the test run.
-        }
-    }
+    public void Dispose() => _temp.Dispose();
 
     private BackupArchive RealArchive(string fileName)
     {
@@ -378,11 +369,6 @@ public sealed class RestorePickerDeleteTests : IDisposable
         Assert.Single(dialogs.ErrorMessages);
     }
 
-    private static async Task WaitForPendingDelete(RestorePickerViewModel vm, bool expectPending = true)
-    {
-        var deadline = DateTime.UtcNow.AddMilliseconds(3000);
-        while (vm.IsDeletePending != expectPending && DateTime.UtcNow < deadline)
-            await Task.Delay(5);
-        Assert.Equal(expectPending, vm.IsDeletePending);
-    }
+    private static async Task WaitForPendingDelete(RestorePickerViewModel vm, bool expectPending = true) =>
+        await WaitForAsync(() => vm.IsDeletePending == expectPending);
 }

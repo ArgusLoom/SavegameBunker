@@ -2,6 +2,7 @@ using System.IO;
 using SavegameBunker.Models;
 using SavegameBunker.Services;
 using SavegameBunker.ViewModels;
+using static SavegameBunker.Tests.TestWait;
 
 namespace SavegameBunker.Tests;
 
@@ -12,37 +13,18 @@ namespace SavegameBunker.Tests;
 /// </summary>
 public sealed class ChangeSaveFolderDialogViewModelTests : IDisposable
 {
+    private readonly TempDir _temp = new();
     private readonly string _dir;
 
     public ChangeSaveFolderDialogViewModelTests()
     {
-        _dir = Path.Combine(Path.GetTempPath(), "SavegameBunkerTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_dir);
+        _dir = _temp.DirectoryPath;
     }
 
-    public void Dispose()
-    {
-        try
-        {
-            Directory.Delete(_dir, recursive: true);
-        }
-        catch (IOException)
-        {
-            // A leftover temp directory must not fail the test run.
-        }
-    }
+    public void Dispose() => _temp.Dispose();
 
     private static ChangeSaveFolderDialogViewModel CreateViewModel(string currentTemplate) =>
         new("Test Game", currentTemplate, new ThrowingDialogService());
-
-    private static async Task WaitForAsync(Func<bool> condition, int timeoutMs = 3000)
-    {
-        var deadline = DateTime.UtcNow.AddMilliseconds(timeoutMs);
-        while (!condition() && DateTime.UtcNow < deadline)
-            await Task.Delay(5);
-
-        Assert.True(condition(), "Timed out waiting for the expected view model state.");
-    }
 
     [Fact]
     public void The_dialog_opens_pre_filled_with_the_rows_current_template()

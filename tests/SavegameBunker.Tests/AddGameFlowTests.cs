@@ -11,25 +11,15 @@ namespace SavegameBunker.Tests;
 /// </summary>
 public sealed class AddGameFlowTests : IDisposable
 {
+    private readonly TempDir _temp = new();
     private readonly string _dir;
 
     public AddGameFlowTests()
     {
-        _dir = Path.Combine(Path.GetTempPath(), "SavegameBunkerTests", Guid.NewGuid().ToString("N"));
-        Directory.CreateDirectory(_dir);
+        _dir = _temp.DirectoryPath;
     }
 
-    public void Dispose()
-    {
-        try
-        {
-            Directory.Delete(_dir, recursive: true);
-        }
-        catch (IOException)
-        {
-            // A leftover temp directory must not fail the test run.
-        }
-    }
+    public void Dispose() => _temp.Dispose();
 
     [Fact]
     public async Task Added_game_survives_a_save_and_reload_with_its_template_and_backup_root_intact()
