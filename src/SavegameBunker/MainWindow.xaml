@@ -389,20 +389,12 @@
                                                     RelativeSource={RelativeSource AncestorType=Window}}"
                                                 CommandParameter="{Binding}"
                                                 ToolTip="{DynamicResource str_action_backUp_tip}"
-                                                AutomationProperties.Name="{DynamicResource str_action_backUp}">
+                                                AutomationProperties.Name="{DynamicResource str_action_backUp}"
+                                                Style="{StaticResource RowActionButton}">
                                             <Viewbox Width="18" Height="18">
                                                 <Path Style="{StaticResource ToolbarGlyphPath}"
                                                       Data="{StaticResource Icon.Backup}"/>
                                             </Viewbox>
-                                            <ui:Button.Style>
-                                                <Style TargetType="ui:Button" BasedOn="{StaticResource IconActionButton}">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsBusy}" Value="True">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </ui:Button.Style>
                                         </ui:Button>
                                         <ui:ProgressRing IsIndeterminate="True" Width="24" Height="24"
                                                 AutomationProperties.Name="{DynamicResource str_progress_rowBusy}">
@@ -463,20 +455,12 @@
                                                     RelativeSource={RelativeSource AncestorType=Window}}"
                                                 CommandParameter="{Binding}"
                                                 ToolTip="{DynamicResource str_action_restore_tip}"
-                                                AutomationProperties.Name="{DynamicResource str_common_restore}">
+                                                AutomationProperties.Name="{DynamicResource str_common_restore}"
+                                                Style="{StaticResource RowActionButton}">
                                             <Viewbox Width="18" Height="18">
                                                 <Path Style="{StaticResource ToolbarGlyphPath}"
                                                       Data="{StaticResource Icon.Restore}"/>
                                             </Viewbox>
-                                            <ui:Button.Style>
-                                                <Style TargetType="ui:Button" BasedOn="{StaticResource IconActionButton}">
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding IsBusy}" Value="True">
-                                                            <Setter Property="Visibility" Value="Collapsed"/>
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </ui:Button.Style>
                                         </ui:Button>
                                         <!-- Overflow chrome is load-bearing: replacing the Style
                                              attribute with a Style element drops the icon sizing
@@ -499,45 +483,18 @@
                                                          reach the window's DataContext and Command resolves
                                                          to null — the click is silently inert. -->
                                                     <ui:MenuItem Style="{StaticResource OverflowMenuItem}"
-                                                            Click="OpenSaveFolderMenuItem_Click">
-                                                        <ui:MenuItem.Header>
-                                                            <StackPanel Orientation="Horizontal">
-                                                                <Viewbox Width="16" Height="16" Margin="0,0,8,0">
-                                                                    <Path Style="{StaticResource OverflowMenuGlyphPath}"
-                                                                          Data="{StaticResource Icon.OpenFolder}"/>
-                                                                </Viewbox>
-                                                                <TextBlock Text="{DynamicResource str_overflow_openSaveFolder}"
-                                                                           VerticalAlignment="Center"/>
-                                                            </StackPanel>
-                                                        </ui:MenuItem.Header>
-                                                    </ui:MenuItem>
+                                                            Click="OpenSaveFolderMenuItem_Click"
+                                                            Header="{DynamicResource str_overflow_openSaveFolder}"
+                                                            Tag="{StaticResource Icon.OpenFolder}"/>
                                                     <ui:MenuItem Style="{StaticResource OverflowMenuItem}"
-                                                            Click="ChangeSaveFolderMenuItem_Click">
-                                                        <ui:MenuItem.Header>
-                                                            <StackPanel Orientation="Horizontal">
-                                                                <Viewbox Width="16" Height="16" Margin="0,0,8,0">
-                                                                    <Path Style="{StaticResource OverflowMenuGlyphPath}"
-                                                                          Data="{StaticResource Icon.SaveFolder}"/>
-                                                                </Viewbox>
-                                                                <TextBlock Text="{DynamicResource str_overflow_changeSaveFolder}"
-                                                                           VerticalAlignment="Center"/>
-                                                            </StackPanel>
-                                                        </ui:MenuItem.Header>
-                                                    </ui:MenuItem>
+                                                            Click="ChangeSaveFolderMenuItem_Click"
+                                                            Header="{DynamicResource str_overflow_changeSaveFolder}"
+                                                            Tag="{StaticResource Icon.SaveFolder}"/>
                                                     <Separator/>
                                                     <ui:MenuItem Style="{StaticResource OverflowMenuItem}"
-                                                            Click="RemoveGameMenuItem_Click">
-                                                        <ui:MenuItem.Header>
-                                                            <StackPanel Orientation="Horizontal">
-                                                                <Viewbox Width="16" Height="16" Margin="0,0,8,0">
-                                                                    <Path Style="{StaticResource OverflowMenuGlyphPath}"
-                                                                          Data="{StaticResource Icon.Remove}"/>
-                                                                </Viewbox>
-                                                                <TextBlock Text="{DynamicResource str_overflow_removeGame}"
-                                                                           VerticalAlignment="Center"/>
-                                                            </StackPanel>
-                                                        </ui:MenuItem.Header>
-                                                    </ui:MenuItem>
+                                                            Click="RemoveGameMenuItem_Click"
+                                                            Header="{DynamicResource str_overflow_removeGame}"
+                                                            Tag="{StaticResource Icon.Remove}"/>
                                                 </ContextMenu>
                                             </ui:DropDownButton.Flyout>
                                         </ui:DropDownButton>
