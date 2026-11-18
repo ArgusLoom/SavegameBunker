@@ -112,7 +112,7 @@ internal sealed class GameActions
         if (listable is null)
             return null;
 
-        var picked = _dialog.ShowRestorePickerDialog(row.DisplayName, listable);
+        var picked = _dialog.ShowRestorePickerDialog(row.DisplayName, listable, _backup.DeleteArchive);
         if (picked is null)
             return null;
 

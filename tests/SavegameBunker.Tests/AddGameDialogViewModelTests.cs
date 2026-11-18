@@ -22,7 +22,8 @@ public sealed class ThrowingDialogService : IDialogService
     public OperationResult OpenInEditor(string path) => throw new InvalidOperationException("Not expected to be called.");
     public OperationResult OpenHttps(string url) => throw new InvalidOperationException("Not expected to be called.");
     public OperationResult OpenHelpGuide(string uiLanguage) => throw new InvalidOperationException("Not expected to be called.");
-    public BackupArchive? ShowRestorePickerDialog(string gameDisplayName, IReadOnlyList<BackupArchive> backups) => throw new InvalidOperationException("Not expected to be called.");
+    public BackupArchive? ShowRestorePickerDialog(string gameDisplayName, IReadOnlyList<BackupArchive> backups,
+        Func<string, OperationResult> deleteArchive) => throw new InvalidOperationException("Not expected to be called.");
     public string? ShowChangeSaveFolderDialog(string gameDisplayName, string currentTemplate) => throw new InvalidOperationException("Not expected to be called.");
 }
 

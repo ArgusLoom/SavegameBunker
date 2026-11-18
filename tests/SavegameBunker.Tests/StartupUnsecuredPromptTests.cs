@@ -239,8 +239,9 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
         public OperationResult OpenInEditor(string path) => _inner.OpenInEditor(path);
         public OperationResult OpenHttps(string url) => _inner.OpenHttps(url);
         public OperationResult OpenHelpGuide(string uiLanguage) => _inner.OpenHelpGuide(uiLanguage);
-        public BackupArchive? ShowRestorePickerDialog(string gameDisplayName, IReadOnlyList<BackupArchive> backups) =>
-            _inner.ShowRestorePickerDialog(gameDisplayName, backups);
+        public BackupArchive? ShowRestorePickerDialog(string gameDisplayName, IReadOnlyList<BackupArchive> backups,
+            Func<string, OperationResult> deleteArchive) =>
+            _inner.ShowRestorePickerDialog(gameDisplayName, backups, deleteArchive);
         public string? ShowChangeSaveFolderDialog(string gameDisplayName, string currentTemplate) =>
             _inner.ShowChangeSaveFolderDialog(gameDisplayName, currentTemplate);
     }

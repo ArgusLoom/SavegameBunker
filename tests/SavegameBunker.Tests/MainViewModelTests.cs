@@ -128,9 +128,15 @@ public sealed class RecordingDialogService : IDialogService
 
     public List<IReadOnlyList<BackupArchive>> RestorePickerCalls { get; } = [];
 
-    public BackupArchive? ShowRestorePickerDialog(string gameDisplayName, IReadOnlyList<BackupArchive> backups)
+    /// <summary>The delete action each <see cref="ShowRestorePickerDialog"/> call received — the
+    /// seam that proves the caller supplies it, rather than the dialog layer constructing one.</summary>
+    public List<Func<string, OperationResult>> RestorePickerDeleteActions { get; } = [];
+
+    public BackupArchive? ShowRestorePickerDialog(string gameDisplayName, IReadOnlyList<BackupArchive> backups,
+        Func<string, OperationResult> deleteArchive)
     {
         RestorePickerCalls.Add(backups);
+        RestorePickerDeleteActions.Add(deleteArchive);
         return RestorePickerSelectionToReturn;
     }
 
@@ -930,6 +936,26 @@ public sealed class MainViewModelTests : IDisposable
         Assert.Empty(Directory.GetFiles(Path.Combine(backupRoot, "test-game"), "*-pre-restore.zip"));
         Assert.Empty(dialog.ConfirmMessages);
         Assert.Equal("Restore cancelled.", vm.StatusMessage);
+    }
+
+    [Fact]
+    public async Task The_restore_picker_is_given_a_delete_action_that_removes_exactly_that_archive()
+    {
+        var backupRoot = Path.Combine(_dir, "backups");
+        var (vm, dialog, _) = CreateViewModel(backupRoot);
+        var picked = SeedBackup(backupRoot, vm.Games[0].Game);
+
+        dialog.RestorePickerSelectionToReturn = null;
+
+        vm.RestoreCommand.Execute(vm.Games[0]);
+        await WaitForAsync(() => dialog.RestorePickerCalls.Count == 1);
+        await WaitForAsync(() => vm.RestoreCommand.CanExecute(vm.Games[0]));
+
+        var deleteArchive = Assert.Single(dialog.RestorePickerDeleteActions);
+        var result = deleteArchive(picked.FilePath);
+
+        Assert.True(result.Success, result.Message);
+        Assert.False(File.Exists(picked.FilePath));
     }
 
     [Fact]

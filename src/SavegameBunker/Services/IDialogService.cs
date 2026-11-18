@@ -68,7 +68,13 @@ public interface IDialogService
     /// <paramref name="gameDisplayName"/> since the window is opened per-row. Returns the picked
     /// archive, or null if the user cancelled — a cancelled picker restores nothing.
     /// </summary>
-    BackupArchive? ShowRestorePickerDialog(string gameDisplayName, IReadOnlyList<BackupArchive> backups);
+    /// <param name="deleteArchive">
+    /// Deletes the ZIP file at a given path, backing each row's delete button. Supplied by the
+    /// caller — which already holds the <c>BackupService</c> — so this dialog layer never
+    /// constructs a service of its own.
+    /// </param>
+    BackupArchive? ShowRestorePickerDialog(string gameDisplayName, IReadOnlyList<BackupArchive> backups,
+        Func<string, OperationResult> deleteArchive);
 
     /// <summary>
     /// Opens the Change Save Folder dialog for one row, pre-filled with

@@ -184,12 +184,11 @@ public sealed class DialogService : IDialogService
             return dialog.ShowDialog() == true ? vm.BuildSelection() : null;
         });
 
-    public BackupArchive? ShowRestorePickerDialog(string gameDisplayName, IReadOnlyList<BackupArchive> backups) =>
+    public BackupArchive? ShowRestorePickerDialog(string gameDisplayName, IReadOnlyList<BackupArchive> backups,
+        Func<string, OperationResult> deleteArchive) =>
         OnUiThread(() =>
         {
-            var vm = new RestorePickerViewModel(
-                gameDisplayName, backups, this,
-                path => new BackupService().DeleteArchive(path));
+            var vm = new RestorePickerViewModel(gameDisplayName, backups, this, deleteArchive);
             var dialog = new RestorePickerWindow(vm) { Owner = _owner };
             return dialog.ShowDialog() == true ? vm.SelectedBackup?.Archive : null;
         });
