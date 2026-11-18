@@ -10,7 +10,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="36"/>  <!-- TitleBar -->
-            <RowDefinition Height="*"/>   <!-- existing DockPanel content -->
+            <RowDefinition Height="*"/>   <!-- window content -->
         </Grid.RowDefinitions>
 
         <ui:TitleBar Grid.Row="0" Title="{DynamicResource str_toolbar_findGames}"/>
@@ -71,9 +71,9 @@
             </StackPanel>
 
             <!-- Hidden when there are no hits: EmptyStateText below renders the same HeaderText, so
-                 leaving both visible printed the identical sentence twice — once here in bold and again
-                 greyed in the list area. Both bind HeaderText deliberately (03.5-03 keeps the sentence in
-                 the view model and forbids a literal in this file), so the duplication is resolved by
+                 leaving both visible would print the identical sentence twice — once here in bold and again
+                 greyed in the list area. Both bind HeaderText deliberately (the sentence lives in the view
+                 model, and this file carries no literal copy), so the duplication is resolved by
                  showing one of the two, not by giving either its own string. Same HasHits DataTrigger
                  pattern as the ScrollViewer and EmptyStateText below. -->
             <TextBlock DockPanel.Dock="Top" Text="{Binding HeaderText}" FontSize="14" FontWeight="Bold"
@@ -113,12 +113,11 @@
                                                   IsChecked="{Binding IsSelected, Mode=TwoWay}"/>
                                         <StackPanel>
                                             <!--
-                                                These two figure columns traded their fixed
-                                                Width for a MinWidth of the same number. The common
-                                                case is unchanged — almost every rendered value is
-                                                narrower than the minimum, so the column still lines
-                                                up — but an unusually wide value now widens its own
-                                                column instead of being cut mid-number.
+                                                These two figure columns use a MinWidth, not a fixed
+                                                Width. Almost every rendered value is narrower than
+                                                the minimum, so the column still lines up, but an
+                                                unusually wide value widens its own column instead
+                                                of being cut mid-number.
                                             -->
                                             <DockPanel>
                                                 <TextBlock Text="{Binding SizeText}" DockPanel.Dock="Right"

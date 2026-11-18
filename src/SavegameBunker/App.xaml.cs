@@ -15,9 +15,10 @@ namespace SavegameBunker;
 public sealed partial class App : Application
 {
     /// <summary>
-    /// The fixed accent colour — applied once at startup and never re-applied. There is
-    /// no in-app theme setting, so no code path calls <see cref="ApplicationAccentColorManager"/>
-    /// or <see cref="ApplicationThemeManager"/> a second time.
+    /// The fixed brand accent colour, handed to <see cref="ApplicationAccentColorManager"/> by
+    /// <see cref="ApplyTheme"/> — at startup (outside High Contrast) and again on every
+    /// <see cref="ToggleTheme"/>, because
+    /// re-applying the theme resets WPF-UI's accent resources.
     /// </summary>
     /// <remarks>
     /// Read from <c>App.xaml</c> rather than restated here: the same colour drives the accent-tinted
@@ -37,15 +38,15 @@ public sealed partial class App : Application
     private IDialogService? _dialogService;
 
     /// <summary>
-    /// The theme currently applied by <see cref="ApplyTheme"/> — read by the title bar's toggle
-    /// button so it knows which way to flip and which icon to show. Not persisted (no
+    /// The theme currently applied by <see cref="ApplyTheme"/> — read by <see cref="ToggleTheme"/>
+    /// so it knows which way to flip. Not persisted (no
     /// <c>settings.json</c>, see CLAUDE.md): every launch re-derives the starting theme from the
     /// Windows setting via <see cref="ApplicationThemeManager.GetSystemTheme"/>.
     /// </summary>
     public static ApplicationTheme CurrentTheme { get; private set; } = ApplicationTheme.Dark;
 
     /// <summary>
-    /// True when startup applied the fixed dark High Contrast dictionary. The title bar's
+    /// True when startup applied the fixed dark High Contrast dictionary. The toolbar's
     /// theme toggle hides itself in that case — Light/Dark is not a choice while the OS
     /// accessibility setting is in force.
     /// </summary>
@@ -55,7 +56,7 @@ public sealed partial class App : Application
     /// Applies <paramref name="theme"/> (Light or Dark — High Contrast is startup-only, handled
     /// separately in <see cref="OnStartup"/>) and reapplies the accent-brush overrides on top, since
     /// WPF-UI's own <see cref="ApplicationThemeManager.Apply(ApplicationTheme, WindowBackdropType, bool)"/> resets them to its derived ramp.
-    /// Safe to call again after startup — the title bar's toggle button is the only other caller.
+    /// Safe to call again after startup — <see cref="ToggleTheme"/> is the only other caller.
     /// </summary>
     private static void ApplyTheme(ApplicationTheme theme)
     {
@@ -110,7 +111,7 @@ public sealed partial class App : Application
     }
 
     /// <summary>
-    /// The title bar toggle's click handler (session-only, no persistence — see
+    /// Called by the toolbar's theme toggle (session-only, no persistence — see
     /// <see cref="CurrentTheme"/>). Flips between Light and Dark; never touches High Contrast.
     /// </summary>
     public static void ToggleTheme()
@@ -122,7 +123,7 @@ public sealed partial class App : Application
     /// Composition root. Resolves which catalog to load, loads it, and shows the window.
     /// </summary>
     /// <remarks>
-    /// Startup has no fatal path any more: an absent catalog is seeded and a malformed one is
+    /// Startup has no fatal path: an absent catalog is seeded and a malformed one is
     /// reported into the running window, because a application that exits with a dialog is
     /// useless to a user who then has nowhere to fix the problem. The try/catch below is a last
     /// resort for genuinely unexpected failures, not the normal error route.
@@ -159,9 +160,8 @@ public sealed partial class App : Application
             else
             {
                 // No in-app theme setting is persisted (no settings.json, CLAUDE.md), so the
-                // starting theme is re-derived from the Windows setting on every launch. The title
-                // bar's toggle button (SHIP, light-theme addition) can still flip it for the
-                // running session via ApplyTheme.
+                // starting theme is re-derived from the Windows setting on every launch. The
+                // toolbar's theme toggle can still flip it for the running session via ApplyTheme.
                 var startingTheme = ApplicationThemeManager.GetSystemTheme() == SystemTheme.Light
                     ? ApplicationTheme.Light
                     : ApplicationTheme.Dark;
@@ -213,7 +213,7 @@ public sealed partial class App : Application
         {
             // Qualified: Wpf.Ui.Controls also declares a MessageBox/MessageBoxButton, and this
             // last-resort path (startup before any window exists) intentionally keeps the native
-            // dialog rather than picking up WPF-UI's — see the class remarks above.
+            // dialog rather than picking up WPF-UI's.
             System.Windows.MessageBox.Show(
                 $"Failed to start SavegameBunker:\n\n{ex}",
                 "SavegameBunker", System.Windows.MessageBoxButton.OK, MessageBoxImage.Error);
@@ -222,8 +222,7 @@ public sealed partial class App : Application
     }
 
     /// <summary>
-    /// Repoints the accent resources at the OS's own high-contrast colours (the accent rule's second
-    /// clause). The fixed green is SavegameBunker's brand choice, and a brand choice is exactly what a
+    /// Repoints the accent resources at the OS's own high-contrast colours. The fixed green is SavegameBunker's brand choice, and a brand choice is exactly what a
     /// user running High Contrast has asked the system to stop honouring — their palette wins.
     /// </summary>
     /// <remarks>
@@ -231,11 +230,12 @@ public sealed partial class App : Application
     /// substituted correctly but the window ground stays dark, so the result is a dark blue icon on
     /// a dark ground — which is why that combination is documented as unsupported rather than
     /// quietly shipped.
-    /// </remarks>
-    /// <remarks>
-    /// Done here rather than by a theme-aware brush because the accent is a fixed colour by
-    /// design: it has no light/dark variants to switch between, only this one substitution.
-    ///
+    /// <para>
+    /// Done here rather than by a theme-aware brush because High Contrast is applied once at
+    /// startup and never toggled: the Light/Dark accent swap in <see cref="ApplyTheme"/> does not
+    /// run under it, so this one substitution is all the accent needs.
+    /// </para>
+    /// <para>
     /// The hover and press grounds go <em>transparent</em> rather than being repainted in system
     /// colours. SavegameBunker's tinted hover ground is drawn by its own style, but the control's
     /// chrome underneath is WPF-UI's, and the two cannot be assumed to agree on which pair of
@@ -243,6 +243,7 @@ public sealed partial class App : Application
     /// own produced dark-on-dark text, invisible until someone looked. Standing aside lets the
     /// high-contrast theme draw the whole state itself, which is the one arrangement guaranteed to
     /// be internally consistent.
+    /// </para>
     /// </remarks>
     private static void UseSystemColoursForAccent()
     {

@@ -23,9 +23,10 @@ internal static class ReparseFile
     /// Whether <paramref name="dir"/> — already confirmed to exist — holds a file anywhere in its
     /// tree. Recursive; stops at the first file found rather than materialising the whole tree.
     /// Shared by <see cref="BackupService"/> (its own empty-check) and <see cref="RestoreService"/>
-    /// (deciding whether a pre-restore safety backup is owed) — both need the identical answer, so
-    /// a save folder holding only a symlinked file reads as "has files" the same way in both, and a
-    /// self-referencing directory junction cannot make either recursion run forever. A subdirectory
+    /// (deciding whether a pre-restore safety backup is owed) — both need the identical answer.
+    /// Symbolic links are skipped, so a folder holding only a symlinked file reads as empty in both,
+    /// and directory reparse points are never entered, so a self-referencing junction cannot make
+    /// the recursion run forever. A subdirectory
     /// that throws while being listed is treated as contributing no files; only a throw from the
     /// call naming <paramref name="dir"/> itself propagates to the caller.
     /// </summary>

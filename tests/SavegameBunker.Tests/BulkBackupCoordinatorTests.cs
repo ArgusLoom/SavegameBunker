@@ -6,8 +6,8 @@ using SavegameBunker.ViewModels;
 namespace SavegameBunker.Tests;
 
 /// <summary>
-/// Direct tests over <see cref="BulkBackupCoordinator"/> — the claim/release order the view
-/// model's bulk commands used to hold inline. Built over real temp save folders and the real
+/// Direct tests over <see cref="BulkBackupCoordinator"/> — the claim/release order behind the
+/// view model's bulk commands, tested without the view model around it. Built over real temp save folders and the real
 /// <see cref="BackupService"/>/<see cref="GameActions"/>, with a synchronous recording
 /// <see cref="IProgress{T}"/> so the report order is observable (a real <see cref="Progress{T}"/>
 /// would post through a synchronization context the plain xUnit host does not have).

@@ -154,8 +154,7 @@ public sealed class RestorePickerRowViewModel
     public BackupArchive Archive { get; }
 
     /// <summary>
-    /// The archive's raw timestamp, replacing the pre-formatted <c>TakenAtText</c> this
-    /// row used to carry. Bound through the ported <c>RelativeTimeConverter</c> for the visible text,
+    /// The archive's raw timestamp. Bound through the ported <c>RelativeTimeConverter</c> for the visible text,
     /// converter-less for the row's absolute-value <c>ToolTip</c>.
     /// </summary>
     public DateTime TakenAt => Archive.TakenAt;

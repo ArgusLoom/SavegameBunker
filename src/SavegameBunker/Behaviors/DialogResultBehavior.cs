@@ -14,9 +14,9 @@ namespace SavegameBunker.Behaviors;
 /// <see cref="Window.DialogResult"/> on a modeless window throws. <c>bool?</c>, not <c>bool</c>,
 /// because that is <see cref="Window.DialogResult"/>'s own type: a non-null default would make an
 /// explicitly-set <c>false</c> indistinguishable from "never set" and silently do nothing.
-/// <c>Microsoft.Xaml.Behaviors.Wpf</c> was considered and declined for this — a whole dependency
-/// for three lines of code-behind in a project whose defining zero-package constraint had already
-/// been spent twice.
+/// <c>Microsoft.Xaml.Behaviors.Wpf</c> is deliberately not used for this — a whole dependency for
+/// three lines of code-behind, in an app capped at exactly two shipping NuGet packages
+/// (CLAUDE.md's hard constraint).
 /// </remarks>
 public static class DialogResultBehavior
 {

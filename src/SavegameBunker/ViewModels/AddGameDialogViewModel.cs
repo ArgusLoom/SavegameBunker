@@ -71,8 +71,9 @@ public sealed partial class AddGameDialogViewModel : CommunityToolkitObservableO
     /// <summary>
     /// The suggestion currently highlighted in the popup, navigated by
     /// <see cref="SelectNextSuggestion"/>/<see cref="SelectPreviousSuggestion"/> and applied by
-    /// <see cref="CommitSuggestion"/>. The one property in this view model with a public
-    /// setter, because the suggestions list's two-way binding writes it directly on a mouse click.
+    /// <see cref="CommitSuggestion"/>. Publicly settable, like <see cref="DisplayName"/> and
+    /// <see cref="SaveFolder"/>, because the suggestions list's two-way binding writes it directly
+    /// on a mouse click.
     /// </summary>
     [ObservableProperty]
     public partial KnownGame? SelectedSuggestion { get; set; }
@@ -333,8 +334,8 @@ public sealed partial class AddGameDialogViewModel : CommunityToolkitObservableO
     private void SelectPreviousSuggestion() => MoveHighlight(-1);
 
     /// <summary>
-    /// Shared arithmetic for both navigation commands, matching the pre-move
-    /// <c>ListBox.SelectedIndex</c> clamp exactly: from no highlight, both directions land on the
+    /// Shared arithmetic for both navigation commands, matching a
+    /// <c>ListBox.SelectedIndex</c> clamp: from no highlight, both directions land on the
     /// first entry. Returns immediately on an empty collection rather than assuming the
     /// can-execute gate ran, since clamping against inverted bounds would throw.
     /// </summary>
@@ -351,8 +352,8 @@ public sealed partial class AddGameDialogViewModel : CommunityToolkitObservableO
     /// <summary>
     /// Runs on every change to <see cref="DisplayName"/> or <see cref="SaveFolder"/>.
     /// A blank <see cref="DisplayName"/> leaves the message empty — the field is simply not filled
-    /// in yet, not an error. Both messages are now stated about the name, not the id — the id is no
-    /// longer visible. <see cref="CanAdd"/> is true only when all three
+    /// in yet, not an error. Both messages are stated about the name, not the id, because the id is
+    /// never shown. <see cref="CanAdd"/> is true only when all three
     /// fields are non-blank and the derived id is both well-formed and free.
     /// </summary>
     private void Revalidate()

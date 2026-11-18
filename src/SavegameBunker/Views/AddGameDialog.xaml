@@ -10,7 +10,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="36"/>  <!-- TitleBar -->
-            <RowDefinition Height="*"/>   <!-- existing DockPanel content -->
+            <RowDefinition Height="*"/>   <!-- window content -->
         </Grid.RowDefinitions>
 
         <ui:TitleBar Grid.Row="0" Title="{DynamicResource str_addGame_title}"/>
@@ -47,7 +47,7 @@
                     </TextBox>
                 </DockPanel>
                 <!--
-                    Left alone deliberately. The ListBox below bounds its scrolling height,
+                    No fixed size on the Popup, deliberately. The ListBox below bounds its scrolling height,
                     so a taller-rendered list scrolls rather than clips at any Display Scale, and its
                     Width tracks NameBox.ActualWidth, so widening this dialog widens the popup
                     automatically — hardcoding a width here would break that tracking.
@@ -59,14 +59,14 @@
                         A Popup with AllowsTransparency has no surface of its own, and the Fluent
                         fill brushes are semi-transparent by design — they are meant to sit over a
                         window ground. Inside a popup there is nothing behind them, so the list
-                        rendered see-through over whatever was underneath. This Border supplies the
+                        would render see-through over whatever is underneath. This Border supplies the
                         opaque ground the popup itself does not have; the list stays transparent on
                         top of it so selection and hover chrome still read normally.
 
                         Both brushes are the Solid* rungs deliberately: the ordinary Fill and Stroke
                         tokens are single-digit-alpha whites (ControlFillColorSecondary is #15FFFFFF,
-                        ControlStrokeColorDefault #12FFFFFF), which is exactly why the old background
-                        vanished — and the border would have vanished with it.
+                        ControlStrokeColorDefault #12FFFFFF), so a background or border
+                        drawn with them all but vanishes over nothing.
                     -->
                     <Border Background="{DynamicResource SolidBackgroundFillColorSecondaryBrush}"
                             BorderBrush="{DynamicResource SolidBackgroundFillColorTertiaryBrush}"

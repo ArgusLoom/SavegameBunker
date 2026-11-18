@@ -5,8 +5,8 @@ namespace SavegameBunker.Services;
 
 /// <summary>
 /// The one-level-at-a-time directory walk <see cref="SaveStatusScanner"/> and
-/// <see cref="BackupService"/> both perform, extracted so the exception handling, reparse-point
-/// rules and symlink skip live in one place instead of two drifting copies.
+/// <see cref="BackupService"/> both perform, kept in one place so the exception handling,
+/// reparse-point rules and symlink skip cannot drift apart between them.
 /// </summary>
 /// <remarks>
 /// Never throws across its boundary — every exception a locked or vanished subtree can raise is
@@ -28,16 +28,15 @@ internal static class DirectoryWalk
     /// found (never a symlink).
     /// </summary>
     /// <param name="excludedDirs">
-    /// Directories to step over — see <see cref="BackupService"/>'s own doc comment on its former
-    /// <c>EnumerateRelativeFiles</c> for why containment in either direction, not an exact match
-    /// alone, is what prunes a subtree.
+    /// Directories to step over — see the <c>excludedDirs</c> parameter of
+    /// <see cref="BackupService"/>'s <c>EnumerateRelativeFiles</c> for why containment in either
+    /// direction, not an exact match alone, is what prunes a subtree.
     /// </param>
     /// <param name="onSkipped">
     /// Optional: called with the path of every subtree or file the walk could not read — a
     /// directory whose listing threw, a file whose attributes threw. Deliberate skips (reparse
     /// points, excluded directories) are never reported: those are rules, not failures. Null
-    /// keeps the original silent-skip behaviour for callers that have no channel to report
-    /// through.
+    /// skips silently, for callers that have no channel to report through.
     /// </param>
     public static void ForEachFile(
         string rootDir, Action<FileInfo> onFile, IReadOnlyCollection<string>? excludedDirs = null,

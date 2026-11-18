@@ -5,7 +5,7 @@ using SavegameBunker.Services;
 namespace SavegameBunker.ViewModels;
 
 /// <summary>
-/// The view-model state the per-row flows may touch, and nothing else (D-P05-02). The flows
+/// The view-model state the per-row flows may touch, and nothing else. The flows
 /// interleave nine touches on <see cref="MainViewModel"/> state — backup root, configured-root
 /// check, status line, report, re-scan, and the two in-flight counters behind
 /// <c>IsBackupRunning</c>/<c>IsRestoreRunning</c> — so this one internal contract replaces what
@@ -26,8 +26,8 @@ internal interface IRowActionHost
 }
 
 /// <summary>
-/// The per-row Back up, Restore and Open save folder flows <see cref="MainViewModel"/> used to
-/// hold inline: each reads a service answer, writes that row's progress fields and reports the
+/// The per-row Back up, Restore and Open save folder flows behind <see cref="MainViewModel"/>'s
+/// row commands: each reads a service answer, writes that row's progress fields and reports the
 /// outcome. <see cref="MainViewModel"/> builds each row's <c>Progress&lt;T&gt;</c> on the UI
 /// thread and hands it in — this class never builds one.
 /// </summary>
@@ -35,8 +35,8 @@ internal interface IRowActionHost
 /// <c>internal</c> and held only as a private readonly field on <see cref="MainViewModel"/> —
 /// never as a public property — so nothing in XAML can bind a path to it. It references no WPF
 /// type and holds no observable state. The row's own <c>IsBusy</c> is raised before the first
-/// await and released in a <c>finally</c>: that is the per-row re-entrancy guard, and its
-/// statement order below is the pre-split order, moved verbatim.
+/// await and released in a <c>finally</c>: that is the per-row re-entrancy guard, so moving the
+/// claim below any await would let a second click start a second operation on the same row.
 /// </remarks>
 internal sealed class RowActionsCoordinator
 {
@@ -111,7 +111,7 @@ internal sealed class RowActionsCoordinator
     /// Delegates the pre-flight refusals, the picker, the pre-restore scan and the
     /// restore itself to <see cref="GameActions"/>, and owns the busy flag, the report and the
     /// re-sweep around them. <c>IsRestoreRunning</c> — the flag other commands gate on —
-    /// is still raised only once a plan is in hand, never before: an unset backup folder here is
+    /// is raised only once a plan is in hand, never before: an unset backup folder here is
     /// a named error, not a prompt for a destination, and prompting for one is a backup gesture
     /// whose cancel wording is worded for a backup, not a restore. <c>row.IsBusy</c> is different:
     /// it is this row's own re-entrancy guard and is raised immediately, before the precondition

@@ -5,7 +5,7 @@ using SavegameBunker.Services;
 namespace SavegameBunker.ViewModels;
 
 /// <summary>
-/// The bulk backup and bulk restore runs <see cref="MainViewModel"/> used to hold inline:
+/// The bulk backup and bulk restore runs behind <see cref="MainViewModel"/>'s toolbar:
 /// "Back up all changed", "Back up selected" and "Restore selected" share this one orchestrator,
 /// which claims every target row, runs the loop (backup in one <see cref="Task.Run(Action)"/>, restore
 /// sequentially on the caller's own context) and releases every target row again in a
@@ -17,15 +17,15 @@ namespace SavegameBunker.ViewModels;
 /// type and holds no observable state: <see cref="MainViewModel"/> keeps every bound property
 /// (the bulk counters, the restore-sentence flag, each row's progress fields) and constructs
 /// every <c>Progress&lt;T&gt;</c>
-/// on the UI thread and hands it in — this class never builds one, so callback ordering matches
-/// the pre-split single-owner behavior exactly.
+/// on the UI thread and hands it in — this class never builds one, so every progress callback
+/// lands on the UI thread in the order it was reported.
 /// <para>
-/// The claim and release order below is the REF-03 re-entrancy guard: reset every target to
+/// The claim and release order below is the re-entrancy guard: reset every target to
 /// <see cref="BackupComparisonKind.Checking"/>, then <c>onStarted</c> (which raises
 /// the bulk counters), then <c>IsBusy</c> on every target — and the release in the
 /// <c>finally</c> reverses it before <c>onFinished</c> runs. Reordering or
-/// short-circuiting any of those steps would re-open the re-entrancy window the original inline
-/// order closed. <see cref="MainViewModel.IsAnyRowChecking"/> stays MainViewModel's aggregate —
+/// short-circuiting any of those steps opens a window in which a second bulk run or a per-row
+/// action can start on a row this run is about to write. <see cref="MainViewModel.IsAnyRowChecking"/> stays MainViewModel's aggregate —
 /// this class only writes row comparisons, never the window-level guard itself.
 /// </para>
 /// </remarks>
@@ -122,7 +122,7 @@ internal sealed class BulkBackupCoordinator
                     else
                     {
                         // Wrapped like every other row write in this loop, since the bound row
-                        // property must not be touched off the UI thread (audit A9).
+                        // property must not be touched off the UI thread.
                         _onUi(() => row.RestoredArchiveTakenAt = null);
                     }
 
@@ -175,8 +175,8 @@ internal sealed class BulkBackupCoordinator
     /// </param>
     /// <param name="onFinished">
     /// Called exactly once from the finally, after every target has been released — the caller
-    /// clears its counters there. The restore finally does not touch the byte counters, as
-    /// today: a restore never writes them.
+    /// clears its counters there. The restore finally does not touch the byte counters: a
+    /// restore never writes them.
     /// </param>
     public async Task<BulkRestoreRun?> RestoreAsync(
         IReadOnlyList<GameRowViewModel> targets,
@@ -206,7 +206,7 @@ internal sealed class BulkBackupCoordinator
 
         try
         {
-            // The existing sequential loop, on the caller's own context — never wrapped in one
+            // Sequential, on the caller's own context — never wrapped in one
             // Task.Run, because the per-game Confirm needs the dispatcher: the confirmation is a
             // blocking wait for a dialog whose pump lives on the UI thread.
             for (var i = 0; i < targets.Count; i++)
@@ -246,8 +246,8 @@ internal sealed class BulkBackupCoordinator
         }
         finally
         {
-            // Release before the caller's onFinished, as in the backup path. The restore finally
-            // does not touch the byte counters, as today.
+            // Release before the caller's onFinished, as in the backup path. No byte counters to
+            // clear: a restore never writes them.
             foreach (var row in targets)
                 row.IsBusy = false;
 

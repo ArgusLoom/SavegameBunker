@@ -20,8 +20,8 @@ namespace SavegameBunker.Services;
 /// backslash — the one genuine hand-editing hazard JSON has for Windows paths.
 ///
 /// A template that cannot be fully resolved is reported rather than turned into a path relative
-/// to the application directory: an unexpanded %VAR% used to produce an absolute-looking path
-/// pointing somewhere plausible and wrong.
+/// to the application directory: an unexpanded %VAR% would otherwise produce an absolute-looking
+/// path pointing somewhere plausible and wrong.
 /// </remarks>
 public static class PathResolver
 {
@@ -53,12 +53,11 @@ public static class PathResolver
         // only when its token is actually present — most templates use neither, and this method is
         // called once per catalog entry on every status sweep and known-games scan.
         //
-        // Substituted only when resolvable, mirroring the %SAVEDGAMES% branch below (audit A10):
+        // Substituted only when resolvable, mirroring the %SAVEDGAMES% branch below:
         // GetFolderPath returns "" for an unresolvable Known Folder, and substituting that empty
-        // string used to strip the token and produce a rootless path whose only complaint was
-        // "is not an absolute path" — pointing the user at their template instead of at the
-        // Known Folder Windows could not resolve. Left in place, the unresolved-% guard reports
-        // "unresolved variable %DOCUMENTS%", naming the real cause.
+        // string would produce a rootless path reported as "is not an absolute path" — pointing
+        // the user at their template instead of at the Known Folder Windows could not resolve.
+        // Left in place, the unresolved-% guard reports "unresolved variable %DOCUMENTS%".
         var withDocuments = template.Contains("%DOCUMENTS%", StringComparison.OrdinalIgnoreCase)
             ? Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments) is { } documents && documents.Length > 0
                 ? template.Replace("%DOCUMENTS%", documents, StringComparison.OrdinalIgnoreCase)

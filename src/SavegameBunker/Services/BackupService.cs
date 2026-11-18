@@ -11,20 +11,18 @@ namespace SavegameBunker.Services;
 /// Zips a game's save directory into the backup folder the user configured.
 /// </summary>
 /// <remarks>
-/// The destination is whatever folder was chosen — this class never inspects what kind of volume
-/// it sits on. An earlier version accepted removable drives only and refused everything else; that
-/// rule cost users the ability to back up at all when no USB stick was connected, and it was wrong
-/// on its own terms because external SSDs report as <see cref="DriveType.Fixed"/>. A folder that
-/// exists and can be written to is the whole requirement.
+/// The destination is whatever folder was chosen (SPEC: Backup destination) — this class never
+/// inspects what kind of volume it sits on. A removable-only rule would leave users unable to back
+/// up without a USB stick, and would be wrong on its own terms because external SSDs report as
+/// <see cref="DriveType.Fixed"/>. A folder that exists and can be written to is the whole requirement.
 /// <para>
 /// "Can be written to" is proven by an actual write-then-delete probe against the destination
 /// (<see cref="EnsureWritable"/>), never by inspecting <see cref="DriveInfo"/> or an ACL — only a
 /// real write distinguishes a read-only share, a drive letter reassigned since the last run and a
-/// folder deleted out from under the configured path. The reasoning an earlier revision withdrew
-/// was the same-volume *warning*, not this volume-agnostic writability rule.
+/// folder deleted out from under the configured path.
 /// </para>
 /// <para>
-/// This class now both writes and lists archives — <see cref="ListBackups"/> is the read-only
+/// This class both writes and lists archives — <see cref="ListBackups"/> is the read-only
 /// query restore consumes for its picker, its save-vs-backup verdict and its pre-restore
 /// safety backup.
 /// </para>
@@ -32,12 +30,10 @@ namespace SavegameBunker.Services;
 public sealed class BackupService
 {
     /// <summary>
-    /// The number of suffixed names tried after the bare one before the final rename gives up —
-    /// the bare <c>yyyy-MM-dd_HHmmss.zip</c> plus <c>-1</c> through <c>-100</c>. At the limit
-    /// (every one of those 101 names already taken for the stamped second) the backup fails with
-    /// its own "rename retry limit reached" message rather than surfacing the underlying
-    /// <see cref="IOException"/> as a generic disk error, and the already-verified staging file
-    /// is deleted as on every other failure path. The ladder's length is unchanged by naming it.
+    /// The number of suffixed names (<c>-1</c> through <c>-100</c>) tried after the bare
+    /// <c>yyyy-MM-dd_HHmmss.zip</c> before the final rename gives up. At the limit the backup fails
+    /// with its own "rename retry limit reached" message rather than surfacing the underlying
+    /// <see cref="IOException"/> as a generic disk error.
     /// </summary>
     private const int MaxRenameRetries = 100;
 
@@ -48,7 +44,6 @@ public sealed class BackupService
     /// <param name="progress">
     /// Optional cumulative-bytes-archived reporter, carried straight through to
     /// <see cref="ArchiveSaveDir"/> — the only place the per-file boundary is actually observable.
-    /// Never required: every existing caller keeps compiling unchanged.
     /// </param>
     public OperationResult Backup(Game game, string backupRoot, IProgress<long>? progress = null) =>
         Backup(game, backupRoot, "", out _, progress);
@@ -154,14 +149,11 @@ public sealed class BackupService
             try
             {
                 // The two-argument Move overload, not a swap-style replace: finalPath is never
-                // overwritten — a same-second collision (two backups of the same game in one
-                // second, or the same wall-clock second recurring across a DST fall-back) used to
-                // make File.Move throw and then delete the already-verified staging file here.
-                // Instead the name is suffixed -1, -2, … and retried until MaxRenameRetries is
-                // exhausted, where the limit gets its own message below; the suffixed name breaks
-                // ParseTakenAt's bare-timestamp match, whose documented fallback (the file's own
-                // last-write time — the same one a renamed or -pre-restore archive relies on)
-                // keeps a suffixed archive visible in the listing.
+                // overwritten. A same-second collision (two backups of the same game in one
+                // second, or the same wall-clock second recurring across a DST fall-back) must not
+                // cost the already-verified staging file, so the name is suffixed -1, -2, … and
+                // retried until MaxRenameRetries is exhausted. ParseTakenAt's last-write-time
+                // fallback keeps a suffixed archive visible in the listing.
                 for (var attempt = 0; ; attempt++)
                 {
                     var candidate = attempt == 0
@@ -177,7 +169,7 @@ public sealed class BackupService
                     {
                         // Candidate pre-exists: try the next suffix. Anything other than a
                         // name collision (disk full, vanished target dir, …) escapes to the
-                        // catch below and is reported as before.
+                        // catch below and is reported with its own message.
                     }
                     catch (IOException) when (attempt == MaxRenameRetries && File.Exists(candidate))
                     {
@@ -241,8 +233,7 @@ public sealed class BackupService
     /// writability check, which writes a probe file and creates the per-game folder as a side
     /// effect. That side effect is correct before an actual backup but wrong here: merely drawing a
     /// status row must not create a folder for every catalogued game. Never throws across the
-    /// service boundary — the one deliberate bare <c>catch</c>, same contract as the read-only
-    /// listing query's own.
+    /// service boundary — same contract as the read-only listing query.
     /// </summary>
     public bool IsBackupRootReachable(string backupRoot)
     {
@@ -265,8 +256,8 @@ public sealed class BackupService
     /// Same listing as <see cref="ListBackups"/>, plus whether the folder was actually listable.
     /// Exists for the restore pre-flight (<c>GameActions.CheckRestorePreconditionsAsync</c>):
     /// "no backups for this game" and "the folder exists but couldn't be read" (a permission-denied
-    /// share, say) used to report as the identical empty list, which sent the user to make a first
-    /// backup for a game that already had ones — into a folder the app just proved it can't read.
+    /// share, say) must not look the same, or the user is sent to make a first backup for a game
+    /// that already has some — into a folder the app just proved it can't read.
     /// </summary>
     /// <returns>False when the game's folder exists but enumerating it failed.</returns>
     public bool TryListBackups(string backupRoot, string gameId, out IReadOnlyList<BackupArchive> backups)
@@ -289,11 +280,9 @@ public sealed class BackupService
             // a *.zip.tmp staging file is not guaranteed excluded by the glob alone — the explicit
             // EndsWith is what actually enforces that exclusion.
             //
-            // The projection is guarded per file (audit A5): the lazy Select ran while the list
-            // was being sorted, so an archive deleted by the user (or another cleanup) between
-            // GetFiles and its FileInfo.Length read threw FileNotFoundException and the bare
-            // catch below misreported the whole folder as unlistable. A file that has vanished
-            // simply drops out of the list.
+            // The projection is guarded per file: an archive deleted between GetFiles and its
+            // FileInfo.Length read would otherwise throw into the catch below and misreport the
+            // whole folder as unlistable. A file that has vanished simply drops out of the list.
             return Directory.GetFiles(targetDir, "*.zip")
                 .Where(path => path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
                 .Select(path =>
@@ -314,9 +303,8 @@ public sealed class BackupService
         }
         catch
         {
-            // The one bare catch in this class that is correct: a read-only query returning a
-            // list, not an OperationResult, has no channel of its own for an error to travel
-            // through — that is what the out parameter is for.
+            // A read-only query returning a list, not an OperationResult, has no channel of its
+            // own for an error to travel through — that is what the out parameter is for.
             listable = false;
             return [];
         }
@@ -479,16 +467,16 @@ public sealed class BackupService
     /// it directly.
     /// </summary>
     /// <param name="skipped">
-    /// Paths deliberately absent from the archive — files the archive pass could not open (audit
-    /// A2) and subtrees the walk could not read (audit A1). Removed from the expected set before
-    /// comparison: those files are reported as a warning on the result, and re-demands them here
-    /// would turn the skip policy back into a hard failure through verification's back door.
+    /// Paths deliberately absent from the archive — files the archive pass could not open and
+    /// subtrees the walk could not read. Removed from the expected set before comparison: those
+    /// files are reported as a warning on the result, and re-demanding them here would turn the
+    /// skip policy back into a hard failure through verification's back door.
     /// Verification still fails for any OTHER mismatch — a file that vanished, shrank or grew.
     /// </param>
     /// <param name="expectedHashes">
     /// Optional entry-name-to-SHA-256 map recorded during the archive write. When present, each
     /// entry's decompressed content is re-hashed from the archive and compared — the content
-    /// check that catches a file torn mid-write whose length happens to be intact (audit A3).
+    /// check that catches a file torn mid-write whose length happens to be intact.
     /// Null keeps the name-and-length-only check.
     /// </param>
     /// <param name="verifyContent">
@@ -534,19 +522,17 @@ public sealed class BackupService
         {
             using var zip = ZipFile.OpenRead(archivePath);
             var realEntries = zip.Entries
-                // Directory placeholder entries are filtered unconditionally — whether
-                // CreateFromDirectory emits one for a nested empty subdirectory is undocumented.
+                // Directory placeholder entries are filtered unconditionally — this app's own
+                // archives never contain them, but a hand-made or third-party zip may.
                 .Where(e => !e.FullName.EndsWith('/'))
                 .ToList();
             archiveFiles = realEntries.ToDictionary(e => e.FullName, e => e.Length, StringComparer.OrdinalIgnoreCase);
 
-            // Content check (audit A3): a torn mid-write file whose length survived is invisible
-            // to the name+length comparison, so each entry's decompressed stream is hashed. With
+            // Content check: a torn mid-write file whose length survived is invisible to the
+            // name+length comparison, so each entry's decompressed stream is hashed. With
             // expectedHashes (backup path) the hash was recorded from the copy stream; with
             // verifyContent (restore path, which has no recorded hashes) the file on disk is
-            // hashed too. Files with no expected hash — an archive from an older version of this
-            // app, verified here through a call site that passes neither flag — keep the
-            // name+length-only behaviour, so nothing about existing archives is broken.
+            // hashed too. A call site that passes neither keeps the name+length-only check.
             if (expectedHashes is not null || verifyContent)
             {
                 foreach (var entry in realEntries)
@@ -653,18 +639,11 @@ public sealed class BackupService
     /// what was archived. Entry names use forward slashes.
     /// </summary>
     /// <param name="progress">
-    /// Reports arrive at most once per <see cref="ReportIntervalBytes"/> inside a file, and always
-    /// once more at each file boundary. This replaces an original once-per-file granularity: a
-    /// save whose bytes sit in one or two large files (for example a 258.5 MB DayZ
-    /// save) used to leave the bound row bar visibly static for the whole write, receiving only a
-    /// report at the very start and one more when that dominant file finished. A reported byte is
-    /// still a byte actually archived — every report follows the write that produced it. The
-    /// walk's per-file length from <see cref="EnumerateRelativeFiles"/> is both the ceiling on the
-    /// running total inside a file (so a file that grew since the walk cannot push the numerator
-    /// past <see cref="ComputeSaveDataSize"/>'s precomputed maximum) and the floor reported at that
-    /// file's boundary, so the final reported value still cannot disagree with
-    /// <see cref="ComputeSaveDataSize"/>. One intentional consequence: a zero-byte file no longer
-    /// emits its own boundary report, because its cumulative value did not move.
+    /// Reports arrive at most once per <see cref="ReportIntervalBytes"/> inside a file and once
+    /// more at each file boundary, so a save held in one large file still moves the bar. Every
+    /// report follows the write that produced it. The walk's per-file length caps the running total
+    /// inside a file and is the value reported at its boundary, so the total never disagrees with
+    /// <see cref="ComputeSaveDataSize"/> even when a file grew since the walk.
     /// </param>
     /// <param name="skipped">
     /// Optional collector forwarded to <see cref="EnumerateRelativeFiles"/> — paths the walk
@@ -674,7 +653,7 @@ public sealed class BackupService
     /// <returns>
     /// SHA-256 of every entry's uncompressed content, keyed by entry name — recorded for
     /// <see cref="DescribeVerificationFailure"/>'s content check, so a file torn mid-write that
-    /// happens to keep its length can no longer pass verification (audit A3).
+    /// happens to keep its length cannot pass verification.
     /// </returns>
     private static Dictionary<string, string> ArchiveSaveDir(
         string saveDir, string tempPath, IProgress<long>? progress, IReadOnlyCollection<string>? excludedDirs = null,
@@ -690,15 +669,11 @@ public sealed class BackupService
         {
             var fullPath = Path.Combine(saveDir, relative.Replace('/', Path.DirectorySeparatorChar));
 
-            // Opened before the entry is created, matching ZipFileExtensions.CreateEntryFromFile's
-            // own ordering: a file that cannot be opened fails here, before a dangling entry is
-            // ever added to the archive. File.OpenRead's mode/access/share are the same ones that
-            // helper used (FileShare.Read first, the write-compatible share), so a file another
-            // process holds open behaves exactly as it does today — except that a file that
-            // cannot be opened at all is now skipped and reported via <paramref name="skipped"/>
-            // instead of aborting the whole backup (audit A2): one locked file must not cost the
-            // user every other file in the archive. The path lands in the same warning the walk's
-            // skipped subtrees produce, so the archive is never mistaken for complete.
+            // Opened before the entry is created, so a file that cannot be opened never leaves a
+            // dangling entry in the archive. Such a file is skipped and reported via the skipped
+            // collector rather than aborting the backup: one locked file must not cost the user
+            // every other file. The path lands in the same warning the walk's skipped subtrees
+            // produce, so the archive is never mistaken for complete.
             FileStream source;
             try
             {
@@ -764,17 +739,11 @@ public sealed class BackupService
 
     /// <summary>
     /// Sums <paramref name="game"/>'s save directory via the same <see cref="EnumerateRelativeFiles"/>
-    /// walk <see cref="ArchiveSaveDir"/> archives from, so this number can never disagree with what
-    /// actually gets archived — deliberately reusing that walk rather than a fresh one of its
-    /// own. Deliberately passes NO excluded directories, unlike <see cref="ArchiveSaveDir"/>: it is
-    /// a display-only denominator, so it may over-count when the backup folder sits inside (or IS)
-    /// the save folder being summed — the walk the archive itself performs steps over those
-    /// subtrees, and the archive can only ever be smaller than this figure, never larger. Wiring
-    /// exclusions in here would need the per-game target folder this method does not know, for a
-    /// number no decision is ever made from. Never throws across the service boundary — the same convention
-    /// <see cref="IsBackupRootReachable"/> and <see cref="ListBackups"/> already follow — because
-    /// its only consumers are advisory displays (the free-space line, the byte-progress bar's
-    /// denominator) where a failure must be an absent number, not an error.
+    /// walk <see cref="ArchiveSaveDir"/> archives from, so this number never disagrees with what
+    /// gets archived. Passes no excluded directories: as a display-only denominator it may
+    /// over-count when the backup folder sits inside the save folder, which only makes the archive
+    /// smaller than this figure, never larger. Never throws across the service boundary, because its
+    /// only consumers are advisory displays where a failure must be an absent number, not an error.
     /// </summary>
     public long ComputeSaveDataSize(Game game)
     {

@@ -10,7 +10,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="36"/>  <!-- TitleBar -->
-            <RowDefinition Height="*"/>   <!-- existing DockPanel content -->
+            <RowDefinition Height="*"/>   <!-- window content -->
         </Grid.RowDefinitions>
 
         <ui:TitleBar Grid.Row="0" Title="{Binding Title}"/>
@@ -19,8 +19,8 @@
             <TextBlock DockPanel.Dock="Top" Text="{Binding HeaderText}" FontSize="14" FontWeight="Bold"
                        Margin="0,0,0,12"/>
 
-            <!-- lg spacing token (Margin="0,24,0,0"): deliberately differs from
-                 ScanWindow's own 0,16,0,0, which predates the spacing scale. -->
+            <!-- lg spacing token (Margin="0,24,0,0"). ScanWindow's 0,16,0,0 is not a
+                 spacing-scale value, so the two are not meant to match. -->
             <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
                         HorizontalAlignment="Right" Margin="0,24,0,0">
                 <ui:Button Content="{DynamicResource str_common_restore}" MinWidth="90" Margin="0,0,8,0"
@@ -61,9 +61,9 @@
                                             <Style TargetType="TextBlock">
                                                 <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}"/>
                                                 <Style.Triggers>
-                                                    <!-- The muted tag's own grey stays illegible against the
-                                                         selected row's bright accent background; matches the
-                                                         legible text the row itself switches to when selected. -->
+                                                    <!-- The muted tag's grey is illegible on the selected row's
+                                                         bright accent background, so a selected row's tag takes
+                                                         the same on-accent text brush as the rest of the row. -->
                                                     <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
                                                         <Setter Property="Foreground" Value="{DynamicResource SavegameBunkerOnAccentTextBrush}"/>
                                                     </DataTrigger>

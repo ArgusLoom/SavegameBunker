@@ -8,10 +8,9 @@ using SavegameBunker.Services;
 namespace SavegameBunker.Tests;
 
 /// <summary>
-/// Pins the destination rule: any folder the user chose is a valid backup target. The service
-/// previously accepted removable drives only and failed with "No removable drive found" on every
-/// other volume, which left users unable to back up at all without a USB stick — and was wrong
-/// regardless, because external SSDs report as Fixed. Nothing here may reintroduce a volume check.
+/// Pins the destination rule: any folder the user chose is a valid backup target. A volume check
+/// (removable drives only) would leave users unable to back up at all without a USB stick — and
+/// would be wrong regardless, because external SSDs report as Fixed. Nothing here may introduce one.
 /// </summary>
 public sealed class BackupServiceTests : IDisposable
 {
@@ -249,8 +248,7 @@ public sealed class BackupServiceTests : IDisposable
         {
             var result = _service.Backup(game, backupRoot);
 
-            // Since audit A2 a locked file is skipped with a warning instead of aborting the
-            // whole backup: the archive exists, but the message says the locked path is NOT in it.
+            // A locked file is skipped with a warning instead of aborting the whole backup: the archive exists, but the message says the locked path is NOT in it.
             Assert.True(result.Success, result.Message);
             Assert.Contains("NOT in this backup", result.Message);
             Assert.Contains("save.dat", result.Message);
@@ -551,8 +549,8 @@ public sealed class BackupServiceTests : IDisposable
         Directory.CreateDirectory(targetDir);
 
         // Pre-creates the exact file name Backup is about to produce, so the final File.Move
-        // collides. Since audit A4 the verified staging file is NOT cleaned up and the backup
-        // does NOT fail: the archive is retried under a -1 suffix (the two-argument Move never
+        // collides. The verified staging file is NOT cleaned up and the backup does NOT
+        // fail: the archive is retried under a -1 suffix (the two-argument Move never
         // overwrites, so the colliding name's content survives untouched).
         var collidingPath = Path.Combine(targetDir, $"{DateTime.Now:yyyy-MM-dd_HHmmss}.zip");
         File.WriteAllBytes(collidingPath, [9]);
@@ -571,10 +569,10 @@ public sealed class BackupServiceTests : IDisposable
     [Fact]
     public void Archive_timestamp_is_taken_after_writing_and_verifying_not_before()
     {
-        // The archive's timestamp used to be generated right before ZipFile.CreateFromDirectory —
-        // a long-running zip could then produce an archive whose own name predates a save file
-        // written while it ran, reading as "changed since backup" on a backup that just succeeded.
-        // The staging file's name carries no timestamp at all now (a GUID instead), so this proves
+        // A timestamp generated right before ZipFile.CreateFromDirectory would let a long-running
+        // zip produce an archive whose own name predates a save file written while it ran, reading
+        // as "changed since backup" on a backup that just succeeded. The staging file's name
+        // carries no timestamp at all (a GUID instead), so this proves
         // the only timestamp ever written — the final archive's — cannot be older than the moment
         // the write actually finished.
         var game = GameWithSaves();
@@ -979,8 +977,8 @@ public sealed class BackupServiceTests : IDisposable
     public void Backup_with_a_progress_sink_reports_multiple_times_during_a_single_large_file()
     {
         // A save dominated by one large file — such as a real-world DayZ save — is the
-        // shape once-per-file reporting cannot make visible: the old once-per-file
-        // pattern reports exactly once for this fixture, which this test pins as no longer enough.
+        // shape once-per-file reporting cannot make visible: once-per-file reporting
+        // fires exactly once for this fixture, which this test pins as not enough.
         var saveDir = Path.Combine(_dir, "saves");
         Directory.CreateDirectory(saveDir);
         File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), new byte[5 * 1024 * 1024]);

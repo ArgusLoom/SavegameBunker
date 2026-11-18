@@ -7,8 +7,8 @@ using SavegameBunker.ViewModels;
 namespace SavegameBunker.Tests;
 
 /// <summary>
-/// Direct tests over <see cref="StatusSweepCoordinator"/> — the status-sweep engine the view
-/// model's <c>StartStatusScan</c>/<c>RecomputeSpaceAdvisoryAsync</c> used to run inline. Built
+/// Direct tests over <see cref="StatusSweepCoordinator"/> — the status-sweep engine behind the
+/// view model's <c>StartStatusScan</c>/<c>RecomputeSpaceAdvisoryAsync</c>. Built
 /// over real temp save folders and the real <see cref="BackupService"/>, with <c>onUi</c> an
 /// inline counting delegate so every marshalled write is observable without a dispatcher.
 /// </summary>

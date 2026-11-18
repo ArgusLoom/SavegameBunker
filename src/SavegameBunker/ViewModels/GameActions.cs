@@ -7,8 +7,7 @@ using SavegameBunker.Services;
 namespace SavegameBunker.ViewModels;
 
 /// <summary>
-/// Per-game backup and restore orchestration — the largest single flow
-/// <see cref="MainViewModel"/> owned before this extraction: the three pre-flight
+/// Per-game backup and restore orchestration: the three pre-flight
 /// refusals, the restore picker, the single pre-restore save scan, the restore confirmation and
 /// the two service calls that write to disk.
 /// </summary>
@@ -20,7 +19,8 @@ namespace SavegameBunker.ViewModels;
 /// <para>
 /// Constructs its own <see cref="RestoreService"/> from the <see cref="BackupService"/> it is
 /// given, rather than taking one as a third constructor parameter: <see cref="MainViewModel"/>
-/// still needs <see cref="BackupService"/> for its own status sweep, but has no other use for a
+/// still needs <see cref="BackupService"/> for its other collaborators and its load-time
+/// reachability check, but has no use for a
 /// <see cref="RestoreService"/> once this class owns every call into it, and this keeps that
 /// construction — and the type name itself — out of <see cref="MainViewModel"/> entirely, which
 /// is what makes "no direct catalog-service call" and "single writer" structural rather than a
@@ -184,8 +184,8 @@ internal sealed class GameActions
     /// unnecessary) and before anything about the live save directory changes. Reuses
     /// <see cref="BackupComparer"/>/<see cref="ElapsedFormat"/> for the warning paragraph rather
     /// than comparing two <see cref="DateTime"/> values inline, so this prompt and the row's own
-    /// Status cell can never disagree about which side is newer — which is also the
-    /// E9 backstop this method exists to prove: the two paragraphs below can never both appear,
+    /// Status cell can never disagree about which side is newer. It also guarantees that the two
+    /// paragraphs below can never both appear,
     /// because the warning requires <see cref="BackupComparisonKind.SavesChangedSinceBackup"/>,
     /// which itself requires a scanned save timestamp newer than the archive, while the
     /// no-current-saves paragraph fires only when <paramref name="prompt"/> found nothing to back

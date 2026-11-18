@@ -6,12 +6,11 @@ using SavegameBunker.ViewModels;
 namespace SavegameBunker.Tests;
 
 /// <summary>
-/// Characterizes the guard semantics the MainViewModel split (REF-01/REF-03) must preserve: the
-/// bulk-run claim order (reset-to-Checking before any row is claimed), the mid-run re-entrancy
-/// state, bulk restore's game-by-game confirmation order, and the zero-row paths for every bulk
-/// command and Refresh. These facts pin today's behavior against unchanged production code and
-/// are frozen from the moment this plan lands — Plans 02-05 never edit this file, exactly like
-/// <see cref="MainViewModelTests"/>.
+/// Pins the guard behaviour of <see cref="MainViewModel"/>:
+/// the bulk-run claim order (reset-to-Checking before any row is claimed), the mid-run
+/// re-entrancy state, bulk restore's game-by-game confirmation order, and the zero-row paths for
+/// every bulk command and Refresh. These are the facts a restructuring of the view model must
+/// keep, so a change here is a behaviour change, not a refactor.
 /// </summary>
 public sealed class MainViewModelGuardPinTests : IDisposable
 {

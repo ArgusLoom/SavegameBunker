@@ -11,13 +11,10 @@ namespace SavegameBunker.Converters;
 /// once in <c>App.xaml</c> under the key <c>RelTime</c>.
 /// </summary>
 /// <remarks>
-/// Adapted from an earlier relative-time converter,
-/// keeping the threshold ladder and the future-timestamp guard exactly as they are,
-/// with two changes: the type check targets SavegameBunker's nullable <see cref="DateTime"/> rather
-/// than the offset-aware type the original used (a type check against the
-/// wrong type fails silently, rendering every relative-time cell blank with no binding error),
-/// and the phrases come from <see cref="Strings"/> rather than the original's localization service,
-/// which SavegameBunker does not have.
+/// The type check targets <see cref="DateTime"/>, the type the bound properties actually carry,
+/// not <see cref="DateTimeOffset"/>: a type check against the wrong type fails silently,
+/// rendering every relative-time cell blank with no binding error. The phrases come from
+/// <see cref="Strings"/>, the single source of user-facing copy.
 /// </remarks>
 [ValueConversion(typeof(DateTime?), typeof(string))]
 public sealed class RelativeTimeConverter : IValueConverter
@@ -35,8 +32,7 @@ public sealed class RelativeTimeConverter : IValueConverter
             return dt.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
         // Singular has its own authored sentence at each step: "1 minutes ago" is the kind of
-        // detail that makes an application feel unfinished, and it showed up on the first real
-        // screen this was ever looked at.
+        // detail that makes an application feel unfinished.
         if (span.TotalSeconds < 60) return Strings.Get("str_relTime_justNow");
         if (span.TotalMinutes < 60) return Plural((int)span.TotalMinutes, "minute");
         if (span.TotalHours < 24) return Plural((int)span.TotalHours, "hour");

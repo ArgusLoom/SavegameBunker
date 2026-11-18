@@ -1,11 +1,10 @@
 namespace SavegameBunker.Models;
 
 /// <summary>
-/// The three states a game-list cell can carry.
-/// Replaces four independent booleans (<c>HasPathError</c>, <c>IsOversized</c>,
-/// <c>ComparisonIsWarning</c>, <c>ComparisonIsError</c>) with one value per cell: a row's Game cell
-/// and Status cell each carry their own <see cref="RowSeverity"/>, since a row can be, for
-/// instance, oversized on the save side while its backup comparison is perfectly fine.
+/// The three states a game-list cell can carry — one value per cell rather than a set of
+/// independent flags that could contradict each other. A row's Game cell and Status cell each
+/// carry their own <see cref="RowSeverity"/>, since a row can be, for instance, oversized on the
+/// save side while its backup comparison is perfectly fine.
 /// </summary>
 public enum RowSeverity
 {

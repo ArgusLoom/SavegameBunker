@@ -8,22 +8,12 @@ namespace SavegameBunker.Services;
 /// how many files, how big, and when it last changed.
 /// </summary>
 /// <remarks>
-/// The walk never throws across its boundary — everything unexpected becomes
-/// <see cref="SaveStatusKind.PathError"/>, matching <see cref="BackupService"/>'s
-/// never-throw-across-the-boundary shape. The tree is walked one directory level at a time via
-/// <see cref="Directory.EnumerateFiles(string)"/>/<see cref="Directory.EnumerateDirectories(string)"/>
-/// rather than the recursive search option: that lazy recursive enumerator throws from
-/// <c>MoveNext</c> partway through a locked subtree and would abort the whole row instead of
-/// skipping just that subtree. A directory reparse point (junction or symbolic link) is never
-/// followed into, so a self-referencing link cannot make the walk run forever; a file reparse
-/// point is skipped only when <see cref="FileSystemInfo.LinkTarget"/> proves it is an actual
-/// symbolic link rather than, say, a OneDrive Files On-Demand placeholder — matching what
-/// <see cref="BackupService"/> actually archives. The scan reads
-/// directory metadata only — entry names, lengths and write times; it opens no file for its data
-/// and creates, moves or removes nothing under the save directory. An unreadable subtree is still
-/// skipped, not a failure — but is now carried on the result's <see cref="SaveStatus.SkippedPaths"/>
-/// instead of silently dropped, through the same <see cref="DirectoryWalk.ForEachFile"/>
-/// <c>onSkipped</c> channel <see cref="BackupService"/> already uses.
+/// Never throws across its boundary — everything unexpected becomes
+/// <see cref="SaveStatusKind.PathError"/>. The walk, its reparse-point rules and its tolerance of
+/// locked subtrees are <see cref="DirectoryWalk"/>'s, shared with <see cref="BackupService"/> so
+/// the row counts what a backup archives. The scan reads directory metadata only and creates,
+/// moves or removes nothing. An unreadable subtree is not a failure, but it is carried on
+/// <see cref="SaveStatus.SkippedPaths"/> so the row never looks more complete than it is.
 /// </remarks>
 public static class SaveStatusScanner
 {

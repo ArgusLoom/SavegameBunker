@@ -120,11 +120,10 @@ public sealed class DialogService : IDialogService
     {
         var options = ConfirmDialogOptions(message, confirmButtonText);
 
-        // Every current caller (GameActions, MainViewModel, RestorePickerViewModel) reaches
-        // Confirm from under a Task.Run, i.e. a background thread — none call it directly from the
-        // UI thread today. That caller must block until the user answers, so the dialog is started
-        // with InvokeAsync (queues onto the UI thread's own dispatcher without blocking it) and the
-        // *unwrapped* task is awaited synchronously from this — the calling background — thread.
+        // Callers reach Confirm from a background thread (under Task.Run). That caller must block
+        // until the user answers, so the dialog is started with InvokeAsync (queues onto the UI
+        // thread's own dispatcher without blocking it) and the *unwrapped* task is awaited
+        // synchronously from this — the calling background — thread.
         // Blocking the UI thread itself here (e.g. via Dispatcher.Invoke running the wait inline)
         // would deadlock: the dialog needs that thread's own message pump to resolve, and a
         // synchronous wait on it stops that pump from running.
@@ -134,10 +133,8 @@ public sealed class DialogService : IDialogService
             return task.GetAwaiter().GetResult() == ContentDialogResult.Primary;
         }
 
-        // Not reachable by any caller today (see above), but not guaranteed to stay that way if a
-        // future caller invokes Confirm directly from the UI thread — this branch exists so the
-        // interface's synchronous contract still has a defined, if theoretically deadlock-prone,
-        // on-UI-thread behavior rather than silently doing nothing.
+        // A call from the UI thread itself: this branch gives the interface's synchronous contract
+        // a defined, if deadlock-prone, behavior there rather than silently doing nothing.
         return _contentDialogService.ShowSimpleDialogAsync(options, CancellationToken.None)
             .GetAwaiter().GetResult() == ContentDialogResult.Primary;
     }

@@ -7,21 +7,20 @@ namespace SavegameBunker.ViewModels;
 
 /// <summary>
 /// Owns the loaded catalog record and every write to the games file — the structural form
-/// of the "no second writer" rule: after this extraction exactly one file in the tree
-/// calls <see cref="GameCatalog.SaveAsync(string, Catalog, DateTime?)"/>.
+/// of the "no second writer" rule: this is the only file in the tree that calls
+/// <see cref="GameCatalog.SaveAsync(string, Catalog, DateTime?)"/>.
 /// </summary>
 /// <remarks>
 /// <c>internal</c> and held only as a private readonly field on <see cref="MainViewModel"/> —
 /// never as a public property — so nothing in XAML can bind a path to the catalog writer and
 /// nothing outside the assembly can reach it. It references no WPF type, raises no
 /// change notification and composes no user-facing sentence: notification and wording stay with
-/// the view model, which is what keeps every existing header binding and status assertion
-/// working untouched.
+/// the view model, so every header binding and status line has one owner.
 /// </remarks>
 internal sealed class CatalogSession
 {
-    // Mutable: Refresh and every successful write reassign this rather than
-    // mutating the record's own Catalog reference, matching MainViewModel's pre-extraction shape.
+    // Mutable: Refresh and every successful write reassign this record (a `with` copy) rather
+    // than mutating its own Catalog reference.
     private CatalogLoad _load;
 
     public CatalogSession(CatalogLoad load)
@@ -37,7 +36,7 @@ internal sealed class CatalogSession
 
     /// <summary>
     /// The bare resolve — what the header line (<see cref="MainViewModel.BackupRootDisplay"/>)
-    /// uses today. Distinct from <see cref="TryGetConfiguredBackupRoot"/>: this can succeed on a
+    /// uses. Distinct from <see cref="TryGetConfiguredBackupRoot"/>: this can succeed on a
     /// catalog that has no folder configured, resolving to wherever an unset value falls back to.
     /// </summary>
     public bool TryResolveBackupRoot(out string root) =>
@@ -45,7 +44,7 @@ internal sealed class CatalogSession
 
     /// <summary>
     /// The bare resolve <b>and</b> the non-blank check on the stored folder — the predicate the
-    /// status sweep, the restore pre-flight and the ensure-folder helper each apply today. Not
+    /// status sweep, the restore pre-flight and the ensure-folder helper each apply. Not
     /// interchangeable with <see cref="TryResolveBackupRoot"/>: folding the two together would
     /// either change what the header shows or change when the first-backup picker opens.
     /// </summary>
@@ -69,7 +68,7 @@ internal sealed class CatalogSession
             // error) — the save itself already succeeded, so the failure must not escape this
             // async method into a caller's async-void command path. Keeping the previous stamp
             // makes the NEXT save fail its own changed-on-disk check — a named refusal, not a
-            // crash (audit A8).
+            // crash.
             try
             {
                 _load = _load with { LastWriteTimeUtc = File.GetLastWriteTimeUtc(_load.Path) };
@@ -85,9 +84,8 @@ internal sealed class CatalogSession
 
     /// <summary>
     /// Appends <paramref name="games"/> and saves, removing exactly what was appended on failure.
-    /// Serves both add-game and find-games — two hand-copied instances of this same five-line
-    /// shape before this extraction — so both callers still report the returned result
-    /// themselves.
+    /// Serves both add-game and find-games, so the append-and-rollback exists once; both callers
+    /// report the returned result themselves.
     /// </summary>
     public async Task<OperationResult> AddGamesAsync(IReadOnlyList<Game> games)
     {
@@ -108,8 +106,7 @@ internal sealed class CatalogSession
     /// <summary>
     /// Rebuilds the record with <paramref name="picked"/> as the backup folder, in the catalog's
     /// own separator form, and saves — restoring the previous record on failure. The caller
-    /// reports the failure and raises the header's change notification on success, exactly as
-    /// before this extraction.
+    /// reports the failure and raises the header's change notification on success.
     /// </summary>
     public async Task<OperationResult> SetBackupRootAsync(string picked)
     {
@@ -135,8 +132,8 @@ internal sealed class CatalogSession
 
     /// <summary>
     /// Re-reads the catalog file from the same path and replaces the held record. The caller
-    /// still inspects <see cref="FatalError"/> afterwards and still leaves the previously loaded
-    /// rows on screen when the file is malformed. A fatal reload leaves the previously held record
+    /// inspects <see cref="FatalError"/> afterwards and leaves the previously loaded rows on
+    /// screen when the file is malformed. A fatal reload leaves the previously held record
     /// in place instead — replacing it with the empty catalog <see cref="GameCatalog.LoadAsync"/>
     /// returns on failure would make every later write (add game, change backup folder) save that
     /// empty catalog over the real one still on disk.

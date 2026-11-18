@@ -75,7 +75,7 @@
     <CornerRadius x:Key="radiusSurface">8</CornerRadius>
 
     <!--
-        The merged Status cell's sentence-to-subline gap
+        The Status cell's sentence-to-subline gap
         — a deliberate, bounded exception scoped to that one tightly-coupled two-line pairing. Not a
         precedent for any other gap below xs.
     -->
@@ -165,7 +165,7 @@
     </Style>
 
     <!--
-        The merged Status cell's icon.
+        The Status cell's icon.
         BasedOn RowSeverityIconStyle so the Warning/Error mapping above is
         inherited rather than re-declared — WPF merges a BasedOn style's Setters and Triggers, so
         this adds exactly the one state that mapping does not know about: the accent-coloured
@@ -214,8 +214,8 @@
     </Style>
 
     <!--
-        Row and cell chrome. Without these the grid had no hover state at all — nothing on screen
-        acknowledged the pointer, which on a list whose rows carry per-row actions reads as an
+        Row and cell chrome. Without these the grid has no hover state at all — nothing on screen
+        acknowledges the pointer, which on a list whose rows carry per-row actions reads as an
         inert table rather than something you operate. Every colour resolves through a theme brush
         so the states survive a theme change, High Contrast included.
         
@@ -225,7 +225,7 @@
     <Style x:Key="GridRowStyle" TargetType="DataGridRow">
         <!--
             Rows are separated by height, alternating tint and the hover state, not by rules. The
-            grid's own horizontal lines stopped where the last text column ended, leaving every
+            grid's own horizontal lines stop where the last text column ends, leaving every
             separator visibly torn across the Actions column; a full-width tint doesn't have that
             problem. AlternationCount="2" is set on the DataGrid itself (MainWindow.xaml); the
             AlternationIndex trigger below is listed before Hover/Selected so those still win when
@@ -250,7 +250,7 @@
     </Style>
 
     <!--
-        Cell padding lives here rather than on each of the six column templates, so the columns
+        Cell padding lives here rather than on each column, so the columns
         cannot drift apart from one another. The transparent background and removed focus border
         keep the row's own hover/selection state visible through the cell: a cell painting its own
         background would punch a hole in the row highlight.
@@ -277,9 +277,9 @@
         </Setter>
         <Style.Triggers>
             <!--
-                Selecting a row (which a click on its ⋯ button does) otherwise repainted the cell
+                Selecting a row (which a click on its ⋯ button does) otherwise repaints the cell
                 in WPF's classic selection colours: SystemColors.HighlightTextBrush is near-black,
-                which on this dark surface made the row's text unreadable. The row style already
+                which on a dark surface makes the row's text unreadable. The row style already
                 paints the selected background, so the cell keeps its own background transparent
                 and only pins the text colour it must not inherit.
             -->
@@ -294,7 +294,7 @@
 
     <!--
         Toolbar buttons: the large icon+label form the design
-        section calls for. Icon above its label rather than beside it, so six actions read as six
+        section calls for. Icon above its label rather than beside it, so the actions read as
         targets of equal weight instead of a row of similar-length text runs. The symbol itself is
         set per button — this style owns only the shape.
     -->
@@ -304,9 +304,9 @@
         TargetType="ui:Button">
         <Setter Property="Appearance" Value="Transparent" />
         <!--
-            Sized so all nine buttons share one row at the window's minimum width, including the
-            two selection buttons with a two-digit count. At 84 / 10 the last one wrapped onto a
-            second row and took that height away from the game list.
+            Sized so every toolbar button shares one row at the window's minimum width, including
+            the two selection buttons with a two-digit count. A wider MinWidth/Padding (84 / 10)
+            wraps the last one onto a second row and takes that height away from the game list.
         -->
         <Setter Property="MinWidth" Value="72" />
         <Setter Property="MinHeight" Value="60" />
@@ -319,7 +319,7 @@
             <!--
                 The accent's hover/press role. Transparent
                 Appearance is what gives these buttons their flat resting state, but it also
-                suppressed WPF-UI's own accent chrome, which is why the accent has to be stated
+                suppresses WPF-UI's own accent chrome, which is why the accent has to be stated
                 here rather than inherited.
             -->
             <Trigger Property="IsMouseOver" Value="True">
@@ -334,7 +334,7 @@
         </Style.Triggers>
     </Style>
 
-    <!--  Hosts a SavegameBunkerIcons.xaml geometry at the size the toolbar SymbolIcons used.  -->
+    <!--  Hosts a SavegameBunkerIcons.xaml geometry at the toolbar's 22px icon size.  -->
     <Style x:Key="ToolbarGlyph" TargetType="Viewbox">
         <Setter Property="Width" Value="22" />
         <Setter Property="Height" Value="22" />
@@ -342,7 +342,7 @@
     </Style>
     <Style x:Key="ToolbarGlyphPath" TargetType="Path">
         <Setter Property="Stretch" Value="Uniform" />
-        <!--  Follows the button's Foreground so hover/press/disabled match the old SymbolIcon.  -->
+        <!--  Follows the button's Foreground so the glyph tracks hover/press/disabled with the label.  -->
         <Setter Property="Fill" Value="{Binding Foreground, RelativeSource={RelativeSource AncestorType=Control}}" />
     </Style>
 

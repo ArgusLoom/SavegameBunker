@@ -7,7 +7,7 @@ using SavegameBunker.Services;
 namespace SavegameBunker.Tests;
 
 /// <summary>
-/// CLAUDE.md's never-throw error contract made executable (REF-05): every public
+/// CLAUDE.md's never-throw error contract made executable: every public
 /// <c>SavegameBunker.Services</c> method is called with caller-reachable hostile input and must
 /// return its declared failure shape instead of letting an exception cross the boundary.
 /// </summary>

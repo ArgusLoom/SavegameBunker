@@ -5,7 +5,7 @@
              xmlns:conv="clr-namespace:SavegameBunker.Converters">
     <Application.Resources>
         <ResourceDictionary>
-            <!-- Severity colours, contrast-corrected to meet WCAG AA. -->
+            <!-- Accent colours and the brushes derived from them. -->
             <!-- The fixed accent. Declared here so XAML and App.xaml.cs share one
                  source of truth; App.OnStartup reads this very colour when it applies the theme. -->
             <Color x:Key="SavegameBunkerAccentColor">#FF4DD300</Color>
@@ -35,6 +35,7 @@
                  before OnStartup runs. -->
             <SolidColorBrush x:Key="SavegameBunkerLinkBrush" Color="{StaticResource SavegameBunkerAccentColor}"/>
 
+            <!-- Severity colours, contrast-corrected to meet WCAG AA. -->
             <Color x:Key="PaletteRedColor">#FFDC6C64</Color>
             <SolidColorBrush x:Key="PaletteRedBrush" Color="{StaticResource PaletteRedColor}"/>
             <Color x:Key="SavegameBunkerCautionColor">#FFDFAD49</Color>

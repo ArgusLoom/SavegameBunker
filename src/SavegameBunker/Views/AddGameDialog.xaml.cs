@@ -20,7 +20,7 @@ public partial class AddGameDialog : FluentWindow
     /// method — the click already updated <see cref="AddGameDialogViewModel.SelectedSuggestion"/>
     /// through the list's two-way binding before this handler runs, and the command itself is a
     /// no-op when nothing is highlighted. Survives as the one piece of event plumbing WPF offers
-    /// no declarative event-to-command binding for, short of a behaviours package, which was declined.
+    /// no declarative event-to-command binding for, short of a behaviours package, which the two-package limit rules out.
     /// </summary>
     private void SuggestionsList_PreviewMouseLeftButtonUp(object sender, MouseButtonEventArgs e)
     {

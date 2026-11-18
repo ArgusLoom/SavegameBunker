@@ -42,8 +42,8 @@ public sealed record SaveStatus(
     /// read — the same unreadable subtrees <see cref="SavegameBunker.Services.BackupService"/>'s
     /// own walk already reports. Empty when the walk was complete. Set only on
     /// <see cref="Found"/> and <see cref="NoSaves"/> results; deliberately not a positional
-    /// parameter so the four factories and every existing caller are unchanged, and a complete
-    /// scan still compares equal to the factory's own value.
+    /// parameter so the four factories keep their shape and a complete scan still compares equal
+    /// to the factory's own value.
     /// </summary>
     public IReadOnlyList<string> SkippedPaths { get; init; } = [];
 

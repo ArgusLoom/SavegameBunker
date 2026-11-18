@@ -5,7 +5,7 @@ using SavegameBunker.Services;
 namespace SavegameBunker.ViewModels;
 
 /// <summary>
-/// The status-sweep engine <see cref="MainViewModel"/> used to hold inline: resetting rows to
+/// The status-sweep engine behind <see cref="MainViewModel"/>'s rescans: resetting rows to
 /// Checking, walking each row's save folder and comparing it against the backup folder, and the
 /// free-space advisory's own filesystem reads.
 /// </summary>
@@ -18,8 +18,8 @@ namespace SavegameBunker.ViewModels;
 /// every <c>Progress&lt;T&gt;</c> itself — this class takes none and builds none.
 /// <para>
 /// Every write <see cref="WalkAsync"/> applies to a row goes through the <c>onUi</c> delegate
-/// passed to the constructor, with the per-row token check made INSIDE that callback, exactly as
-/// before: <c>onUi</c> only schedules the callback, it does not run it, so a check made on the
+/// passed to the constructor, with the per-row token check made INSIDE that callback:
+/// <c>onUi</c> only schedules the callback, it does not run it, so a check made on the
 /// calling thread and a newer scan starting on the UI thread before the callback actually
 /// executes would race. <see cref="MainViewModel.IsAnyRowChecking"/> stays MainViewModel's
 /// aggregate — <see cref="Reset"/> is what flips it true for the rows it touches; this class
@@ -47,7 +47,7 @@ internal sealed class StatusSweepCoordinator
 
     /// <summary>
     /// Bumps every row's own scan token and resets both axes to Checking — the token is per row,
-    /// not per sweep, because scans now cover different sets of rows: a newer scan of one row
+    /// not per sweep, because scans cover different sets of rows: a newer scan of one row
     /// must not invalidate an older sweep's still-pending results for all the others. Materialises
     /// the snapshot (the token bump) before applying any reset, so every row's token is captured
     /// at the same moment.
@@ -131,9 +131,8 @@ internal sealed class StatusSweepCoordinator
 
     /// <summary>
     /// The free-space advisory's own filesystem reads: one free-space probe plus one
-    /// <see cref="BackupService.ComputeSaveDataSize"/> call per relevant game. Run inside the
-    /// caller's own <see cref="Task.Run(Func{Task})"/> — checking a box must never block on a
-    /// directory walk.
+    /// <see cref="BackupService.ComputeSaveDataSize"/> call per relevant game, all inside one
+    /// <c>Task.Run</c> — checking a box must never block on a directory walk.
     /// </summary>
     public Task<(string? Free, string? Selected, string? Changed)> ComputeAdvisoryAsync(
         bool hasRoot, string root, IReadOnlyList<Game> selectedGames, IReadOnlyList<Game> changedGames) =>

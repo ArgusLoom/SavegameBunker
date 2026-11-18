@@ -49,7 +49,6 @@ public sealed class RestoreService
     /// stages below begins — the safety backup, the extraction and the swap. Reported from here
     /// rather than from a caller because the boundary between extraction and swap is not
     /// observable from outside this method, and a caller's guess would be invented progress.
-    /// Additive and defaulted, so every existing call site is unaffected.
     /// </param>
     public OperationResult Restore(
         Game game,
@@ -72,12 +71,9 @@ public sealed class RestoreService
 
             // The archive must live in this game's own backup folder (<backupRoot>/<game.Id>) —
             // the same containment logic the backup walk uses for exclusions, pointed at the
-            // single archive. Today every caller passes a path straight from
-            // BackupService.ListBackups, which already enforces that layout; this guard exists so
-            // a future caller cannot point restore at an arbitrary zip outside the app's own
-            // archives (audit A11). IsSameOrInside takes files as well as directories — it
-            // compares normalized path prefixes, so "<gameId>/sibling.zip" or any other folder
-            // fails here.
+            // single archive. ListBackups already enforces that layout; this guard keeps any
+            // caller from pointing restore at an arbitrary zip outside the app's own archives.
+            // IsSameOrInside compares normalized path prefixes, so it works on a file path too.
             if (!BackupService.IsSameOrInside(archivePath, Path.Combine(backupRoot, game.Id)))
                 return OperationResult.Fail(
                     $"Archive is not a backup of {game.DisplayName} in the configured backup folder: {archivePath}");
@@ -134,13 +130,10 @@ public sealed class RestoreService
             // opposite direction — this is the round-trip proof. Nothing about the live save
             // path has been touched yet.
             //
-            // The entry-set-and-uncompressed-length comparison is shared with the backup path, and
-            // since A3 the verification also hashes every entry's decompressed stream against the
-            // extracted file on disk (verifyContent: true) — .NET 10 does not validate an entry's
-            // CRC-32 on read (that check arrived in .NET 11), and no stored hash sidecar exists,
-            // so hashing both sides is what actually detects a bit flip inside an otherwise
-            // structurally valid archive on either side. Extracted-but-corrupt now fails before
-            // the swap, never after it.
+            // verifyContent: true also hashes every entry's decompressed stream against the
+            // extracted file on disk — .NET 10 does not validate an entry's CRC-32 on read and no
+            // stored hash sidecar exists, so hashing both sides is what detects a bit flip inside
+            // a structurally valid archive. Extracted-but-corrupt fails before the swap, never after.
             var verificationFailure = BackupService.DescribeVerificationFailure(archivePath, tempDir, verifyContent: true);
             if (verificationFailure is not null)
             {
@@ -195,13 +188,12 @@ public sealed class RestoreService
                 // The live save directory is intact again, so the extracted copy is redundant —
                 // the archive it came from still exists. Only the failure that could NOT restore
                 // the old directory keeps tempDir, because then it holds the user's only new-copy
-                // content worth keeping (audit A6).
+                // content worth keeping.
                 if (oldRestored)
                     TryDeleteDirectory(tempDir);
 
-                // "The save folder is in use" was the message even when the real cause was
-                // something else entirely (a disk error, a path-length overflow); the actual
-                // exception message is the one the user can act on.
+                // Not "the save folder is in use": the cause may be anything (a disk error, a
+                // path-length overflow), and the actual exception message is what the user can act on.
                 return OperationResult.Fail(
                     $"Restore failed for {game.DisplayName}: the restored folder could not be put in place ({ex.Message}).");
             }
@@ -264,30 +256,16 @@ public sealed class RestoreService
 
     /// <summary>
     /// Deletes every leftover <c>&lt;leaf-name&gt;.savegamebunker-restore-tmp-*</c> sibling of
-    /// <paramref name="saveDir"/> in its own parent folder before this attempt writes anything —
-    /// mirrors <see cref="BackupService"/>'s own <c>CleanStaleTempFiles</c>, never a
-    /// <c>backupRoot</c>-wide walk and never a startup sweep. The save directory's parent can
-    /// itself be a relocated known folder on a mapped or slow network drive, and walking it at
-    /// every launch to tidy a rare leftover is the wrong trade — the identical reasoning
-    /// <c>CleanStaleTempFiles</c> already records for the backup side. The sweep is destructive
-    /// by name, and it is safe for two reasons: the
-    /// <c>&lt;leaf-name&gt;.savegamebunker-restore-tmp-&lt;guid&gt;</c> pattern is created only by
-    /// <see cref="Restore"/> itself — no other producer on the machine writes that name, so a
-    /// match can only be this app's own leftover — and the pattern embeds the save directory's
-    /// leaf name, so the sweep cannot reach extraction directories belonging to a different
-    /// game's folder even if one sat in the same parent. A matched directory is also never the
-    /// live save data: the real save path never carries the suffix, and the only other
-    /// rename-aside this class makes (<c>-old-</c>) is deliberately not matched — see the
-    /// remarks below. Reports nothing, ever:
-    /// housekeeping the user never knew about is not an event they can act on, and a message
-    /// about a directory they never saw reads as a fault.
+    /// <paramref name="saveDir"/> before this attempt writes anything — per game, never a startup
+    /// sweep, for the same reason as <see cref="BackupService"/>'s <c>CleanStaleTempFiles</c>. The
+    /// sweep deletes by name, which is safe because only <see cref="Restore"/> creates that pattern
+    /// and it embeds the save directory's leaf name, so it cannot reach another game's folder.
+    /// Reports nothing: housekeeping the user never knew about is not an event they can act on.
     /// </summary>
     /// <remarks>
-    /// Deliberately matches only the <c>-tmp-</c> extraction siblings, never <c>-old-</c> ones: a
-    /// <c>-old-</c> directory is the live save data that a previous run's final swap failed to put
-    /// back (see the catch around the second <see cref="Directory.Move"/> above). Sweeping it away
-    /// here — before a fresh attempt even knows that data exists — would delete the user's only
-    /// remaining copy the moment they retry.
+    /// Never matches <c>-old-</c> siblings: one of those is the live save data that an earlier
+    /// attempt's final swap failed to put back. Sweeping it before a retry would delete the user's
+    /// only remaining copy.
     /// </remarks>
     private static void CleanStaleRestoreTemp(string saveDir)
     {

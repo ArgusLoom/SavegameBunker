@@ -476,7 +476,7 @@ public sealed class RestoreServiceTests : IDisposable
         // DescribeVerificationFailure's archive-side dictionary key is the entry's raw, unnormalized
         // FullName ("sub\file.dat") — the two disagree, deterministically producing a mismatch
         // without any binary corruption of the archive. The archive lives in the game's own backup
-        // folder — the provenance guard (audit A11) refuses archives from anywhere else before
+        // folder — the provenance guard refuses archives from anywhere else before
         // verification ever sees them.
         Directory.CreateDirectory(BackupDirFor(backupRoot, game));
         var craftedArchive = Path.Combine(BackupDirFor(backupRoot, game), "crafted.zip");

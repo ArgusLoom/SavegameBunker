@@ -14,7 +14,7 @@ namespace SavegameBunker.ViewModels;
 /// <c>static</c> and <c>internal</c> because every member is a pure function of its arguments —
 /// it references no WPF type, performs no I/O and holds no state — so each rule has exactly one
 /// definition that the bulk coordinator, the space advisory and the startup prompt cannot drift
-/// from. Re-inlining any member is a local edit to <see cref="MainViewModel"/> call sites only.
+/// from.
 /// </remarks>
 internal static class BulkRunRules
 {
@@ -53,8 +53,7 @@ internal static class BulkRunRules
         [.. rows.Where(row => row.IsSelected && !row.IsBusy)];
 
     /// <summary>
-    /// Composes the closing outcome of a bulk backup from its targets and failures, exactly as
-    /// <see cref="MainViewModel"/>'s shared bulk-backup body reported it: no failures and a
+    /// Composes the closing outcome of a bulk backup from its targets and failures: no failures and a
     /// single target names that one game; no failures and several names the caller's all-succeeded
     /// key with the count; otherwise the caller's partial-failure key names how many succeeded,
     /// how many were attempted, and the comma-joined failed game names.
@@ -74,8 +73,8 @@ internal static class BulkRunRules
     }
 
     /// <summary>
-    /// Composes the closing outcome of a bulk restore from its targets and results, in the same
-    /// four branches <see cref="MainViewModel"/> reported inline: a cancel when nothing was
+    /// Composes the closing outcome of a bulk restore from its targets and results, in four
+    /// branches: a cancel when nothing was
     /// restored and nothing failed (every game was either declined or not attempted); a failure
     /// result whenever anything failed — failure wins over a partial skip; a skip-naming result
     /// when some games were declined but none failed, naming how many actually were restored so

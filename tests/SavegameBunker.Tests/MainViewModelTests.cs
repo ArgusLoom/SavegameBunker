@@ -140,8 +140,11 @@ public sealed class RecordingDialogService : IDialogService
 }
 
 /// <summary>
-/// Proves the view model half of the busy gate and the first-backup folder prompt
-/// without a running window.
+/// Drives <see cref="MainViewModel"/> end to end without a running window, through a recording
+/// dialog service and real temp folders: command gating while work runs, the first-backup folder
+/// prompt, Find Games, single-row and bulk backup and restore, the status sweep and its verdicts,
+/// change save folder and remove, selection, search, row ordering, the free-space advisory and
+/// <see cref="MainViewModel.ReportLoad"/>.
 /// </summary>
 public sealed class MainViewModelTests : IDisposable
 {
@@ -932,7 +935,7 @@ public sealed class MainViewModelTests : IDisposable
     }
 
     /// <summary>
-    /// E9 backstop: drives <c>GameActions.BuildConfirmation</c> (private, so exercised through the
+    /// Backstop: drives <c>GameActions.BuildConfirmation</c> (private, so exercised through the
     /// full restore flow like every other confirmation test here) down both the no-current-saves
     /// branch and the newer-saves-than-backup branch, and proves the two paragraphs the contract
     /// says can never contradict each other never actually co-occur in either direction.

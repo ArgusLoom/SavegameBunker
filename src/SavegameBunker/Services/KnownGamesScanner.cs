@@ -10,14 +10,11 @@ namespace SavegameBunker.Services;
 /// have save data already on disk. Stateless, no WPF reference.
 /// </summary>
 /// <remarks>
-/// <see cref="Scan"/> is deliberately synchronous, unlike <see cref="SavegameBunker.ViewModels.MainViewModel"/>'s
-/// bounded-parallel status sweep: every step it calls — <see cref="PathResolver.TryResolve"/> and
-/// <see cref="SaveStatusScanner.Scan"/> — is itself synchronous, so wrapping this method in
-/// <c>async</c> would be a signature that promises asynchrony over work that has none, the same
-/// reasoning CLAUDE.md records for wrapping <c>ZipFile.CreateFromDirectory</c> in
-/// <see cref="Task.Run{TResult}(Func{TResult})"/> instead of faking an <c>async</c> method.
-/// <see cref="SavegameBunker.ViewModels.MainViewModel"/> supplies the actual off-UI-thread wrapper by
-/// calling this from inside its own <c>Task.Run</c>.
+/// <see cref="Scan"/> is deliberately synchronous: every step it calls —
+/// <see cref="PathResolver.TryResolve"/> and <see cref="SaveStatusScanner.Scan"/> — is itself
+/// synchronous, and an <c>async</c> signature over work with no asynchrony in it would be a fake.
+/// <see cref="SavegameBunker.ViewModels.MainViewModel"/> keeps it off the UI thread by calling it
+/// inside <see cref="Task.Run{TResult}(Func{TResult})"/>.
 ///
 /// <see cref="Scan"/> never throws across its boundary: <see cref="SaveStatusScanner.Scan"/> has
 /// already converted every filesystem failure it can encounter into a <see cref="SaveStatus"/>
@@ -28,25 +25,19 @@ public sealed class KnownGamesScanner
 {
     /// <summary>
     /// Same bound the status sweep (<c>StatusSweepCoordinator</c>) uses: a handful of templates
-    /// blocked on a sleeping network drive must not serialize the whole probe, but nothing caps the
-    /// window from opening the moment the sweep in fact returns.
+    /// blocked on a sleeping network drive must not serialize the whole probe, because the Find
+    /// Games window opens only once the probe returns.
     /// </summary>
     private const int MaxDegreeOfParallelism = 4;
 
     /// <summary>
     /// Every <c>SaveDirTemplate</c> held by more than one entry in <paramref name="table"/>:
-    /// a handful of the shipped table's entries sit on the same Ubisoft launcher
-    /// folder, and reporting that folder once per entry would, if confirmed, write one catalog
-    /// entry per entry backing up the same folder into identical archives. The rule is derived by
-    /// counting the loaded table at runtime — grouping by the raw template string, not a resolved
-    /// absolute path, because resolution is per-machine I/O-free work duplicated across every
-    /// entry for no gain, and because the design's own measured fact (a handful of distinct
-    /// <c>saveDirTemplate</c> values sharing one folder) was itself computed from the raw template
-    /// string. A second collision group added to the table later is caught by this same counting
-    /// rule with no code change.
-    /// <c>public</c> and <c>static</c> because <c>AddGameDialogViewModel</c> consumes
-    /// the identical rule — a second copy of it in that view model would be free to drift from
-    /// this one.
+    /// several of the shipped table's entries sit on the same launcher folder (Ubisoft's, for one),
+    /// and offering that folder once per entry would create catalog entries that back up the same
+    /// folder into identical archives. Grouped by the raw template string, so the answer is the
+    /// same on every machine and needs no path resolution; any new collision group in the table is
+    /// caught without a code change. <c>public</c> and <c>static</c> because
+    /// <c>AddGameDialogViewModel</c> applies the identical rule and must not keep a drifting copy.
     /// </summary>
     public static IReadOnlySet<string> SharedTemplates(IReadOnlyList<KnownGame> table)
     {
@@ -65,9 +56,8 @@ public sealed class KnownGamesScanner
     public ScanResult Scan(IReadOnlyList<KnownGame> table, IReadOnlyList<Game> catalog)
     {
         // The shared-template exclusion runs first, ahead of the id-safety gate and any
-        // resolution: the design says a shared entry is excluded "before any of that", so it is
-        // reported as shared even when its id is unsafe, its template does not resolve, or its
-        // directory is missing. Do not reorder this below the IdSlug.IsSafe gate — that would
+        // resolution, so a shared entry is reported as shared even when its id is unsafe, its
+        // template does not resolve, or its directory is missing. Do not reorder this below the IdSlug.IsSafe gate — that would
         // silently change which reason a shared-and-unsafe entry is reported under.
         var sharedTemplates = SharedTemplates(table);
         var skippedShared = table
@@ -106,14 +96,14 @@ public sealed class KnownGamesScanner
         foreach (var entry in safeEntries)
         {
             // A template that does not resolve is dropped silently — neither a hit nor a reported
-            // skip, per the locked ScanResult shape, which has no bucket for it. The other entries
+            // skip, because ScanResult has no bucket for it. The other entries
             // in the table must still be probed: one bad template must not abort the whole scan.
             if (!PathResolver.TryResolve(entry.SaveDirTemplate, null, out var path, out _))
                 continue;
 
             // Already-known check sits here, before the filesystem probe: it costs no I/O, and
             // skipping the walk for an entry the catalog already covers is the whole point of
-            // doing it before the probe on a table of 268 templates. Trimmed the same
+            // doing it before the probe across the whole table. Trimmed the same
             // way knownPaths was built, so a trailing separator on either side never breaks the
             // match.
             if (knownIds.Contains(entry.Id) || knownPaths.Contains(path.TrimEnd(Path.DirectorySeparatorChar)))

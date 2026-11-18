@@ -16,7 +16,7 @@
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="36"/>  <!-- TitleBar -->
-            <RowDefinition Height="*"/>   <!-- existing DockPanel content -->
+            <RowDefinition Height="*"/>   <!-- window content -->
         </Grid.RowDefinitions>
 
         <ui:TitleBar Grid.Row="0" Title="{Binding WindowTitle}">
@@ -58,8 +58,8 @@
                         <AccessText Text="{DynamicResource str_toolbar_openGamesList_access}" Style="{StaticResource ToolbarButtonLabel}"/>
                     </StackPanel>
                 </ui:Button>
-                <!-- Docked right, left of the catalog toggle: opening the guide is a session-level
-                     file-level action like its neighbours, not one of the game actions on the left. -->
+                <!-- Docked right, left of the catalog toggle: opening the guide is a window-level
+                     action like its neighbours, not one of the game actions on the left. -->
                 <ui:Button x:Name="HelpButton" Command="{Binding HelpCommand}"
                         DockPanel.Dock="Right"
                         Style="{StaticResource ToolbarButton}"
@@ -176,10 +176,10 @@
                 folder is in force — sit on the right, each trimmed to its short name with the full
                 path on hover.
 
-                They used to be a header block under a 20pt "SavegameBunker" heading. The heading merely
-                repeated the title bar, and putting persistent context along the bottom edge is
-                where a desktop application conventionally keeps it — the grid gets that vertical
-                space instead, which is the part of this window that actually needs it.
+                They sit along the bottom edge rather than in a header block: a heading would only
+                repeat the title bar, the bottom edge is where a desktop application conventionally
+                keeps persistent context, and the grid gets that vertical space instead, which is
+                the part of this window that actually needs it.
             -->
             <!-- One quiet strip, not three 1px cards. A single hairline on top separates it from
                  the grid; the three facts stay the same, just without a box around each. -->
@@ -248,15 +248,11 @@
                             </Style.Triggers>
                         </Style>
                     </Border.Style>
-                <!-- EnableRowVirtualization="False" is kept deliberately, but not for the reason it
-                     was originally added under. It was set under a theory that a DataGrid recycling
-                     DataGridRow containers across a GamesView.Refresh() Reset was desyncing the
-                     selection column's cell CheckBox from its row. A direct reproduction
-                     showed that theory was not the cause — the real defect, and its fix, is
-                     on the selection column's cell CheckBox below (SelectionCheckBox_CheckedChanged).
-                     It stays anyway: the catalog is a hand-curated list of tens of entries, so
-                     virtualization buys nothing measurable here, and reverting a harmless attribute
-                     is churn. -->
+                <!-- EnableRowVirtualization="False" is deliberate but does not fix the selection
+                     CheckBox losing its value across a GamesView.Refresh(); container recycling is
+                     not the cause — that fix is SelectionCheckBox_CheckedChanged in MainWindow.xaml.cs.
+                     Virtualization is off simply because the catalog is a hand-curated list of tens
+                     of entries, so it would buy nothing measurable here. -->
                 <ui:DataGrid x:Name="GamesGrid" ItemsSource="{Binding GamesView}"
                           AutoGenerateColumns="False" IsReadOnly="True" CanUserAddRows="False"
                           CanUserSortColumns="False"
@@ -302,10 +298,10 @@
                              DataGrid's own DataContext — a plain {Binding} in a HeaderTemplate resolves
                              against the column object and silently fails, so the Command below walks up
                              via RelativeSource to the DataGrid and reads its DataContext (MainViewModel)
-                             explicitly. No IsChecked binding: a RelativeSource-bound IsChecked resolved
-                             once (enough to display correctly at startup) but did not keep re-pulling on
-                             every later HeaderCheckState notification, so per-row selection toggles never
-                             moved the header's displayed state. An exactly-accurate
+                             explicitly. No IsChecked binding: a RelativeSource-bound IsChecked resolves
+                             once (enough to display correctly at startup) but does not keep re-pulling on
+                             every later HeaderCheckState notification, so per-row selection toggles would
+                             never move the header's displayed state. An exactly-accurate
                              tri-state display is not worth chasing that further — ToggleHeaderSelection's
                              own logic always recomputes the true select-all/clear-all direction fresh
                              from GamesView regardless of what the checkbox visually shows, so the command
@@ -380,17 +376,16 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <!-- Merged Status cell: replaces the
-                             former Newest Backup + Verdict columns with one icon + sentence + muted
-                             relative-time subline. -->
+                        <!-- Status cell: one icon + verdict sentence + muted relative-time subline,
+                             so the newest backup and the verdict read as one fact per row. -->
                         <DataGridTemplateColumn Header="{DynamicResource str_grid_status}" Width="304">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <StackPanel ToolTip="{Binding NewestBackupAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}">
                                         <!-- DockPanel, not a horizontal StackPanel: a StackPanel gives
-                                             its children infinite width, so TextTrimming never fired
-                                             and a long verdict was chopped mid-word by the cell edge
-                                             with no ellipsis to show it had been cut. -->
+                                             its children infinite width, so TextTrimming never fires
+                                             and a long verdict is chopped mid-word by the cell edge
+                                             with no ellipsis to show it has been cut. -->
                                         <DockPanel>
                                             <ui:SymbolIcon DockPanel.Dock="Left"
                                                            Tag="{Binding StatusSeverity}"
@@ -421,17 +416,17 @@
                                 </DataTemplate>
                             </DataGridTemplateColumn.CellTemplate>
                         </DataGridTemplateColumn>
-                        <!-- Pixel width, not a second star: two Width="*" columns used to share
-                             leftover equally, so this one stayed too narrow (and clipped the
-                             overflow) until the window was huge. Game is the only star. Icons are
-                             32px; 136 covers Back up + Restore + overflow, or the restore bar. -->
+                        <!-- Pixel width, not a second star: two Width="*" columns share leftover
+                             equally, so this one would stay too narrow (and clip the overflow)
+                             until the window is huge. Game is the only star. Icons are 32px;
+                             140 covers Back up + Restore + overflow, or the restore bar. -->
                         <DataGridTemplateColumn Header="{DynamicResource str_grid_actions}" Width="140">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
                                     <!-- Enabled regardless of installation status: save data
                                          outlives an uninstall, and that is when archiving it
                                          matters most. Icon-only with tooltips — labeled buttons
-                                         overcrowded the row and pushed overflow off-screen. -->
+                                         overcrowd the row and push the overflow off-screen. -->
                                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
                                         <!-- The indeterminate ring replaces this
                                              row's Back up button while this row is working, and
@@ -491,8 +486,8 @@
                                              layout does not shift between a restore and a large
                                              backup. Right margin: with
                                              the Backup and Restore buttons both collapsed while this
-                                             bar is visible, it sat flush against the overflow
-                                             DropDownButton with no gap between them. -->
+                                             bar is visible, it would otherwise sit flush against the
+                                             overflow DropDownButton with no gap between them. -->
                                         <ProgressBar Minimum="0" Width="96" Height="4"
                                                 Margin="0,0,4,0"
                                                 Maximum="{Binding BackupBytesTotal, Mode=OneWay}"
@@ -534,8 +529,8 @@
                                             </ui:Button.Style>
                                         </ui:Button>
                                         <!-- Overflow chrome is load-bearing: replacing the Style
-                                             attribute with a Style element once cost it the icon
-                                             sizing and left a control too small to hit. -->
+                                             attribute with a Style element drops the icon sizing
+                                             and leaves a control too small to hit. -->
                                         <ui:DropDownButton Style="{StaticResource IconActionButton}"
                                                 Width="32" Height="32"
                                                 ToolTip="{DynamicResource str_overflow_moreActions}"

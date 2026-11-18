@@ -7,7 +7,7 @@ namespace SavegameBunker.Tests;
 
 /// <summary>
 /// Direct tests over <see cref="RowActionsCoordinator"/> — the per-row Back up / Restore /
-/// Open save folder flows the view model used to hold inline, driven through a recording
+/// Open save folder flows behind the view model's row commands, driven through a recording
 /// <see cref="IRowActionHost"/> fake so the exact host-call order is observable. Built over
 /// real temp save folders and the real <see cref="BackupService"/>/<see cref="GameActions"/>,
 /// matching the established coordinator-test idioms in this suite.

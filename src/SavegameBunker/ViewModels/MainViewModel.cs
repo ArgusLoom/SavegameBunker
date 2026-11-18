@@ -47,17 +47,10 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
 
     /// <summary>
     /// Passed to <see cref="System.Windows.Data.BindingOperations.EnableCollectionSynchronization(System.Collections.IEnumerable, object)"/>
-    /// so <see cref="GamesView"/> (a live <see cref="System.ComponentModel.ICollectionView"/> over
-    /// <see cref="Games"/>) does not enforce the default single-thread affinity a bound
-    /// <c>CollectionView</c> otherwise requires. Every one of this file's <c>Games.Add</c>/
-    /// <c>Clear</c> call sites (<see cref="RefreshAsync"/>, <see cref="AddGameAsync"/>,
-    /// <see cref="FindGamesAsync"/>) already runs on the UI thread in the running app — WPF's
-    /// <c>DispatcherSynchronizationContext</c> marshals every async continuation back there — but a
-    /// plain xUnit host installs no such context, so a command's post-<c>await</c> continuation can
-    /// resume on a different thread pool thread than the one that constructed <see cref="GamesView"/>,
-    /// which a raw, unsynchronized <c>CollectionView</c> treats as a cross-thread violation and
-    /// crashes the process on (not merely fails an assertion on). This is the standard, minimal WPF
-    /// fix, not a broader concurrency redesign.
+    /// so <see cref="GamesView"/> tolerates <see cref="Games"/> changing on another thread. In the
+    /// running app every change already lands on the UI thread, but an xUnit host has no
+    /// <c>SynchronizationContext</c>, so a command's post-<c>await</c> mutation can arrive on a pool
+    /// thread — which an unsynchronized <c>CollectionView</c> answers by crashing the process.
     /// </summary>
     private readonly object _gamesSyncLock = new();
 
@@ -106,11 +99,8 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     {
         _session = new CatalogSession(load);
         _dialog = dialog;
-        // The four collaborators below are constructed in one consecutive block, in dependency
-        // order: GameActions first (needs _backup and _dialog), then BulkBackupCoordinator and
-        // StatusSweepCoordinator (each needs GameActions/BackupService and OnUi), then
-        // RowActionsCoordinator (needs GameActions, _dialog and this view model as its host).
-        // All four exist before the constructor's closing StartStatusScan().
+        // In dependency order: GameActions first, because the bulk and row coordinators take it.
+        // All four must exist before the constructor's closing StartStatusScan().
         _gameActions = new GameActions(_backup, _dialog);
         _bulk = new BulkBackupCoordinator(_backup, _gameActions, OnUi);
         _sweep = new StatusSweepCoordinator(_backup, OnUi);
@@ -119,15 +109,10 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
 
         System.Windows.Data.BindingOperations.EnableCollectionSynchronization(Games, _gamesSyncLock);
 
-        // Fully qualified inline, matching this file's existing System.Windows.Application
-        // convention in OnUi, rather than adding a using for System.Windows.Data.
-        // Constructed — and its Filter assigned — BEFORE the CollectionChanged subscription below:
-        // GetDefaultView() itself subscribes an internal sync handler to Games.CollectionChanged,
-        // and .NET multicast delegates fire handlers in subscription order. If our own handler (which
-        // notifies HasNoVisibleGames, read synchronously by whatever's bound to it) subscribed first,
-        // every later Games.Add/Remove would notify off a GamesView that had not yet re-synced itself
-        // against the new source state — observed live as "No games match" flashing permanently true
-        // the moment Add Game appends the first row to a previously-empty catalog.
+        // Created BEFORE the CollectionChanged subscription below: GetDefaultView() subscribes its
+        // own sync handler, and handlers fire in subscription order. Subscribed the other way round,
+        // HasNoVisibleGames would be read off a view not yet re-synced — "No games match" stuck on
+        // after adding the first game to an empty catalog.
         GamesView = System.Windows.Data.CollectionViewSource.GetDefaultView(Games);
         GamesView.Filter = MatchesSearch;
 
@@ -271,7 +256,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// still <see cref="BackupComparisonKind.Checking"/>.
     /// </summary>
     /// <remarks>
-    /// The reset to <see cref="BackupComparisonKind.Checking"/> itself now lives where the writes
+    /// The reset to <see cref="BackupComparisonKind.Checking"/> itself lives where the writes
     /// happen: <see cref="StatusSweepCoordinator.Reset"/> for every sweep and
     /// <see cref="BulkBackupCoordinator"/>'s claim for every bulk run. This aggregate stays here —
     /// it reads the rows, it never writes them.
@@ -398,11 +383,9 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// <summary>
     /// Stops and restarts <see cref="_spaceAdvisoryDebounce"/> — always paired, never a
     /// bare <c>Start()</c>, so a burst of selection/sweep events collapses into one recompute
-    /// instead of piling one up per event. Called from exactly four places: <see cref="RegisterRow"/>'s
-    /// <c>IsSelected</c> case, <see cref="StartStatusScan"/>'s closing callback (so the advisory
-    /// settles when the changed set does), <see cref="RemoveGameAsync"/> (no sweep follows a
-    /// removal), and <see cref="ChangeBackupRootAsync"/>'s success
-    /// path. Never calls <see cref="RecomputeSpaceAdvisoryAsync"/> directly — the debounce
+    /// instead of piling one up per event. Called wherever the selection, the changed set or the
+    /// backup folder changes — <see cref="StartStatusScan"/>'s closing callback among them, so the
+    /// advisory settles when the changed set does. Never calls <see cref="RecomputeSpaceAdvisoryAsync"/> directly — the debounce
     /// indirection is the mitigation itself.
     /// </summary>
     private void ScheduleSpaceAdvisoryRecompute()
@@ -412,24 +395,14 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     }
 
     /// <summary>
-    /// Recomputes the three advisory segments above. <c>internal</c> so the
-    /// test project (already carrying <c>InternalsVisibleTo</c>) can drive it directly and
-    /// synchronously instead of waiting on <see cref="_spaceAdvisoryDebounce"/>'s timer, which
-    /// never fires in a plain xUnit host. Snapshots which rows are selected and which are in the
-    /// changed set on the UI thread — the same two predicates <see cref="BackupSelectedAsync"/>
-    /// (<see cref="Games"/>, never <see cref="GamesView"/>) and <see cref="HasBackupTargets"/>
-    /// already use — then does every filesystem read (the free-space probe, one
-    /// <see cref="BackupService.ComputeSaveDataSize"/> call per relevant game) inside a single
-    /// <see cref="Task.Run(Action)"/>: checking a box must never block on a directory walk.
-    /// After the await, a captured generation that no longer matches
-    /// <see cref="_spaceAdvisoryGeneration"/> means a newer recompute already started — this one's
-    /// result is discarded rather than overwriting the newer one's, the identical generation-token
-    /// shape <see cref="StartStatusScan"/>'s own <see cref="GameRowViewModel.ScanToken"/> uses. Reads
-    /// <see cref="CatalogSession.TryGetConfiguredBackupRoot"/>, never
-    /// <see cref="EnsureBackupRootAsync"/> — an unset root here is simply an absent segment, not a
-    /// prompt for one. Never reports a failure, opens a dialog, or changes any command's
-    /// <c>CanExecute</c> — this method is write-only into the three properties above; the
-    /// two bulk backup commands never read them.
+    /// Recomputes the three advisory segments above. <c>internal</c> so tests can drive it
+    /// directly, since <see cref="_spaceAdvisoryDebounce"/> never fires in an xUnit host. Snapshots
+    /// the selected and changed sets from <see cref="Games"/> on the UI thread, then leaves every
+    /// filesystem read to <see cref="StatusSweepCoordinator.ComputeAdvisoryAsync"/>. A stale
+    /// generation after the await means a newer recompute started, so this result is dropped.
+    /// Reads <see cref="CatalogSession.TryGetConfiguredBackupRoot"/>, never
+    /// <see cref="EnsureBackupRootAsync"/> — an unset root is an absent segment, not a prompt.
+    /// Never reports, opens a dialog or affects any command's <c>CanExecute</c>.
     /// </summary>
     internal async Task RecomputeSpaceAdvisoryAsync()
     {
@@ -646,9 +619,8 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// <summary>
     /// True for the duration of a running backup write. Carries
     /// <see cref="global::CommunityToolkit.Mvvm.ComponentModel.NotifyCanExecuteChangedForAttribute"/>
-    /// naming <see cref="RefreshCommand"/> and <see cref="ChangeBackupRootCommand"/>, so their
-    /// generated <c>CanExecute</c> re-queries automatically when this flag changes — the
-    /// source-generated replacement for the old manual requery-invalidation call.
+    /// for every command gated on it, so their <c>CanExecute</c> re-queries the moment this flag
+    /// changes rather than on WPF's next unrelated requery.
     /// </summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
@@ -692,8 +664,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// status text, and folding them into one flag would make that flag true for two things at once
     /// with no way to tell which. Carries
     /// <see cref="global::CommunityToolkit.Mvvm.ComponentModel.NotifyCanExecuteChangedForAttribute"/>
-    /// naming <see cref="RefreshCommand"/> and <see cref="ChangeBackupRootCommand"/> for the same
-    /// reason <see cref="IsBackupRunning"/>'s does.
+    /// for every command gated on it, for the same reason <see cref="IsBackupRunning"/> does.
     /// </summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
@@ -1217,10 +1188,10 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
                 return;
             }
 
-            // Looked up after the await, not captured before it: index-by-id, not shared index,
-            // because sorted insert makes Games order differ from CatalogSession.Games, which is
-            // still append-order. Leave the row untouched when no match is found rather than
-            // indexing blindly.
+            // The row's position is looked up after the await, by reference, and never taken from
+            // CatalogSession.Games: sorted insert makes Games order differ from the catalog's
+            // append order. The repaired Game is matched by id. Leave the row untouched when
+            // either lookup misses rather than indexing blindly.
             var rowIndex = Games.IndexOf(row);
             if (rowIndex >= 0)
             {
@@ -1282,8 +1253,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
 
     /// <summary>
     /// Backs up every row whose comparison is <see cref="BackupComparisonKind.SavesChangedSinceBackup"/>
-    /// or <see cref="BackupComparisonKind.NeverBackedUp"/> — the highest-value
-    /// feature addition left in v1. No confirmation prompt: backup is additive and non-destructive,
+    /// or <see cref="BackupComparisonKind.NeverBackedUp"/>. No confirmation prompt: backup is additive and non-destructive,
     /// and a modal in front of the one action that protects data is friction pointed the wrong way.
     /// A per-game failure is collected and the loop continues; progress and the closing outcome
     /// never share a surface — the progress state is cleared before <see cref="Report"/> runs.
@@ -1356,7 +1326,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// <summary>
     /// Delegates the bulk-backup loop — root resolution stays here, the claim, the write loop
     /// and the release live in <see cref="BulkBackupCoordinator.BackupAsync"/> — and reports the
-    /// closing outcome exactly as before.
+    /// closing outcome.
     /// </summary>
     private async Task RunBulkBackupAsync(
         IReadOnlyList<GameRowViewModel> targets, string allSucceededKey, string partialFailureKey)
@@ -1452,9 +1422,8 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
             return;
         }
 
-        // One step reporter per target, built up front on the UI thread exactly like the bulk
-        // backup's byte reporters — construction has no side effect, so building them before the
-        // loop instead of per iteration is behavior-identical.
+        // One step reporter per target, built up front on the UI thread like the bulk backup's
+        // byte reporters, so every report marshals back onto the dispatcher.
         var stepProgress = targets.ToDictionary(row => row, CreateStepProgress);
 
         var run = await _bulk.RestoreAsync(
@@ -1470,10 +1439,8 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
 
         StartStatusScan(only: targets);
 
-        // The four-branch outcome composition lives in BulkRunRules.RestoreOutcome. Passing the
-        // details list on every branch is behavior-identical to the old failure-only branch:
-        // failureDetails gains an entry exactly when failed does, Report ignores an empty details
-        // list, and it returns early for a Cancel result.
+        // The details list is safe to pass on every branch: it gains an entry exactly when failed
+        // does, Report ignores an empty list, and it returns early for a Cancel result.
         Report(BulkRunRules.RestoreOutcome(targets, run.Restored, run.Failed, run.Declined), run.FailureDetails);
     }
 
@@ -1518,9 +1485,9 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         return picked;
     }
 
-    // The nine IRowActionHost members below exist only for RowActionsCoordinator — implemented
-    // explicitly so no public member is added, and each routes one coordinator touch back onto
-    // the same view-model state the pre-split inline bodies wrote directly.
+    // The IRowActionHost members below exist only for RowActionsCoordinator — implemented
+    // explicitly so no public member is added; each routes one coordinator touch onto this view
+    // model's own state.
 
     async Task<string?> IRowActionHost.EnsureBackupRootAsync() => await EnsureBackupRootAsync();
     bool IRowActionHost.TryGetConfiguredBackupRoot(out string root) => _session.TryGetConfiguredBackupRoot(out root);

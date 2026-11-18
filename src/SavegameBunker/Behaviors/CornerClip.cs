@@ -10,7 +10,7 @@ namespace SavegameBunker.Behaviors;
 /// <remarks>
 /// A <see cref="System.Windows.Controls.Border"/>'s <c>CornerRadius</c> rounds the border's own
 /// stroke and background but does not clip what sits inside it: a DataGrid's column-header strip
-/// keeps its square corners and overlaps the curve, which is what made the header read as sharper
+/// keeps its square corners and overlaps the curve, which makes the header read as sharper
 /// than everything around it. WPF has no "clip to my corner radius" property, and the alternative —
 /// a SizeChanged handler in the window's code-behind — is exactly the code-behind the views are kept
 /// free of, so the geometry is maintained here instead and applied by attaching a radius.

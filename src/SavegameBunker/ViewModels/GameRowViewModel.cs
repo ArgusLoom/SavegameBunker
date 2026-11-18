@@ -29,14 +29,13 @@ public sealed partial class GameRowViewModel : CommunityToolkitObservableObject
     /// The save directory's raw last-write time, bound through the ported
     /// <c>RelativeTimeConverter</c> for the visible text and, converter-less, for the cell's
     /// absolute-value <c>ToolTip</c>. Set from <see cref="SaveStatus.LastModified"/> in
-    /// <see cref="ApplyStatus"/>'s <c>Found</c> branch. Replaces the pre-formatted timestamp
-    /// string the row used to carry.
+    /// <see cref="ApplyStatus"/>'s <c>Found</c> branch. Raw rather than pre-formatted, so the
+    /// relative text and the exact tooltip come from one value.
     /// </summary>
     [ObservableProperty] public partial DateTime? LastPlayedAt { get; private set; }
 
     /// <summary>
-    /// The newest backup's raw timestamp, replacing the pre-formatted timestamp string
-    /// the row used to carry. Set from <see cref="BackupComparison"/> facts only, independent
+    /// The newest backup's raw timestamp, bound the same way as <see cref="LastPlayedAt"/>. Set from <see cref="BackupComparison"/> facts only, independent
     /// of <see cref="ComparisonKind"/> — a row with no current save data still shows when an
     /// archive exists.
     /// </summary>
@@ -46,12 +45,12 @@ public sealed partial class GameRowViewModel : CommunityToolkitObservableObject
 
     /// <summary>
     /// Drives the merged Status cell's muted time subline's visibility — present whenever a
-    /// backup exists, whatever this row's comparison kind is (E2 empty/populated).
+    /// backup exists, whatever this row's comparison kind is (including an empty save folder).
     /// </summary>
     public bool HasNewestBackup => NewestBackupAt is not null;
 
     /// <summary>
-    /// The verdict's raw kind, exposed so task 5's bulk-backup selection can filter rows without
+    /// The verdict's raw kind, exposed so the bulk-backup selection can filter rows without
     /// re-deriving it from severity or text.
     /// </summary>
     [ObservableProperty]
@@ -110,8 +109,9 @@ public sealed partial class GameRowViewModel : CommunityToolkitObservableObject
     /// to any view — a pure hint <see cref="Services.BackupComparer.Compare"/> uses to tell "the
     /// newest backup already matches what's on disk" from "a restore replaced disk content with
     /// an older archive, so the newest backup (the fresh pre-restore safety copy) no longer
-    /// matches, whatever the plain mtime comparison says". <see cref="ViewModels.MainViewModel"/>
-    /// sets it after a successful restore and clears it after this row's next successful backup,
+    /// matches, whatever the plain mtime comparison says". <see cref="ViewModels.RowActionsCoordinator"/>
+    /// and <see cref="ViewModels.BulkBackupCoordinator"/> set it after a successful restore and
+    /// clear it after this row's next successful backup,
     /// which is the point the newest backup genuinely reflects current disk content again.
     /// </summary>
     public DateTime? RestoredArchiveTakenAt { get; set; }
@@ -131,7 +131,8 @@ public sealed partial class GameRowViewModel : CommunityToolkitObservableObject
     /// <see cref="Services.BackupService.ComputeSaveDataSize"/> before this row's write starts
     /// — the determinate-vs-indeterminate decision is made before the first byte
     /// is written. Zero at idle. Public-setter exception (like <see cref="IsBusy"/>): a producer
-    /// outside the row (<see cref="ViewModels.MainViewModel"/>) writes it directly.
+    /// outside the row (<see cref="ViewModels.RowActionsCoordinator"/> and
+    /// <see cref="ViewModels.BulkBackupCoordinator"/>) writes it directly.
     /// </summary>
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(IsLargeBackup))]

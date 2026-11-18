@@ -33,7 +33,7 @@
     <sys:String x:Key="str_toolbar_toggleTheme">Switch theme</sys:String>
 
     <!--
-        Access-key variants of the seven toolbar labels above. Each value is
+        Access-key variants of the toolbar labels. Each value is
         its clean sibling with one leading/mid-word underscore marking the Alt+letter mnemonic;
         the clean key stays the button's accessible name so a screen reader never hears the
         underscore. Back up all changed and Switch theme are deliberately excluded.
@@ -105,7 +105,7 @@
     <sys:String x:Key="str_startup_unsecuredPromptButton">Back up now</sys:String>
     <sys:String x:Key="str_startup_unsecuredPromptFailed">The unsecured-changes prompt failed: {0}</sys:String>
 
-    <!--  Empty state (E1 empty)  -->
+    <!--  Empty state (no games in the catalog)  -->
     <sys:String x:Key="str_emptyState_heading">No games yet</sys:String>
     <sys:String x:Key="str_emptyState_body">Scan for games automatically, or add one yourself.</sys:String>
     <sys:String x:Key="str_emptyState_addManually">Add a game manually</sys:String>
@@ -116,8 +116,8 @@
     <sys:String x:Key="str_search_noMatchesBody">Try a different name, or clear the search box to see every game.</sys:String>
 
     <!--
-        Games-list load outcomes (the path lives in the header's
-        tooltip now). The "unchanged, fix and restart" and "were skipped" sentences are single-line
+        Games-list load outcomes (the path lives on the status bar's
+        tooltip, not in these sentences). The "unchanged, fix and restart" and "were skipped" sentences are single-line
         entries deliberately: XAML collapses embedded whitespace in element text, so the blank-line
         separator these two dialogs use is glued on in MainViewModel.ReportLoad, not authored here.
     -->

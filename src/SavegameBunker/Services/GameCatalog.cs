@@ -218,7 +218,7 @@ public static class GameCatalog
                 {
                     // The existence check above raced an external delete between it and the
                     // Replace — the same case the Move branch handles below, so handle it the
-                    // same way (audit A7) instead of failing a save that is still publishable.
+                    // same way instead of failing a save that is still publishable.
                     File.Move(tempPath, path);
                 }
             }

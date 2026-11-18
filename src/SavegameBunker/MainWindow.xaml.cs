@@ -19,7 +19,8 @@ public partial class MainWindow : FluentWindow
 
     /// <summary>
     /// Flips the session-only theme (no settings.json — see <see cref="App.ToggleTheme"/>).
-    /// The glyph is <c>Icon.Theme</c> (sun) in both modes — SavegameBunkerIcons.xaml has no moon.
+    /// The glyph is <c>Icon.Theme</c> (a crescent) in both modes — SavegameBunkerIcons.xaml has
+    /// one theme glyph, not a sun/moon pair that would swap with the mode.
     /// </summary>
     private void ThemeToggleButton_Click(object sender, RoutedEventArgs e)
     {
