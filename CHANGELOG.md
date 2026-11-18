@@ -12,6 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **The startup reminder about unsecured games no longer turns up mid-session.** With a backup
   folder set, the reminder could miss its moment at startup and appear later, after a Refresh; it
   now appears at startup or not at all, and an empty games list no longer saves it up for later.
+- **"Back up selected" can no longer overlap a row's own backup.** While it was still looking for
+  a starting folder or waiting in the folder dialog, a row's Back up button, Refresh and Change
+  backup folder stayed clickable, so a row backup could run on the same game at the same time;
+  they now wait.
 - **Choosing a backup folder no longer stalls on a disconnected network drive.** The first backup
   asks for a folder and suggests a start location; with a mapped network drive that was offline,
   finding that suggestion could hold the folder dialog back for a long time. Network and optical

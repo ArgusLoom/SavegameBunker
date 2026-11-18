@@ -306,11 +306,12 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
 
     /// <summary>
     /// Whether anything that writes to disk is in flight: a row's own action (preflight
-    /// included), a single backup or restore, or a bulk run. The one gate for closing the window,
-    /// refreshing, changing the backup folder and starting another bulk run.
+    /// included), a single backup or restore, a bulk run, or the bulk run's preparation (folder
+    /// probe, picker, catalog write — <see cref="IsBulkPreparing"/>). The one gate for closing the
+    /// window, refreshing, changing the backup folder and starting another bulk run.
     /// </summary>
     public bool IsAnyOperationRunning =>
-        IsAnyRowBusy || IsBackupRunning || IsRestoreRunning || IsBulkBackupRunning;
+        IsAnyRowBusy || IsBackupRunning || IsRestoreRunning || IsBulkBackupRunning || IsBulkPreparing;
 
     /// <summary>How many rows are currently checked — the durable count the bulk actions gate on.</summary>
     public int SelectedCount => Games.Count(row => row.IsSelected);
@@ -471,6 +472,24 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     [NotifyCanExecuteChangedFor(nameof(BackupCommand))]
     [NotifyCanExecuteChangedFor(nameof(RestoreCommand))]
     public partial int BulkBackupTotal { get; private set; }
+
+    /// <summary>
+    /// True while a bulk backup is still resolving its backup folder — the start-folder probe, the
+    /// picker and the catalog write — before the coordinator claims any row. Without it a row
+    /// Backup could run on the same game beside the bulk loop, and each run's
+    /// <c>CleanStaleTempFiles</c> could delete the other's staging file. A separate flag because
+    /// <see cref="BulkBackupTotal"/> drives the visible progress panel, and marking rows busy
+    /// early would move the coordinator's pinned claim order.
+    /// </summary>
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
+    [NotifyCanExecuteChangedFor(nameof(ChangeBackupRootCommand))]
+    [NotifyCanExecuteChangedFor(nameof(BackupAllChangedCommand))]
+    [NotifyCanExecuteChangedFor(nameof(BackupSelectedCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RestoreSelectedCommand))]
+    [NotifyCanExecuteChangedFor(nameof(BackupCommand))]
+    [NotifyCanExecuteChangedFor(nameof(RestoreCommand))]
+    public partial bool IsBulkPreparing { get; private set; }
 
     /// <summary>
     /// Drives the window-level progress panel's visibility. Derived from the selected count rather
@@ -1215,10 +1234,13 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// <summary>
     /// Keeps a per-row backup from starting on a row a running bulk operation (backup-all-changed,
     /// Back up selected, or Restore selected — all three share <see cref="BulkBackupTotal"/>) did
-    /// not itself claim, closing the gap where such a row's own <c>IsBusy</c> stays false for the
-    /// bulk run's duration.
+    /// not itself claim, and while a bulk run is still preparing its backup folder
+    /// (<see cref="IsBulkPreparing"/>) — the same-game overlap during the preparation window is the
+    /// data-corrupting one, because each run's <c>CleanStaleTempFiles</c> could delete the other's
+    /// staging file.
     /// </summary>
-    private bool CanBackupRow(GameRowViewModel? row) => row is not null && !row.IsBusy && !IsBulkBackupRunning;
+    private bool CanBackupRow(GameRowViewModel? row) =>
+        row is not null && !row.IsBusy && !IsBulkBackupRunning && !IsBulkPreparing;
 
     /// <summary>
     /// One-line forward: the flow lives in <see cref="RowActionsCoordinator.RestoreAsync"/>,
@@ -1231,9 +1253,11 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// <summary>
     /// Keeps a per-row restore from starting on a row a running bulk operation (backup-all-changed,
     /// Back up selected, or Restore selected — all three share <see cref="BulkBackupTotal"/>) did
-    /// not itself claim, the same gap <see cref="CanBackupRow"/> closes for backups.
+    /// not itself claim, or while a bulk run is still preparing its backup folder
+    /// (<see cref="IsBulkPreparing"/>) — the same gap <see cref="CanBackupRow"/> closes for backups.
     /// </summary>
-    private bool CanRestoreRow(GameRowViewModel? row) => row is not null && !row.IsBusy && !IsBulkBackupRunning;
+    private bool CanRestoreRow(GameRowViewModel? row) =>
+        row is not null && !row.IsBusy && !IsBulkBackupRunning && !IsBulkPreparing;
 
     /// <summary>
     /// One-line forward: the flow lives in <see cref="RowActionsCoordinator.OpenSaveFolderAsync"/>.
@@ -1419,7 +1443,21 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     private async Task RunBulkBackupAsync(
         IReadOnlyList<GameRowViewModel> targets, string allSucceededKey, string partialFailureKey)
     {
-        var root = await EnsureBackupRootAsync();
+        // The preparation guard is raised before the first await so nothing else that writes can
+        // start while the folder is still unresolved. It ends before the coordinator claims, and
+        // the hand-off has no gap: _bulk.BackupAsync resets, raises the counters and marks every
+        // target busy synchronously before its first await (BulkBackupCoordinator's claim order).
+        IsBulkPreparing = true;
+        string? root;
+        try
+        {
+            root = await EnsureBackupRootAsync();
+        }
+        finally
+        {
+            IsBulkPreparing = false;
+        }
+
         if (root is null)
             return; // Either the user cancelled the picker or saving the choice failed — both routes already told the user what happened.
 

@@ -41,6 +41,13 @@ public sealed class RecordingDialogService : IDialogService
         ErrorMessages.Add(message);
     }
 
+    /// <summary>
+    /// Invoked at the start of <see cref="PickFolder"/>, before anything is recorded — the
+    /// deterministic observation point for what is enabled while a folder picker is open, the
+    /// same idea as <see cref="OnReport"/>.
+    /// </summary>
+    public Action? OnPickFolder { get; set; }
+
     public bool ConfirmToReturn { get; set; }
 
     public Queue<bool>? ConfirmReturnSequence { get; set; }
@@ -60,6 +67,7 @@ public sealed class RecordingDialogService : IDialogService
 
     public string? PickFolder(string title, string? initialDirectory)
     {
+        OnPickFolder?.Invoke();
         PickFolderInitialDirectories.Add(initialDirectory);
         PickFolderCalls++;
         return FolderToReturn;
@@ -469,6 +477,56 @@ public sealed class MainViewModelTests : IDisposable
         Assert.Empty(dialog.ErrorMessages);
         Assert.False(vm.IsBulkBackupRunning);
         Assert.False(vm.IsAnyOperationRunning);
+    }
+
+    /// <summary>
+    /// While "Back up selected" is still resolving its backup folder — the start-folder probe, the
+    /// picker, the catalog write — everything else that writes must be blocked: at the moment the
+    /// picker is called, a row's own Backup/Restore, Refresh, Change backup folder, Back up all
+    /// changed and Restore selected must all be unable to execute, and the window could not close.
+    /// A row backup running beside the bulk loop could otherwise delete the other's in-flight
+    /// staging file (D-13: observed from the OnPickFolder hook, with no timing assumption).
+    /// </summary>
+    [Fact]
+    public async Task Back_up_selected_blocks_every_other_operation_while_its_folder_picker_is_open()
+    {
+        var (vm, dialog, _) = CreateViewModel(backupRoot: "");
+        dialog.FolderToReturn = null; // the user cancels the picker
+
+        await WaitForAsync(() => vm.Games.All(row => row.ComparisonKind != BackupComparisonKind.Checking));
+
+        vm.Games[0].IsSelected = true;
+        await WaitForAsync(() => vm.BackupSelectedCommand.CanExecute(null));
+
+        bool anyRunning = false, backupRow = false, restoreRow = false, refresh = false,
+            changeRoot = false, backupAll = false, restoreSelected = false;
+        dialog.OnPickFolder = () =>
+        {
+            anyRunning = vm.IsAnyOperationRunning;
+            backupRow = vm.BackupCommand.CanExecute(vm.Games[0]);
+            restoreRow = vm.RestoreCommand.CanExecute(vm.Games[0]);
+            refresh = vm.RefreshCommand.CanExecute(null);
+            changeRoot = vm.ChangeBackupRootCommand.CanExecute(null);
+            backupAll = vm.BackupAllChangedCommand.CanExecute(null);
+            restoreSelected = vm.RestoreSelectedCommand.CanExecute(null);
+        };
+
+        vm.BackupSelectedCommand.Execute(null);
+
+        await WaitForAsync(() => vm.StatusMessage.StartsWith("Backup cancelled") && !vm.IsAnyOperationRunning);
+
+        // Every gate observed at the picker moment.
+        Assert.True(anyRunning);
+        Assert.False(backupRow);
+        Assert.False(restoreRow);
+        Assert.False(refresh);
+        Assert.False(changeRoot);
+        Assert.False(backupAll);
+        Assert.False(restoreSelected);
+
+        // After the cancel released the guard, the row and Refresh actions are available again.
+        Assert.True(vm.BackupCommand.CanExecute(vm.Games[0]));
+        Assert.True(vm.RefreshCommand.CanExecute(null));
     }
 
     [Fact]
