@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Older archives keep their names.
 - **Deleting a backup in the restore list and then cancelling now updates the game's row.**
   Before, the row kept showing the deleted backup until you clicked Refresh.
+- **Find Games says "1 file" instead of "1 files".**
+- **The "safety backup" tag in the restore list stays readable when its row is selected.**
 
 ## [1.0.1] - 2026-11-18
 
