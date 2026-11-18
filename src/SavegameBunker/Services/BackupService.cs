@@ -598,11 +598,13 @@ public sealed class BackupService
     /// <param name="excludedDirs">
     /// Directories the walk steps over — the backup folder and the game's own archive folder,
     /// whenever the user placed the backup folder inside (or exactly at) the save folder being
-    /// walked. A subtree is stepped over when it overlaps any excluded directory in either
-    /// direction (it equals one, sits inside one, or contains one), not on an exact match alone:
-    /// with <c>backupRoot</c> pointed at a save folder shared by several games, the other games'
-    /// archive directories are subtrees of the walked save folder without equalling either
-    /// exclusion, and only the containment rule keeps them out of the archive.
+    /// walked. A subtree is stepped over when it is or contains an excluded directory, or — only
+    /// when an excluded directory is the walk root itself or lies inside it — when the subtree
+    /// lies inside that exclusion: with <c>backupRoot</c> pointed at a save folder shared by
+    /// several games, the other games' archive directories cannot be told apart from save data,
+    /// so every subfolder is pruned. A save folder that merely SITS inside the backup root (or
+    /// inside its own archive folder) holds no archive of this app below it and prunes nothing —
+    /// its subfolders are archived like any others.
     /// </param>
     /// <param name="skipped">
     /// Optional collector for the paths this walk could not read, forwarded to

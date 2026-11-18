@@ -1222,4 +1222,49 @@ public sealed class BackupServiceTests : IDisposable
         // Every pre-existing archive keeps its bytes — no overwrite, no modification.
         Assert.All(occupied, entry => Assert.Equal(entry.Value, File.ReadAllBytes(entry.Key)));
     }
+
+    // Item 0: a save folder that merely SITS INSIDE the backup root holds no archive of this app
+    // below it, so nothing needs pruning — every subfolder is archived. The old either-direction
+    // prune rule dropped every subfolder instead.
+    [Fact]
+    public void A_save_folder_inside_the_backup_folder_is_archived_with_all_its_subfolders()
+    {
+        var saveDir = Path.Combine(_dir, "Documents", "My Games", "X");
+        Directory.CreateDirectory(Path.Combine(saveDir, "profiles"));
+        File.WriteAllText(Path.Combine(saveDir, "top.dat"), "payload");
+        File.WriteAllText(Path.Combine(saveDir, "profiles", "p1.dat"), "payload");
+        var game = new Game { Id = "x-game", DisplayName = "X Game", SaveDirTemplate = saveDir.Replace('\\', '/') };
+        var backupRoot = Path.Combine(_dir, "Documents");
+
+        var result = _service.Backup(game, backupRoot, "", out var archivePath);
+
+        Assert.True(result.Success, result.Message);
+        Assert.NotNull(archivePath);
+        using var zip = ZipFile.OpenRead(archivePath);
+        var names = zip.Entries.Select(e => e.FullName).ToList();
+        Assert.Equal(["top.dat", "profiles/p1.dat"], names);
+        Assert.DoesNotContain("Left out", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("NOT in this backup", result.Message, StringComparison.Ordinal);
+    }
+
+    // Item 0, second layout: a save folder nested inside its own game's archive folder
+    // (<backupRoot>/<id>/saves) is also archived in full — again no archive lives below it.
+    [Fact]
+    public void A_save_folder_inside_its_own_games_archive_folder_is_archived_in_full()
+    {
+        var saveDir = Path.Combine(_dir, "b3", "x", "saves");
+        Directory.CreateDirectory(Path.Combine(saveDir, "sub"));
+        File.WriteAllText(Path.Combine(saveDir, "a.dat"), "payload");
+        File.WriteAllText(Path.Combine(saveDir, "sub", "b.dat"), "payload");
+        var game = new Game { Id = "x", DisplayName = "X", SaveDirTemplate = saveDir.Replace('\\', '/') };
+        var backupRoot = Path.Combine(_dir, "b3");
+
+        var result = _service.Backup(game, backupRoot);
+
+        Assert.True(result.Success, result.Message);
+        var archive = Assert.Single(Directory.GetFiles(BackupDirFor(backupRoot, game), "*.zip"));
+        using var zip = ZipFile.OpenRead(archive);
+        var names = zip.Entries.Select(e => e.FullName).ToList();
+        Assert.Equal(["a.dat", "sub/b.dat"], names);
+    }
 }

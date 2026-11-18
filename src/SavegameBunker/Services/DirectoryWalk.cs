@@ -28,8 +28,8 @@ internal static class DirectoryWalk
     /// </summary>
     /// <param name="excludedDirs">
     /// Directories to step over — see the <c>excludedDirs</c> parameter of
-    /// <see cref="BackupService"/>'s <c>EnumerateRelativeFiles</c> for why containment in either
-    /// direction, not an exact match alone, is what prunes a subtree.
+    /// <see cref="BackupService"/>'s <c>EnumerateRelativeFiles</c> for which layouts prune a
+    /// subtree and which deliberately do not.
     /// </param>
     /// <param name="onSkipped">
     /// Optional: called with the path of every subtree or file the walk could not read — a
@@ -42,6 +42,14 @@ internal static class DirectoryWalk
         Action<string>? onSkipped = null)
     {
         void Skip(string path) => onSkipped?.Invoke(Path.GetRelativePath(rootDir, path));
+
+        // Excluded folders that are the walk root itself or lie inside it. Only these can ever
+        // justify pruning a subfolder for lying *inside* an exclusion: a save folder that merely
+        // sits inside the backup root (or inside its own archive folder) holds no archive of this
+        // app below it, so nothing there is pruned — its subfolders are archived like any others.
+        var excludedWithinRoot = excludedDirs is null
+            ? []
+            : excludedDirs.Where(excluded => BackupService.IsSameOrInside(excluded, rootDir)).ToList();
 
         void Walk(string current)
         {
@@ -103,9 +111,17 @@ internal static class DirectoryWalk
                 if (attributes.HasFlag(FileAttributes.ReparsePoint))
                     continue;
 
+                // The three layouts this prune decides between:
+                // - backup root inside the save folder: prune the subfolder that is or contains it
+                //   (IsSameOrInside(excluded, sub));
+                // - backup root or archive folder EQUAL to the save folder: every subfolder is
+                //   pruned, because other games' archive folders cannot be told apart from save
+                //   data there (the excludedWithinRoot arm);
+                // - save folder inside the backup root or inside its own archive folder: prune
+                //   nothing — no archive of this app lives below it, so its subfolders are archived.
                 if (excludedDirs is not null
-                    && excludedDirs.Any(excluded =>
-                        BackupService.IsSameOrInside(sub, excluded) || BackupService.IsSameOrInside(excluded, sub)))
+                    && (excludedDirs.Any(excluded => BackupService.IsSameOrInside(excluded, sub))
+                        || excludedWithinRoot.Any(excluded => BackupService.IsSameOrInside(sub, excluded))))
                 {
                     continue;
                 }
