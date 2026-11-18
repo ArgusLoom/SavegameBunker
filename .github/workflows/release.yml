@@ -156,7 +156,7 @@ jobs:
           # Extract the section body: everything after the matching
           # "## [<version>] - <date>" line up to the next "## [" heading.
           awk '
-            $0 ~ ("^## \\[" ENVIRON["VERSION_RE"] "\\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$") { found=1; next }
+            $0 ~ ("^## \\[" VERSION_RE "\\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$") { found=1; next }
             found && /^## \[/ { exit }
             found { print }
           ' VERSION_RE="$(printf '%s' "$version" | sed 's/[.]/\\./g')" CHANGELOG.md | sed -e '/./,$!d' > section.md
@@ -180,10 +180,19 @@ jobs:
         run: |
           set -euo pipefail
           version="${{ steps.version.outputs.version }}"
-          gh release create "v$version" \
-            --title "SavegameBunker v$version" \
-            --notes-file notes.md \
-            "${{ env.zip }}" "${{ env.zip }}.sha256"
+          # Idempotent on retries: when the release already exists (e.g. a rerun after a
+          # partial failure), update its notes and assets instead of failing on the clash.
+          if gh release view "v$version" > /dev/null 2>&1; then
+            gh release edit "v$version" --title "SavegameBunker v$version" --notes-file notes.md
+            gh release delete-asset "v$version" "${{ env.zip }}" --yes
+            gh release delete-asset "v$version" "${{ env.zip }}.sha256" --yes
+            gh release upload "v$version" "${{ env.zip }}" "${{ env.zip }}.sha256"
+          else
+            gh release create "v$version" \
+              --title "SavegameBunker v$version" \
+              --notes-file notes.md \
+              "${{ env.zip }}" "${{ env.zip }}.sha256"
+          fi
 
       - name: Job summary
         run: |
