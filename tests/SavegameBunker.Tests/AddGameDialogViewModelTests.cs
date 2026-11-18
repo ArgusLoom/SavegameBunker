@@ -98,8 +98,10 @@ public sealed class AddGameDialogViewModelTests : IDisposable
     public void Wiki_search_opens_the_escaped_pcgw_search_url_for_the_typed_name()
     {
         var dialog = new RecordingDialogService();
-        var vm = new AddGameDialogViewModel([], dialog);
-        vm.DisplayName = "Celeste";
+        var vm = new AddGameDialogViewModel([], dialog)
+        {
+            DisplayName = "Celeste"
+        };
 
         Assert.True(vm.OpenWikiSearchCommand.CanExecute(null));
         vm.OpenWikiSearchCommand.Execute(null);
@@ -113,8 +115,10 @@ public sealed class AddGameDialogViewModelTests : IDisposable
     public void Wiki_search_escapes_spaces_in_the_typed_name()
     {
         var dialog = new RecordingDialogService();
-        var vm = new AddGameDialogViewModel([], dialog);
-        vm.DisplayName = "Hollow Knight";
+        var vm = new AddGameDialogViewModel([], dialog)
+        {
+            DisplayName = "Hollow Knight"
+        };
 
         Assert.True(vm.OpenWikiSearchCommand.CanExecute(null));
         vm.OpenWikiSearchCommand.Execute(null);
@@ -187,8 +191,10 @@ public sealed class AddGameDialogViewModelTests : IDisposable
     public void Wiki_button_applies_an_exact_hit_instead_of_opening_the_browser()
     {
         var dialog = new RecordingDialogService();
-        var vm = new AddGameDialogViewModel([], dialog);
-        vm.DisplayName = "a game not in the table";
+        var vm = new AddGameDialogViewModel([], dialog)
+        {
+            DisplayName = "a game not in the table"
+        };
 
         vm.OpenWikiSearchCommand.Execute(null);
         Assert.Single(dialog.OpenHttpsUrls);

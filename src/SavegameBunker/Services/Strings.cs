@@ -103,10 +103,8 @@ public static class Strings
         {
             // Route 1 needs a running WPF Application to resolve pack:// URIs, which a plain
             // xUnit host never constructs. Fall back to the embedded copy of the same file.
-            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(EmbeddedResourceName);
-            if (stream is null)
-                throw new InvalidOperationException($"Embedded resource '{EmbeddedResourceName}' was not found.");
-
+            using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(EmbeddedResourceName)
+                ?? throw new InvalidOperationException($"Embedded resource '{EmbeddedResourceName}' was not found.");
             return (ResourceDictionary)XamlReader.Load(stream);
         }
     }

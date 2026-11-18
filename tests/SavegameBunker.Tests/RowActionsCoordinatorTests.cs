@@ -190,8 +190,10 @@ public sealed class RowActionsCoordinatorTests : IDisposable
     public async Task BackupAsync_ignores_a_null_or_already_busy_row()
     {
         var backup = new BackupService();
-        var busyRow = new GameRowViewModel(GameWithSaves("game-a", "Game A"));
-        busyRow.IsBusy = true;
+        var busyRow = new GameRowViewModel(GameWithSaves("game-a", "Game A"))
+        {
+            IsBusy = true
+        };
 
         var host = new FakeRowActionHost();
 

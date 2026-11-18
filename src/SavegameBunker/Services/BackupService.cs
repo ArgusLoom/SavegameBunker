@@ -1,7 +1,6 @@
 using System.Globalization;
 using System.IO;
 using System.IO.Compression;
-using System.Linq;
 using System.Security.Cryptography;
 using SavegameBunker.Models;
 
@@ -679,8 +678,7 @@ public sealed class BackupService
             {
                 source = File.OpenRead(fullPath);
             }
-            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException
-                or FileNotFoundException or DirectoryNotFoundException or PathTooLongException)
+            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
             {
                 skipped?.Add(relative);
                 continue;
