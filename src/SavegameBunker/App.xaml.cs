@@ -54,7 +54,7 @@ public partial class App : Application
     /// <summary>
     /// Applies <paramref name="theme"/> (Light or Dark — High Contrast is startup-only, handled
     /// separately in <see cref="OnStartup"/>) and reapplies the accent-brush overrides on top, since
-    /// WPF-UI's own <see cref="ApplicationThemeManager.Apply"/> resets them to its derived ramp.
+    /// WPF-UI's own <see cref="ApplicationThemeManager.Apply(ApplicationTheme, WindowBackdropType, bool)"/> resets them to its derived ramp.
     /// Safe to call again after startup — the title bar's toggle button is the only other caller.
     /// </summary>
     private static void ApplyTheme(ApplicationTheme theme)

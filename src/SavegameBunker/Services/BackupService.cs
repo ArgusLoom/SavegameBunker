@@ -254,7 +254,7 @@ public sealed class BackupService
 
     /// <summary>
     /// Whether <paramref name="backupRoot"/> currently exists — a bare read-only existence probe
-    /// that creates nothing, unlike <see cref="Backup(Game, string, string, out string?)"/>'s own
+    /// that creates nothing, unlike <see cref="Backup(Game, string, string, out string?, IProgress{long}?)"/>'s own
     /// writability check, which writes a probe file and creates the per-game folder as a side
     /// effect. That side effect is correct before an actual backup but wrong here: merely drawing a
     /// status row must not create a folder for every catalogued game. Never throws across the
@@ -280,7 +280,7 @@ public sealed class BackupService
 
     /// <summary>
     /// Same listing as <see cref="ListBackups"/>, plus whether the folder was actually listable.
-    /// Exists for the restore pre-flight (<see cref="GameActions.CheckRestorePreconditionsAsync"/>):
+    /// Exists for the restore pre-flight (<c>GameActions.CheckRestorePreconditionsAsync</c>):
     /// "no backups for this game" and "the folder exists but couldn't be read" (a permission-denied
     /// share, say) used to report as the identical empty list, which sent the user to make a first
     /// backup for a game that already had ones — into a folder the app just proved it can't read.
@@ -380,7 +380,7 @@ public sealed class BackupService
 
     /// <summary>
     /// Recovers when an archive was taken from its file name, formatted with the same
-    /// <c>yyyy-MM-dd_HHmmss</c> pattern <see cref="Backup"/> writes with. Falls back to the file's
+    /// <c>yyyy-MM-dd_HHmmss</c> pattern <see cref="Backup(Game, string, string, out string?, IProgress{long}?)"/> writes with. Falls back to the file's
     /// own last-write time for a name that does not parse — a hand-renamed or hand-copied archive,
     /// or one of restore's <c>-pre-restore</c>-suffixed safety backups — so it stays listed instead
     /// of becoming invisible.

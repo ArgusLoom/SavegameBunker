@@ -16,7 +16,7 @@ namespace SavegameBunker.Services;
 /// <param name="Seeded">True when the file was absent and a template was written.</param>
 /// <param name="FatalError">Set when the file exists but could not be read or parsed.</param>
 /// <param name="LastWriteTimeUtc">
-/// The file's own last-write time at the moment this content was read — <see cref="SaveAsync"/>'s
+/// The file's own last-write time at the moment this content was read — <see cref="GameCatalog.SaveAsync(string, Catalog, DateTime?)"/>'s
 /// optimistic-concurrency stamp (see its own doc comment). Null when there is nothing on disk
 /// yet to stamp (a fatal read, or a freshly seeded file this same call just wrote — the write is
 /// followed by nothing that could race it before the seeded catalog is first saved for real).

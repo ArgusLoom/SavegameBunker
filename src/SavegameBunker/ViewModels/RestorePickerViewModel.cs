@@ -15,7 +15,7 @@ namespace SavegameBunker.ViewModels;
 /// </summary>
 /// <remarks>
 /// Modelled on <see cref="ScanWindowViewModel"/> but simplified to single selection: no
-/// checkboxes, no Select All/None. Rows are added in the order <paramref name="backups"/> arrives
+/// checkboxes, no Select All/None. Rows are added in the order the <c>backups</c> argument arrives
 /// in and never re-sorted — <see cref="BackupService.ListBackups"/> already guarantees newest-first,
 /// so a second sort here would be redundant, hand-rolled duplication.
 /// <para>

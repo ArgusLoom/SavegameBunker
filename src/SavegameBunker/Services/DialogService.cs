@@ -67,8 +67,8 @@ public sealed class DialogService : IDialogService
 
     /// <summary>
     /// Shows a queued error dialog and observes its failure deliberately instead of leaving the
-    /// task unobserved. A <see cref="ShowSimpleDialogAsync"/> that faults used to surface as an
-    /// App-domain unobserved-task exception, whose own error report queued another dialog — a
+    /// task unobserved. A faulted <c>ShowSimpleDialogAsync</c> left unobserved would surface as an
+    /// App-domain unobserved-task exception, whose own error report queues another dialog — a
     /// GC-timed feedback loop. The fault is swallowed rather than reported because Error has no
     /// return channel and re-reporting a failed error dialog cannot help the user; the next
     /// dialog queued behind it still proceeds, since <see cref="ShowAfterAsync"/> awaits the

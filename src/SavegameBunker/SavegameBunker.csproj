@@ -12,6 +12,14 @@
     <ApplicationIcon>app.ico</ApplicationIcon>
     <!-- Shown in the title bar, so a user reporting a problem can say which build they are on. -->
     <Version>1.0.1</Version>
+    <!-- Compiles the XML doc comments so a <see cref> that no longer resolves is a build
+         warning (CS1574 and friends), not silent comment rot. CS1591 and CS1573 stay off: not every
+         public member needs a doc comment, and a comment documents only the parameters that
+         need a reason. -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+    <!-- The .xml is a build-time check only; it does not belong in the release zip. -->
+    <PublishDocumentationFile>false</PublishDocumentationFile>
   </PropertyGroup>
 
   <!--

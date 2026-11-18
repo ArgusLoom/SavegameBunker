@@ -46,7 +46,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     private readonly HashSet<string> _selectedIds = [];
 
     /// <summary>
-    /// Passed to <see cref="System.Windows.Data.BindingOperations.EnableCollectionSynchronization"/>
+    /// Passed to <see cref="System.Windows.Data.BindingOperations.EnableCollectionSynchronization(System.Collections.IEnumerable, object)"/>
     /// so <see cref="GamesView"/> (a live <see cref="System.ComponentModel.ICollectionView"/> over
     /// <see cref="Games"/>) does not enforce the default single-thread affinity a bound
     /// <c>CollectionView</c> otherwise requires. Every one of this file's <c>Games.Add</c>/
@@ -412,7 +412,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// (<see cref="Games"/>, never <see cref="GamesView"/>) and <see cref="HasBackupTargets"/>
     /// already use — then does every filesystem read (the free-space probe, one
     /// <see cref="BackupService.ComputeSaveDataSize"/> call per relevant game) inside a single
-    /// <see cref="Task.Run"/>: checking a box must never block on a directory walk.
+    /// <see cref="Task.Run(Action)"/>: checking a box must never block on a directory walk.
     /// After the await, a captured generation that no longer matches
     /// <see cref="_spaceAdvisoryGeneration"/> means a newer recompute already started — this one's
     /// result is discarded rather than overwriting the newer one's, the identical generation-token
@@ -775,7 +775,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// </summary>
     /// <remarks>
     /// Runs on the UI thread (the sweep completion callback arrives through <see cref="OnUi"/>),
-    /// which is why <see cref="IDialogService.Confirm"/> is called under <see cref="Task.Run"/>:
+    /// which is why <see cref="IDialogService.Confirm"/> is called under <see cref="Task.Run(Action)"/>:
     /// DialogService blocks its caller until the user answers, and a blocking wait for a dialog
     /// whose pump lives on the very thread being blocked would deadlock. The Yes branch hops back
     /// onto the UI thread before starting the bulk run, because the run's first steps read row

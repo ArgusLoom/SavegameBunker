@@ -27,7 +27,7 @@ namespace SavegameBunker.Services;
 public sealed class KnownGamesScanner
 {
     /// <summary>
-    /// Same bound <see cref="MainViewModel"/>'s status sweep uses: a handful of templates
+    /// Same bound the status sweep (<c>StatusSweepCoordinator</c>) uses: a handful of templates
     /// blocked on a sleeping network drive must not serialize the whole probe, but nothing caps the
     /// window from opening the moment the sweep in fact returns.
     /// </summary>

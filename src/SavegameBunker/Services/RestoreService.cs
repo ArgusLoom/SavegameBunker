@@ -15,7 +15,7 @@ namespace SavegameBunker.Services;
 /// the restore guarantees all at once, and there is no non-destructive fallback to migrate
 /// to. The temp extraction directory is a same-volume sibling of the save directory so the final
 /// swap is a rename, not a cross-volume copy. The pre-restore safety backup reuses
-/// <see cref="BackupService.Backup(Game, string, string, out string?)"/> rather than a second
+/// <see cref="BackupService.Backup(Game, string, string, out string?, IProgress{long}?)"/> rather than a second
 /// archive writer. A failed safety backup aborts before anything else is written, and the
 /// confirmation delegate is never invoked.
 /// </remarks>

@@ -5,7 +5,7 @@ namespace SavegameBunker.Services;
 /// <summary>
 /// Computes a starting folder for the backup folder picker — nothing else. The backup
 /// destination itself is always whatever the user picks in that dialog; this class never feeds
-/// <c>StoreBackupRootAsync</c>, <c>_load.Catalog.BackupRoot</c> or <see cref="BackupService.Backup"/>
+/// <c>StoreBackupRootAsync</c>, <c>_load.Catalog.BackupRoot</c> or <see cref="BackupService.Backup(Models.Game, string, IProgress{long}?)"/>
 /// directly or indirectly.
 /// </summary>
 /// <remarks>

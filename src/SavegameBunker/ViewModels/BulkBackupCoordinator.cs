@@ -7,7 +7,7 @@ namespace SavegameBunker.ViewModels;
 /// <summary>
 /// The bulk backup and bulk restore runs <see cref="MainViewModel"/> used to hold inline:
 /// "Back up all changed", "Back up selected" and "Restore selected" share this one orchestrator,
-/// which claims every target row, runs the loop (backup in one <see cref="Task.Run"/>, restore
+/// which claims every target row, runs the loop (backup in one <see cref="Task.Run(Action)"/>, restore
 /// sequentially on the caller's own context) and releases every target row again in a
 /// <c>finally</c>.
 /// </summary>
@@ -21,9 +21,9 @@ namespace SavegameBunker.ViewModels;
 /// the pre-split single-owner behavior exactly.
 /// <para>
 /// The claim and release order below is the REF-03 re-entrancy guard: reset every target to
-/// <see cref="BackupComparisonKind.Checking"/>, then <paramref name="onStarted"/> (which raises
+/// <see cref="BackupComparisonKind.Checking"/>, then <c>onStarted</c> (which raises
 /// the bulk counters), then <c>IsBusy</c> on every target — and the release in the
-/// <c>finally</c> reverses it before <paramref name="onFinished"/> runs. Reordering or
+/// <c>finally</c> reverses it before <c>onFinished</c> runs. Reordering or
 /// short-circuiting any of those steps would re-open the re-entrancy window the original inline
 /// order closed. <see cref="MainViewModel.IsAnyRowChecking"/> stays MainViewModel's aggregate —
 /// this class only writes row comparisons, never the window-level guard itself.
@@ -157,7 +157,7 @@ internal sealed class BulkBackupCoordinator
 
     /// <summary>
     /// Runs the shared bulk-restore loop over <paramref name="targets"/> in input order,
-    /// sequentially on the caller's own context — never one <see cref="Task.Run"/> around the
+    /// sequentially on the caller's own context — never one <see cref="Task.Run(Action)"/> around the
     /// loop, because the per-game restore confirmation needs the dispatcher. Returns the counts
     /// and per-game failures the closing outcome is composed from; null for an empty target
     /// list before touching anything.
