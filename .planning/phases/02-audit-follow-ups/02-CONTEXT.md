@@ -70,6 +70,27 @@ unless a decision below refines them.
 - **D-09:** Defect fixes land before the test-harness items 22–24. Tests written for the defects use
   the current helpers; item 22 later migrates them along with everything else.
 
+### Decisions after research (2026-11-18, owner answers to 02-RESEARCH.md open questions)
+- **D-10 (refines D-01):** The backup walk excludes a folder only when it is or contains the backup
+  root, or when it is a per-game archive folder `<backupRoot>\<id>` that lies inside or equals the
+  save folder (the walk root). "Inside an excluded folder" pruning applies only to excluded folders
+  that are themselves inside or equal to the walk root. A save folder nested inside an archive
+  folder (e.g. `<backupRoot>\<id>\saves`) is archived in full, not excluded. Record the refined
+  rule in SPEC.md.
+- **D-11 (new defect, extends D-02):** Restore refuses when the game's archive folder
+  `<backupRoot>\<id>` is inside or equal to the save folder (today `RestoreService.cs:68` checks
+  only the backup root, and restore deletes every archive of the game, including the safety
+  backup). Add a test that the refused restore leaves every archive intact. Backup behaviour in
+  that layout is unchanged; SPEC.md documents the layout as supported for backup and refused for
+  restore.
+- **D-12 (refines D-07 for item 20):** The shared dialog-footer style may widen buttons to the one
+  minimum that fits "Update folder" (about 110 from 80/90). This is the item's only intended visible
+  change and must appear in the before/after screenshot pairs. "No visible difference" in D-07 holds
+  for the row-action style and every other XAML item.
+- **D-13 (refines D-04):** Rework the unreachable startup test into a reachable
+  `BackupSelectedCommand` bulk-path picker-cancel test instead of deleting it; item 2 reuses it.
+- Remaining research open questions (3, 5, 6, 8, 9, 10, 11) follow the research recommendation.
+
 ### Claude's Discretion
 - Grouping of items into plans and waves (user chose "planner decides"), within the ROADMAP order
   constraints: 0 → 4 → 5; 2 → 14; 3 → 24; 22 → 24 → 23; and D-09.

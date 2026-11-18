@@ -245,9 +245,41 @@ Everything else is independent.
 - **20 (part). Shared empty-state template.** Two copies that differ
   (`MainWindow.xaml:620-638`, `:644-655`).
 
-**Requirements**: TBD
+**Requirements**: none registered — scope is items 0–7, 9, 11, 14–16, 19–24 above, the
+`MainWindow.xaml:286-287` comment, and decisions D-01..D-13 (`02-CONTEXT.md`)
 **Depends on:** Phase 1
-**Plans:** 0 plans
+**Plans:** 15 plans
 
 Plans:
-- [ ] TBD (run /gsd-plan-phase 2 to break down)
+**Wave 1**
+- [ ] 02-01-PLAN.md — Item 0: save subfolders archived (D-10), left-out note (D-01), restore refuses a save folder holding the archives (D-11, D-02), SPEC/CHANGELOG (D-03)
+- [ ] 02-02-PLAN.md — Item 16: shared SaveFolderPreview.Describe, synchronous Browse
+- [ ] 02-03-PLAN.md — D-07 baseline: demo data, reusable capture tooling, before screenshots from the unchanged UI
+
+**Wave 2** *(blocked on Wave 1 completion)*
+- [ ] 02-04-PLAN.md — Items 19–20: toolbar/menu templates, RowActionButton, DialogFooterButton (D-12); after-19-20 screenshots and access-key pass (D-07)
+- [ ] 02-05-PLAN.md — Item 3: DriveType before IsReady, drive-probe seam (D-05), reachable bulk picker-cancel fact (D-04, D-13)
+
+**Wave 3** *(blocked on Wave 2 completion)*
+- [ ] 02-06-PLAN.md — Items 1–2: startup prompt evaluated on arming after the first sweep; IsBulkPreparing guard
+
+**Wave 4** *(blocked on Wave 3 completion)*
+- [ ] 02-07-PLAN.md — Items 4–5: PathCompare at drive roots, ToTemplate root fix, no empty archives
+- [ ] 02-08-PLAN.md — Items 14–15: RequeryOperationGates, one bulk progress callback type
+
+**Wave 5** *(blocked on Wave 4 completion)*
+- [ ] 02-09-PLAN.md — Items 7, 6, 9: two verification modes, rename ladder extracted, FileSystemFault predicate
+- [ ] 02-10-PLAN.md — Item 11: picker delete action from the caller, Confirm asserts its thread contract
+- [ ] 02-11-PLAN.md — Item 21 + item-18 comment: SavegameBunkerDanger* rename (D-06), one-sided margins, unused tokens; after-21 screenshots
+
+**Wave 6** *(blocked on Wave 5 completion)*
+- [ ] 02-12-PLAN.md — Item 22 (part 1): TempDir, TestWait, RecordingDialogService file; view-model test classes
+
+**Wave 7** *(blocked on Wave 6 completion)*
+- [ ] 02-13-PLAN.md — Item 22 (part 2): TestGames builders; service and coordinator test classes
+
+**Wave 8** *(blocked on Wave 7 completion)*
+- [ ] 02-14-PLAN.md — Item 24: named wait budgets, asserted poll
+
+**Wave 9** *(blocked on Wave 8 completion)*
+- [ ] 02-15-PLAN.md — Item 23: split MainViewModelTests.cs into seven classes in one collection
