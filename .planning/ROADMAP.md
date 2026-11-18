@@ -252,9 +252,9 @@ Everything else is independent.
 
 Plans:
 **Wave 1**
-- [ ] 02-01-PLAN.md — Item 0: save subfolders archived (D-10), left-out note (D-01), restore refuses a save folder holding the archives (D-11, D-02), SPEC/CHANGELOG (D-03)
-- [ ] 02-02-PLAN.md — Item 16: shared SaveFolderPreview.Describe, synchronous Browse
-- [ ] 02-03-PLAN.md — D-07 baseline: demo data, reusable capture tooling, before screenshots from the unchanged UI
+- [x] 02-01-PLAN.md — Item 0: save subfolders archived (D-10), left-out note (D-01), restore refuses a save folder holding the archives (D-11, D-02), SPEC/CHANGELOG (D-03)
+- [x] 02-02-PLAN.md — Item 16: shared SaveFolderPreview.Describe, synchronous Browse
+- [x] 02-03-PLAN.md — D-07 baseline: demo data, reusable capture tooling, before screenshots from the unchanged UI
 
 **Wave 2** *(blocked on Wave 1 completion)*
 - [ ] 02-04-PLAN.md — Items 19–20: toolbar/menu templates, RowActionButton, DialogFooterButton (D-12); after-19-20 screenshots and access-key pass (D-07)

@@ -4,9 +4,9 @@
   "milestone": "v1.0.1 — Hardening & Refactoring",
   "phases": [],
   "next": {
-    "command": "/gsd-new-milestone",
-    "label": "Start a new milestone",
-    "reason": "All phases complete — start a new milestone"
+    "command": "/gsd-progress --next",
+    "label": "Advance to the next step",
+    "reason": "Phase 2 of 2 · 25% · executing"
   },
-  "updated_at": "2026-11-18T17:42:24.673Z"
+  "updated_at": "2026-11-18T20:01:56.720Z"
 }
