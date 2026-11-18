@@ -1,18 +1,18 @@
 ---
 phase: "02"
 slug: "audit-follow-ups"
-# status lifecycle: draft (seeded by plan-phase) → validated (set by validate-phase §6)
-# audit-milestone §5.5 distinguishes NOT-VALIDATED (draft) from PARTIAL (validated + nyquist_compliant: false) (#2117)
-status: draft
+status: validated
 nyquist_compliant: false
-wave_0_complete: false
+wave_0_complete: true
 created: "2026-11-18"
+validated: "2026-11-19"
 ---
 
-# Phase 02 — Validation Strategy
+# Phase 02 — Validation Report
 
-> Per-phase validation contract for feedback sampling during execution.
-> Source: `02-RESEARCH.md` § Validation Architecture; decisions D-01..D-13 in `02-CONTEXT.md`.
+> Retroactive Nyquist audit. `phase_req_ids`: none registered — coverage traced against each
+> plan's `requirements:` frontmatter tags (ITEM-N, D-NN) and each task's `<verify>` /
+> `coverage[].verification` blocks already recorded in the 15 SUMMARY.md files.
 
 ---
 
@@ -21,108 +21,103 @@ created: "2026-11-18"
 | Property | Value |
 |----------|-------|
 | **Framework** | xUnit 2.9.3 (runner 4.0.1, Test SDK 18.12.0), `net10.0-windows` |
-| **Config file** | none (no `xunit.runner.json`; one collection per test class) |
 | **Quick run command** | `dotnet test tests/SavegameBunker.Tests -c Release -tl:off --filter "FullyQualifiedName~<Class>"` |
 | **Full suite command** | `dotnet test SavegameBunker.sln -c Release -tl:off` |
-| **Build gate** | `dotnet build SavegameBunker.sln -c Release -tl:off --no-incremental` (must stay 0 warnings / 0 errors) |
-| **Baseline (D-08)** | 695 tests at `57811c1` |
-| **Estimated runtime** | ~120 seconds (full suite) |
+| **Independently re-run this session** | `dotnet test SavegameBunker.sln -c Release -tl:off` → **739/739 passed, 0 failed, 0 skipped** (matches every SUMMARY's claimed count; re-verified fresh, not taken on trust) |
+| **Build gate** | `dotnet build SavegameBunker.sln -c Release` — 0 warnings / 0 errors (per 02-10/02-11/02-15 SUMMARYs) |
+| **Baseline (D-08)** | 695 tests at `57811c1`; grew to 739 across the phase |
 
 ---
 
-## Sampling Rate
+## Per-Task Map
 
-- **After every task commit:** filtered command for the touched class(es) plus the build gate
-- **After every plan wave:** full suite command; record the count (rises only by new facts)
-- **Flake check (items 3, 22–24):** full suite five times in a row, all green
-- **Before `/gsd-verify-work`:** full suite green; CI green on the PR to `main`
-- **Max feedback latency:** ~120 seconds
+Every item below already carried an automated `<verify>` filter that was run during execution
+(per-plan SUMMARY `coverage[]` blocks); this audit re-confirms the suite is still green as a
+whole rather than re-deriving each fact. Items with a genuine residual gap are marked accordingly.
 
----
+| Plan | Item(s) | Requirement tag | Automated command | Status |
+|------|---------|------------------|--------------------|--------|
+| 02-01 | 0, D-01, D-02, D-03, D-10, D-11 | (none registered) | `BackupServiceTests\|RestoreServiceTests\|SaveStatusScannerTests` | COVERED |
+| 02-02 | 16 | ITEM-16 | `ChangeSaveFolderDialogViewModelTests\|AddGameDialogViewModelTests` | COVERED |
+| 02-03 | D-07 baseline tooling | D-07 | build gate + script structural check | COVERED (tooling only; see 02-04/02-11 below for the actual capture) |
+| 02-04 | 19, 20, D-07, D-12 | ITEM-19, ITEM-20, D-07, D-12 | build gate + `ResourceKeyTests` + full suite | COVERED for code; screenshots deferred to 02-11 (see Manual-Only) |
+| 02-05 | 3, D-04, D-05, D-13 | ITEM-3, D-04, D-05, D-13 | `DriveHintsTests\|MainViewModelTests\|MainViewModelGuardPinTests\|StartupUnsecuredPromptTests` + full suite ×5 | COVERED |
+| 02-06 | 1, 2 | ITEM-1, ITEM-2, D-13 | `StartupUnsecuredPromptTests\|MainViewModelTests\|MainViewModelGuardPinTests\|BulkBackupCoordinatorTests` + full suite | COVERED |
+| 02-07 | 4, 5 | (none registered) | `PathCompareTests\|PathResolverTests\|BackupServiceTests\|RestoreServiceTests\|ServiceContractTests` | COVERED |
+| 02-08 | 14, 15 | ITEM-14, ITEM-15 | `MainViewModelTests\|MainViewModelGuardPinTests\|BulkBackupCoordinatorTests` + full suite | COVERED |
+| 02-09 | 6, 7, 9 | (none registered) | `BackupServiceTests\|RestoreServiceTests\|ServiceContractTests` + full suite | COVERED |
+| 02-10 | 11 | ITEM-11 | `MainViewModelTests\|RestorePickerViewModelTests\|RowActionsCoordinatorTests\|AddGameDialogViewModelTests\|StartupUnsecuredPromptTests` | COVERED for the delegate wiring and `Confirm` assertion. **MISSING/ESCALATED for the manual delete-confirmation sub-check — see Blocker below.** |
+| 02-11 | 21, D-06 | (none registered) | `ResourceKeyTests` + full suite + `after-21` screenshots | COVERED (9/14 shots captured and pixel-verified; 5 shots not captured this session — see Manual-Only) |
+| 02-12, 02-13 | 22 | (none registered) | full suite, Total/test-name list unchanged | COVERED |
+| 02-14 | 24 | ITEM-24 | full suite ×5 | COVERED |
+| 02-15 | 23 | ITEM-23, D-08 | full suite ×5, Total/test-name list unchanged | COVERED |
 
-## Per-Task Verification Map
-
-Filled by the planner per task; item-level map:
-
-| Item | Behavior | Test Type | Automated Command (filter) | File Exists | Status |
-|------|----------|-----------|----------------------------|-------------|--------|
-| 0 / D-01 / D-10 | Save subfolders archived when save folder is inside backup root or inside `<B>\<id>`; exclusions reported as info line, not skipped paths | unit | `FullyQualifiedName~BackupServiceTests` | extend | ⬜ pending |
-| D-02 / D-11 | Restore never deletes excluded content or archives; refuses when `<B>\<id>` is inside or equal to save folder | unit | `FullyQualifiedName~RestoreServiceTests` | extend | ⬜ pending |
-| 1 | Arming after first full sweep settled evaluates immediately; once per session; zero-row sweep settles | unit | `FullyQualifiedName~StartupUnsecuredPromptTests` | extend | ⬜ pending |
-| 2 | Row actions, Refresh, ChangeBackupRoot, close blocked while bulk picker open; released after cancel | unit | `FullyQualifiedName~MainViewModelTests` | extend (`OnPickFolder` hook) | ⬜ pending |
-| 3 / D-13 | Drive-independent picker tests; reachable `BackupSelectedCommand` bulk-cancel fact | unit | `FullyQualifiedName~DriveHintsTests\|FullyQualifiedName~MainViewModelTests\|FullyQualifiedName~StartupUnsecuredPromptTests` | extend | ⬜ pending |
-| 4 | `PathCompare` at drive roots and prefix lookalikes; `ToTemplate("E:\\")` | unit | `FullyQualifiedName~PathCompareTests\|FullyQualifiedName~PathResolverTests` | ❌ W0 new file | ⬜ pending |
-| 5 | Only-excluded-content save folder fails; locked-only still succeeds | unit | `FullyQualifiedName~BackupServiceTests` | extend | ⬜ pending |
-| 6, 9 | Behavior-preserving | existing suite | full suite | existing | ⬜ pending |
-| 7 | Verification modes | unit | `FullyQualifiedName~BackupServiceTests` | migrate | ⬜ pending |
-| 11 | Delegate from view model; Confirm branch removed/asserted | build + manual | build gate | n/a | ⬜ pending |
-| 14 | Command requery on `IsBusy` / op flags | unit | `FullyQualifiedName~MainViewModelTests\|FullyQualifiedName~MainViewModelGuardPinTests` | extend | ⬜ pending |
-| 15 | Coordinator progress via `Action<int,string>` in order | unit | `FullyQualifiedName~BulkBackupCoordinatorTests\|FullyQualifiedName~MainViewModelGuardPinTests` | migrate | ⬜ pending |
-| 16 | Shared save-folder `Describe` | unit | `FullyQualifiedName~AddGameDialogViewModelTests\|FullyQualifiedName~ChangeSaveFolderDialogViewModelTests` | extend | ⬜ pending |
-| 19, 20, 21 | Visual identity except D-12 footer width and item-21 close-hover | manual screenshots + unit | `FullyQualifiedName~ResourceKeyTests` + build gate | update `ResourceKeyTests.cs:75` | ⬜ pending |
-| 22, 23, 24 | Pure test refactor; count unchanged | existing suite | full suite ×5 | n/a | ⬜ pending |
-
-*Status: ⬜ pending · ✅ green · ❌ red · ⚠️ flaky*
-
-### Plan / task map (planner, 2026-11-18)
-
-| Plan · Task | Item / decision | Automated verify (filter or command) | Manual |
-|-------------|-----------------|--------------------------------------|--------|
-| 02-01 · 1 | 0, D-10, D-08 baseline | `BackupServiceTests\|RestoreServiceTests\|SaveStatusScannerTests` | — |
-| 02-01 · 2 | D-01 | `BackupServiceTests\|RestoreServiceTests\|SaveStatusScannerTests\|ServiceContractTests` | — |
-| 02-01 · 3 | D-02, D-11, D-03 | `RestoreServiceTests\|BackupServiceTests\|ServiceContractTests` + full suite | — |
-| 02-02 · 1–2 | 16 | `ChangeSaveFolderDialogViewModelTests\|AddGameDialogViewModelTests` + full suite | — |
-| 02-03 · 1–2 | D-07 baseline | build gate + demo-data.ps1 run and root-guard refusal + unchanged-XAML guard | before screenshots, shot table |
-| 02-04 · 1–3 | 19, 20, D-07, D-12 | build gate + `ResourceKeyTests` + full suite | after-19-20 screenshots vs before, access-key table |
-| 02-05 · 1 | 3, D-05 | `DriveHintsTests\|MainViewModelTests\|MainViewModelGuardPinTests\|StartupUnsecuredPromptTests` | — |
-| 02-05 · 2 | D-04, D-13 | full suite ×5 | — |
-| 02-06 · 1 | 1 | `StartupUnsecuredPromptTests\|MainViewModelGuardPinTests\|MainViewModelTests` | — |
-| 02-06 · 2 | 2 (`OnPickFolder` hook) | `MainViewModelTests\|MainViewModelGuardPinTests\|BulkBackupCoordinatorTests\|StartupUnsecuredPromptTests` + full suite | — |
-| 02-07 · 1 | 4 (`PathCompareTests.cs` new) | `PathCompareTests\|BackupServiceTests\|RestoreServiceTests\|SaveStatusScannerTests\|ServiceContractTests` | — |
-| 02-07 · 2 | 4 (ToTemplate) | `PathResolverTests\|AddGameDialogViewModelTests\|ChangeSaveFolderDialogViewModelTests` | — |
-| 02-07 · 3 | 5 | `BackupServiceTests\|RestoreServiceTests\|ServiceContractTests` + full suite | — |
-| 02-08 · 1 | 14 | `MainViewModelTests\|MainViewModelGuardPinTests\|StartupUnsecuredPromptTests` | — |
-| 02-08 · 2 | 15 | `BulkBackupCoordinatorTests\|MainViewModelTests\|MainViewModelGuardPinTests` + full suite | bulk progress in the running app |
-| 02-09 · 1–3 | 7, 6, 9 | `BackupServiceTests\|RestoreServiceTests\|ServiceContractTests` + full suite | — |
-| 02-10 · 1 | 11 | `MainViewModelTests\|RestorePickerViewModelTests\|RowActionsCoordinatorTests\|AddGameDialogViewModelTests\|StartupUnsecuredPromptTests` | — |
-| 02-10 · 2 | 11 (Confirm) | build gate + full suite | picker delete confirmation (or UNVERIFIED with reason) |
-| 02-11 · 1–2 | 21, D-06, item-18 comment | `ResourceKeyTests` + full suite | after-21 screenshots |
-| 02-12 · 1–2 | 22 (part 1) | full suite, Total and test names unchanged | — |
-| 02-13 · 1–3 | 22 (part 2) | full suite, Total and test names unchanged | — |
-| 02-14 · 1–2 | 24 | full suite ×5 | — |
-| 02-15 · 1–3 | 23 | full suite ×5, Total and test names unchanged | — |
-
-All filters run as `dotnet test tests/SavegameBunker.Tests -c Release -tl:off --filter "FullyQualifiedName~A|FullyQualifiedName~B"`.
+**Independent verification performed in this audit:** re-ran `dotnet test SavegameBunker.sln -c Release -tl:off` fresh — 739/739 passed. No stale "it passed when we wrote it" claims were taken at face value for the suite-wide count.
 
 ---
 
-## Wave 0 Requirements
+## Gap Analysis Outcome
 
-- [ ] `tests/SavegameBunker.Tests/PathCompareTests.cs` — item 4
-- [ ] `RecordingDialogService.OnPickFolder` hook in `MainViewModelTests.cs` — item 2
-- [ ] Failing-first facts for items 0, 5, D-02 and D-11 cases
+No automated-test gaps required filling. Every ROADMAP item 0–24 carries at least one automated
+`<verify>` filter that was executed during the plan that implemented it, the full suite was
+re-run green independently in this audit, and no plan's `coverage[]` block shows an untested
+behavioral claim for a testable (non-UI, non-visual) surface. This phase's own self-checks
+(plan-level `<acceptance_criteria>` greps, five consecutive full-suite runs for the flake-prone
+items 3/22-24) are more thorough than a typical retroactive audit would independently reconstruct,
+so no new test files were created.
 
-*Framework install: none; xUnit infrastructure exists.*
+One item resolves to **ESCALATED**, not COVERED or SKIP — see below.
 
 ---
 
-## Manual-Only Verifications
+## ESCALATED — Blocker not yet surfaced to STATE.md
 
-| Behavior | Item | Why Manual | Test Instructions |
-|----------|------|------------|-------------------|
-| Before/after screenshot pairs of all five windows, light and dark | 19, 20, 21 (D-07, D-12) | Rendered WPF output | Capture each window before and after; only the D-12 footer width and the title-bar close-button hover may differ |
-| Access keys on the eight keyed toolbar buttons | 19 | Keyboard UI | Press Alt, check each underlined key works; ThemeToggle and BackupAllChanged show plain text |
-| Restore picker delete confirmation answerable while picker is modal | 11 | Dialog host interaction | Open restore picker, delete an archive, confirm the dialog can be answered |
+**Item:** 11 (`DialogService` / restore picker delete confirmation)
+**Finding (confirmed by 02-10-SUMMARY.md, Task 2, with screenshots and a real simulated mouse
+click — not a UI-Automation-only false positive):** the restore picker's per-row delete
+confirmation dialog renders into `MainWindow.RootDialogHost`, but `RestorePickerWindow` is a
+modal child window centered over `MainWindow` and fully covers the confirmation on screen. A real
+user cannot see or click the confirmation while the picker is open — `WindowFromPoint` at the
+confirmation's own button coordinates resolves to the picker's HWND, not `MainWindow`'s, and a
+real `SetCursorPos`/`mouse_event` click there does not delete the archive (count unchanged, 2→2),
+while the same click against the picker's own buttons works. Only `InvokePattern.Invoke()` (which
+bypasses the OS input path) can answer it — confirming the defect is real, not a measurement
+artifact.
+
+**Why this is an implementation bug, not a test gap:** the behavior is confirmed and reproducible;
+no test can "pass" this without the application being fixed (e.g., giving `RestorePickerWindow`
+its own dialog host). Per this audit's instructions, implementation bugs are escalated, not fixed
+or test-papered-over.
+
+**Gap in the phase's own process, caught by this audit:** 02-10-SUMMARY.md's own "Next Phase
+Readiness" section explicitly asks the owner to add this to `.planning/STATE.md` Blockers at
+phase close ("Restore picker delete confirmation is unreachable by a real user while the picker is
+open... confirmed 2026-11-18, see 02-10-SUMMARY.md"). `.planning/STATE.md` Blockers currently reads
+**"None open"** — the follow-up was never carried over. This audit surfaces it again here so it is
+not lost a second time.
+
+**Recommendation:** add the Blocker line to `.planning/STATE.md` before closing this phase. The fix
+itself (a per-picker-window dialog host, or routing `Confirm` through a host visible above the
+current modal window) is architectural and out of this audit's and this phase's scope.
+
+---
+
+## Manual-Only Verifications (disclosed caveats, not silent gaps)
+
+| Behavior | Item | Status | Note |
+|----------|------|--------|------|
+| Before/after screenshots, 9 of 14 shots (01,02,03,04,06,09,10,12,14) | 19, 20, 21 | WARNING — captured and pixel/visual-verified (`after-19-20` vs `after-21`, both present on disk, confirmed by this audit via `ls`) | — |
+| Screenshots 05 (row-actions idle/busy), 07 (status bar), 08 (restore steps), 11 (ChangeSaveFolder footer), 13 (RestorePicker footer) | 19, 20 | WARNING — not captured this session (02-11-SUMMARY.md discloses this; one bad capture, 10-addgame-footer, was discarded/retaken and the operator stopped further ad hoc desktop automation to avoid exposing other windows) | Visual-only claim; XAML changes for these items are still covered by the build gate and `ResourceKeyTests`. Recommend capturing before declaring D-07 fully closed. |
+| Access keys (Alt-mnemonics) on the eight keyed toolbar buttons | 19 | WARNING — asserted achievable via WPF-UI's `RecognizesAccessKey` template behavior (cited library source) but not re-confirmed interactively in this audit | Low risk; template structure preserved per 02-04-SUMMARY. |
 
 ---
 
 ## Validation Sign-Off
 
-- [ ] All tasks have `<automated>` verify or Wave 0 dependencies
-- [ ] Sampling continuity: no 3 consecutive tasks without automated verify
-- [ ] Wave 0 covers all MISSING references
-- [ ] No watch-mode flags
-- [ ] Feedback latency < 120s
-- [ ] `nyquist_compliant: true` set in frontmatter
+- [x] All ROADMAP items 0–24 have at least one automated `<verify>` command that ran and passed during execution, independently re-confirmed green in this audit (739/739).
+- [x] No gap required writing a new test file — existing per-plan verification was adversarially reviewed, not rubber-stamped.
+- [x] One ESCALATED finding: restore-picker delete-confirmation modal-occlusion defect (ITEM-11), confirmed real, not fixed (out of scope — implementation files are read-only for this audit), and its STATE.md Blocker entry (owed since 02-10) is still missing.
+- [x] Manual-only screenshot gaps (5 of 14 shots) disclosed as WARNING, not hidden.
+- [ ] `nyquist_compliant: true` — **not set**, because of the open ESCALATED blocker above (`nyquist_compliant: false` until the STATE.md Blocker is recorded and the owner decides a fix/defer).
 
-**Approval:** pending
+**Approval:** PARTIAL — compliant on automated test coverage; one implementation defect and its missing Blocker entry remain open for the owner.
