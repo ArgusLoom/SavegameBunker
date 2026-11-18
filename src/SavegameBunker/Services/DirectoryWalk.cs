@@ -67,7 +67,7 @@ internal static class DirectoryWalk
             {
                 files = Directory.EnumerateFiles(current);
             }
-            catch (Exception ex) when (ex is UnauthorizedAccessException or DirectoryNotFoundException or PathTooLongException or IOException)
+            catch (Exception ex) when (FileSystemFault.Is(ex))
             {
                 Skip(current);
                 return;
@@ -82,7 +82,7 @@ internal static class DirectoryWalk
                     if (ReparseFile.IsSymlink(info))
                         continue;
                 }
-                catch (Exception ex) when (ex is UnauthorizedAccessException or PathTooLongException or IOException)
+                catch (Exception ex) when (FileSystemFault.Is(ex))
                 {
                     Skip(f);
                     continue;
@@ -96,7 +96,7 @@ internal static class DirectoryWalk
             {
                 subdirs = Directory.EnumerateDirectories(current);
             }
-            catch (Exception ex) when (ex is UnauthorizedAccessException or DirectoryNotFoundException or PathTooLongException or IOException)
+            catch (Exception ex) when (FileSystemFault.Is(ex))
             {
                 Skip(current);
                 return;
@@ -109,7 +109,7 @@ internal static class DirectoryWalk
                 {
                     attributes = File.GetAttributes(sub);
                 }
-                catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+                catch (Exception ex) when (FileSystemFault.Is(ex))
                 {
                     Skip(sub);
                     continue;

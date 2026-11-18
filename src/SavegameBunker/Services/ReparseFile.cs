@@ -39,8 +39,7 @@ internal static class ReparseFile
                 if (!IsSymlink(new FileInfo(f)))
                     return true;
             }
-            catch (UnauthorizedAccessException) { continue; }
-            catch (IOException) { continue; }
+            catch (Exception ex) when (FileSystemFault.Is(ex)) { continue; }
         }
 
         foreach (var sub in Directory.EnumerateDirectories(dir))
@@ -50,8 +49,7 @@ internal static class ReparseFile
             {
                 attributes = File.GetAttributes(sub);
             }
-            catch (UnauthorizedAccessException) { continue; }
-            catch (IOException) { continue; }
+            catch (Exception ex) when (FileSystemFault.Is(ex)) { continue; }
 
             if (attributes.HasFlag(FileAttributes.ReparsePoint))
                 continue;
@@ -61,10 +59,7 @@ internal static class ReparseFile
                 if (HasAnyFile(sub))
                     return true;
             }
-            catch (UnauthorizedAccessException) { continue; }
-            catch (DirectoryNotFoundException) { continue; }
-            catch (PathTooLongException) { continue; }
-            catch (IOException) { continue; }
+            catch (Exception ex) when (FileSystemFault.Is(ex)) { continue; }
         }
 
         return false;

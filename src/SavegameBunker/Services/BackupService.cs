@@ -344,7 +344,7 @@ public sealed class BackupService
                     {
                         return new BackupArchive(path, ParseTakenAt(path), new FileInfo(path).Length);
                     }
-                    catch (Exception ex) when (ex is FileNotFoundException or IOException or UnauthorizedAccessException)
+                    catch (Exception ex) when (FileSystemFault.Is(ex))
                     {
                         return null;
                     }
@@ -435,10 +435,7 @@ public sealed class BackupService
         {
             return ReparseFile.HasAnyFile(saveDir) ? SaveDirContent.HasFiles : SaveDirContent.Empty;
         }
-        catch (UnauthorizedAccessException) { return SaveDirContent.Unreadable; }
-        catch (DirectoryNotFoundException) { return SaveDirContent.Unreadable; }
-        catch (PathTooLongException) { return SaveDirContent.Unreadable; }
-        catch (IOException) { return SaveDirContent.Unreadable; }
+        catch (Exception ex) when (FileSystemFault.Is(ex)) { return SaveDirContent.Unreadable; }
     }
 
     /// <summary>
@@ -739,7 +736,7 @@ public sealed class BackupService
             {
                 source = File.OpenRead(fullPath);
             }
-            catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
+            catch (Exception ex) when (FileSystemFault.Is(ex))
             {
                 skipped?.Add(relative);
                 continue;

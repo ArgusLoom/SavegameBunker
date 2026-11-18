@@ -82,8 +82,7 @@ internal static class DriveHints
                 var type = drive.DriveType;
                 volumes.Add((drive.RootDirectory.FullName, type, ShouldProbeReadiness(type) && drive.IsReady));
             }
-            catch (IOException) { continue; }
-            catch (UnauthorizedAccessException) { continue; }
+            catch (Exception ex) when (FileSystemFault.Is(ex)) { continue; }
         }
 
         return ChooseStartFolder(volumes, systemRoot);
