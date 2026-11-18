@@ -196,6 +196,28 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     public System.ComponentModel.ICollectionView GamesView { get; }
 
     /// <summary>
+    /// The one list of commands whose <c>CanExecute</c> reads an operation flag
+    /// (<see cref="BulkBackupTotal"/>, <see cref="IsBulkPreparing"/>, <see cref="IsBackupRunning"/>,
+    /// <see cref="IsRestoreRunning"/>) or a row's busy state — kept in one place because the four
+    /// attribute lists it replaces had already drifted apart (7, 5, 5 and 1 entries, missing
+    /// <see cref="BackupCommand"/>/<see cref="RestoreCommand"/> from the row-IsBusy branch
+    /// entirely). <see cref="IsScanRunning"/>'s own <see cref="FindGamesCommand"/> notification and
+    /// the narrower <see cref="GameRowViewModel.ComparisonKind"/>/<see cref="Games"/>'s
+    /// <c>CollectionChanged</c>/<see cref="GameRowViewModel.IsSelected"/> subsets stay separate —
+    /// they deliberately notify fewer commands.
+    /// </summary>
+    private void RequeryOperationGates()
+    {
+        RefreshCommand.NotifyCanExecuteChanged();
+        ChangeBackupRootCommand.NotifyCanExecuteChanged();
+        BackupAllChangedCommand.NotifyCanExecuteChanged();
+        BackupSelectedCommand.NotifyCanExecuteChanged();
+        RestoreSelectedCommand.NotifyCanExecuteChanged();
+        BackupCommand.NotifyCanExecuteChanged();
+        RestoreCommand.NotifyCanExecuteChanged();
+    }
+
+    /// <summary>
     /// Constructs a row for <paramref name="game"/> — the single place every row is created (the
     /// constructor, <see cref="AddGameAsync"/>, <see cref="FindGamesAsync"/>,
     /// <see cref="RefreshAsync"/> and the repair route's replacement in
@@ -227,11 +249,10 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
                     break;
                 case nameof(GameRowViewModel.IsBusy):
                     OnPropertyChanged(nameof(IsAnyRowBusy));
-                    BackupAllChangedCommand.NotifyCanExecuteChanged();
-                    BackupSelectedCommand.NotifyCanExecuteChanged();
-                    RestoreSelectedCommand.NotifyCanExecuteChanged();
-                    RefreshCommand.NotifyCanExecuteChanged();
-                    ChangeBackupRootCommand.NotifyCanExecuteChanged();
+                    // Also requeries BackupCommand/RestoreCommand (ITEM-14's one deliberate,
+                    // enablement-only change): CanBackupRow/CanRestoreRow read row.IsBusy too, so
+                    // a row going busy must re-query its own Backup/Restore, not only the toolbar.
+                    RequeryOperationGates();
                     break;
                 case nameof(GameRowViewModel.IsSelected):
                     if (row.IsSelected)
@@ -464,14 +485,10 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(BulkBackupProgressText))]
     [NotifyPropertyChangedFor(nameof(IsBulkBackupRunning))]
-    [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ChangeBackupRootCommand))]
-    [NotifyCanExecuteChangedFor(nameof(BackupAllChangedCommand))]
-    [NotifyCanExecuteChangedFor(nameof(BackupSelectedCommand))]
-    [NotifyCanExecuteChangedFor(nameof(RestoreSelectedCommand))]
-    [NotifyCanExecuteChangedFor(nameof(BackupCommand))]
-    [NotifyCanExecuteChangedFor(nameof(RestoreCommand))]
     public partial int BulkBackupTotal { get; private set; }
+
+    /// <summary>Re-queries every operation gate whenever a running bulk backup's count changes.</summary>
+    partial void OnBulkBackupTotalChanged(int value) => RequeryOperationGates();
 
     /// <summary>
     /// True while a bulk backup is still resolving its backup folder — the start-folder probe, the
@@ -482,14 +499,10 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// early would move the coordinator's pinned claim order.
     /// </summary>
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ChangeBackupRootCommand))]
-    [NotifyCanExecuteChangedFor(nameof(BackupAllChangedCommand))]
-    [NotifyCanExecuteChangedFor(nameof(BackupSelectedCommand))]
-    [NotifyCanExecuteChangedFor(nameof(RestoreSelectedCommand))]
-    [NotifyCanExecuteChangedFor(nameof(BackupCommand))]
-    [NotifyCanExecuteChangedFor(nameof(RestoreCommand))]
     public partial bool IsBulkPreparing { get; private set; }
+
+    /// <summary>Re-queries every operation gate whenever the bulk preparation window opens or closes.</summary>
+    partial void OnIsBulkPreparingChanged(bool value) => RequeryOperationGates();
 
     /// <summary>
     /// Drives the window-level progress panel's visibility. Derived from the selected count rather
@@ -668,18 +681,15 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     }
 
     /// <summary>
-    /// True for the duration of a running backup write. Carries
-    /// <see cref="global::CommunityToolkit.Mvvm.ComponentModel.NotifyCanExecuteChangedForAttribute"/>
-    /// for every command gated on it, so their <c>CanExecute</c> re-queries the moment this flag
-    /// changes rather than on WPF's next unrelated requery.
+    /// True for the duration of a running backup write. Requeries every operation gate through
+    /// <see cref="RequeryOperationGates"/> the moment this flag changes, rather than on WPF's
+    /// next unrelated requery.
     /// </summary>
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ChangeBackupRootCommand))]
-    [NotifyCanExecuteChangedFor(nameof(BackupAllChangedCommand))]
-    [NotifyCanExecuteChangedFor(nameof(BackupSelectedCommand))]
-    [NotifyCanExecuteChangedFor(nameof(RestoreSelectedCommand))]
     public partial bool IsBackupRunning { get; private set; }
+
+    /// <summary>Re-queries every operation gate whenever a single-row backup starts or ends.</summary>
+    partial void OnIsBackupRunningChanged(bool value) => RequeryOperationGates();
 
     /// <summary>
     /// How many single-game backups are in flight. One command instance serves every row, so two
@@ -701,7 +711,9 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// for the tens of seconds a scan can run against a stalled network share would take away the
     /// user's only way to see the catalog for no protection they actually need. Carries
     /// <see cref="global::CommunityToolkit.Mvvm.ComponentModel.NotifyCanExecuteChangedForAttribute"/>
-    /// naming <see cref="FindGamesCommand"/> for the same reason <see cref="IsBackupRunning"/>'s does.
+    /// naming <see cref="FindGamesCommand"/> directly — this is not an operation gate (
+    /// <see cref="CanFindGames"/> reads only this flag), so it stays its own narrow notification
+    /// rather than going through <see cref="RequeryOperationGates"/>.
     /// </summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(FindGamesCommand))]
@@ -713,17 +725,15 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// than a reuse of it: a restore's first real step is calling <c>Backup</c> internally for the
     /// safety archive, but the two are still different user-visible operations with different
     /// status text, and folding them into one flag would make that flag true for two things at once
-    /// with no way to tell which. Carries
-    /// <see cref="global::CommunityToolkit.Mvvm.ComponentModel.NotifyCanExecuteChangedForAttribute"/>
-    /// for every command gated on it, for the same reason <see cref="IsBackupRunning"/> does.
+    /// with no way to tell which. Requeries every operation gate through
+    /// <see cref="RequeryOperationGates"/> the moment this flag changes, for the same reason
+    /// <see cref="IsBackupRunning"/> does.
     /// </summary>
     [ObservableProperty]
-    [NotifyCanExecuteChangedFor(nameof(RefreshCommand))]
-    [NotifyCanExecuteChangedFor(nameof(ChangeBackupRootCommand))]
-    [NotifyCanExecuteChangedFor(nameof(BackupAllChangedCommand))]
-    [NotifyCanExecuteChangedFor(nameof(BackupSelectedCommand))]
-    [NotifyCanExecuteChangedFor(nameof(RestoreSelectedCommand))]
     public partial bool IsRestoreRunning { get; private set; }
+
+    /// <summary>Re-queries every operation gate whenever a single-row restore starts or ends.</summary>
+    partial void OnIsRestoreRunningChanged(bool value) => RequeryOperationGates();
 
     /// <summary>
     /// Called from the window's Closing handler when it refuses to close because a backup, restore

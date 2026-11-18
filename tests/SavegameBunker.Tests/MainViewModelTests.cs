@@ -1763,6 +1763,24 @@ public sealed class MainViewModelTests : IDisposable
     }
 
     [Fact]
+    public async Task Setting_row_IsBusy_raises_CanExecuteChanged_on_the_row_Backup_and_Restore_commands()
+    {
+        // CanBackupRow/CanRestoreRow both read row.IsBusy, but nothing forwarded a row's own
+        // IsBusy change into these two commands' NotifyCanExecuteChanged — they only caught up
+        // on some unrelated WPF command requery instead of the moment preflight actually starts.
+        var (vm, _, _) = await CreateMultiGameViewModelAsync(1);
+
+        var raised = new List<string>();
+        vm.BackupCommand.CanExecuteChanged += (_, _) => raised.Add(nameof(vm.BackupCommand));
+        vm.RestoreCommand.CanExecuteChanged += (_, _) => raised.Add(nameof(vm.RestoreCommand));
+
+        vm.Games[0].IsBusy = true;
+
+        Assert.Contains(nameof(vm.BackupCommand), raised);
+        Assert.Contains(nameof(vm.RestoreCommand), raised);
+    }
+
+    [Fact]
     public async Task Bulk_backup_excludes_a_row_already_busy_from_its_own_target_list()
     {
         // Even if CanExecute's IsAnyRowBusy gate is stale (the target list is built after the
