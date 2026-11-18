@@ -38,6 +38,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # This job holds contents: write and later runs pip install (third-party code);
+          # a token persisted in .git/config would be readable by it. Nothing here pushes
+          # with git — the release step authenticates through GH_TOKEN on its own.
+          persist-credentials: false
+
+      # Same SDK the test job used (global.json), not whatever the runner image ships.
+      - name: Set up .NET (version from global.json)
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
 
       - name: Cache NuGet packages
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
