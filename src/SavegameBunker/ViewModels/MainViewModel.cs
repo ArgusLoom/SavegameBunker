@@ -74,13 +74,28 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// <summary>
     /// Armed once by <c>App.OnStartup</c> (via <see cref="RequestStartupUnsecuredPrompt"/>) so the
     /// startup prompt can only ever be offered around application start, never by an ordinary
-    /// mid-session Refresh's sweep completion. Consumed by the first full sweep that settles
-    /// afterwards.
+    /// mid-session Refresh's sweep completion. Arming evaluates the prompt at once when the first
+    /// full sweep has already settled (see <see cref="_firstFullSweepSettled"/>); otherwise the
+    /// first full sweep that settles afterwards consumes it. Either way at most once per session.
     /// </summary>
     private bool _startupPromptPending;
 
     /// <summary>Set the moment the startup prompt has been evaluated, whatever it decided.</summary>
     private bool _startupPromptShown;
+
+    /// <summary>
+    /// Guards the arm/settle/prompt trio. In the app all three run on the UI thread, but the view
+    /// model must stay thread-agnostic: in a host without a dispatcher <see cref="OnUi"/> runs
+    /// inline on pool threads, and without this lock the arming and settling pair could lose the
+    /// prompt or show it twice.
+    /// </summary>
+    private readonly object _startupPromptLock = new();
+
+    /// <summary>
+    /// Set once the first full sweep has laid a verdict on every row — or found no rows at all —
+    /// and never cleared afterwards.
+    /// </summary>
+    private bool _firstFullSweepSettled;
 
     /// <summary>
     /// Debounces a burst of selection/sweep-completion events before recomputing the free-space
@@ -745,12 +760,52 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
 
     /// <summary>
     /// Arms the startup prompt for unsecured games. Called once from <c>App.OnStartup</c> after
-    /// <see cref="ReportLoad"/>; the first full status sweep that settles afterwards consumes it
-    /// (see <see cref="PromptUnsecuredGamesOnce"/>). Arming is deliberately separate from
-    /// evaluating so an ordinary mid-session Refresh — whose sweep is also full-scope — never
-    /// produces the dialog on its own, and so unit tests can drive the decision directly.
+    /// <see cref="ReportLoad"/>. When the first full sweep has already settled (ReportLoad's
+    /// reachability probe can outlast it), the prompt is evaluated at once; otherwise the first
+    /// full sweep that settles afterwards consumes it (see <see cref="PromptUnsecuredGamesOnce"/>).
+    /// An ordinary mid-session Refresh — whose sweep is also full-scope — never produces the
+    /// dialog on its own, and unit tests can drive the decision directly.
     /// </summary>
-    public void RequestStartupUnsecuredPrompt() => _startupPromptPending = true;
+    public void RequestStartupUnsecuredPrompt()
+    {
+        bool evaluate;
+        lock (_startupPromptLock)
+        {
+            _startupPromptPending = true;
+            evaluate = _firstFullSweepSettled;
+        }
+
+        if (evaluate)
+            PromptUnsecuredGamesOnce();
+    }
+
+    /// <summary>
+    /// Visible to tests so they can arm after the first sweep settled, the way App does when
+    /// ReportLoad's probe outlasts the sweep.
+    /// </summary>
+    internal bool IsFirstFullSweepSettled
+    {
+        get
+        {
+            lock (_startupPromptLock)
+                return _firstFullSweepSettled;
+        }
+    }
+
+    /// <summary>
+    /// Records that the first full sweep has settled and evaluates an armed prompt at once —
+    /// arming may have happened while the sweep was still running, so settling alone must decide
+    /// the prompt.
+    /// </summary>
+    private void MarkFirstFullSweepSettled()
+    {
+        lock (_startupPromptLock)
+        {
+            _firstFullSweepSettled = true;
+        }
+
+        PromptUnsecuredGamesOnce();
+    }
 
     /// <summary>
     /// The rows whose save data is not covered by a backup: saves changed since the last archive,
@@ -762,7 +817,9 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         .ToList();
 
     /// <summary>
-    /// The startup prompt itself, run at most once per application session. When N games carry an
+    /// The startup prompt itself, run at most once per application session. Called when the prompt
+    /// is armed and a full sweep has already settled, and by the first full sweep that settles an
+    /// armed prompt — the first evaluation wins. When N games carry an
     /// unsecured verdict, shows one Confirm dialog; Yes re-enters the existing bulk backup flow
     /// (<see cref="BackupAllChangedCommand"/> — the same path the toolbar button takes, which
     /// re-derives its own target list and honours the unset-backup-root picker), No does nothing,
@@ -779,10 +836,17 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// </remarks>
     internal void PromptUnsecuredGamesOnce()
     {
-        if (_startupPromptShown || !_startupPromptPending)
-            return;
-        _startupPromptPending = false;
-        _startupPromptShown = true;
+        // The shown/pending check and the two consumption writes sit inside the same lock as
+        // arming and settling, so the arm/settle pair can neither lose nor double the prompt.
+        // Everything below — the unsecured count, the message, the Task.Run with Confirm —
+        // stays outside it.
+        lock (_startupPromptLock)
+        {
+            if (_startupPromptShown || !_startupPromptPending)
+                return;
+            _startupPromptPending = false;
+            _startupPromptShown = true;
+        }
 
         var unsecured = GetUnsecuredRows();
         if (unsecured.Count == 0)
@@ -1082,7 +1146,14 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         var snapshot = _sweep.Reset((IEnumerable<GameRowViewModel>?)only ?? Games);
 
         if (snapshot.Count == 0)
+        {
+            // An empty catalog settles its first full sweep with nothing to check: the prompt's
+            // moment is now, so the armed prompt is consumed here instead of being saved up for
+            // a later Refresh's sweep to fire mid-session.
+            if (isFullSweep)
+                MarkFirstFullSweepSettled();
             return;
+        }
 
         var root = "";
         var hasRoot = _session.TryGetConfiguredBackupRoot(out var resolvedRoot);
@@ -1110,12 +1181,12 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
             // caller that also asked to announce progress.
             OnUi(ScheduleSpaceAdvisoryRecompute);
 
-            // The startup prompt can only be decided once a full sweep has laid a real verdict on
-            // every row — a narrowed scan (only is not null) leaves most rows on Checking, so
-            // counting there would under-report. The first full sweep to settle after App armed
-            // the prompt is the moment; later full sweeps find the flag already consumed.
+            // The prompt can only be decided once a full sweep has laid a real verdict on every
+            // row — a narrowed scan (only is not null) leaves most rows on Checking. The first
+            // full sweep to settle marks the flag and evaluates an armed prompt; later full
+            // sweeps find the shot consumed or never armed.
             if (isFullSweep)
-                OnUi(PromptUnsecuredGamesOnce);
+                OnUi(MarkFirstFullSweepSettled);
 
             if (!announceProgress)
                 return;

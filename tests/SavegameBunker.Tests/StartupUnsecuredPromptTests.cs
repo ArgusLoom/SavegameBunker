@@ -8,10 +8,10 @@ namespace SavegameBunker.Tests;
 /// <summary>
 /// Proves the startup prompt for unsecured games: which rows count as
 /// unsecured, and how the dialog's answer routes — Yes re-enters the existing bulk backup flow,
-/// No does nothing, and N = 0 never reaches a dialog. The prompt is driven directly through
-/// <see cref="MainViewModel.PromptUnsecuredGamesOnce"/> after arming it with
-/// <see cref="MainViewModel.RequestStartupUnsecuredPrompt"/>; the sweep-completion wiring that
-/// calls it in the running app needs no test of its own beyond that.
+/// No does nothing, and N = 0 never reaches a dialog. The prompt is driven by arming it with
+/// <see cref="MainViewModel.RequestStartupUnsecuredPrompt"/> — which evaluates at once when the
+/// first full sweep has already settled — and otherwise by the first full sweep that settles,
+/// <see cref="MainViewModel.PromptUnsecuredGamesOnce"/> being the single evaluation point inside.
 /// </summary>
 public sealed class StartupUnsecuredPromptTests : IDisposable
 {
@@ -40,8 +40,9 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
     /// save directory and a real, reachable backup root beside them, then waits for the
     /// construction-time sweep to settle so the tests can force their own comparison kinds
     /// afterwards — the same synthetic-state technique <see cref="MainViewModelTests"/> uses.
-    /// Waiting for the sweep also guarantees the sweep's own automatic prompt evaluation has
-    /// already run on an un-armed view model (a no-op), so each test's arming is never raced.
+    /// Waiting also guarantees the first full sweep has marked the settled flag, so each test's
+    /// arming evaluates at once (the way App does when ReportLoad's probe outlasts the sweep)
+    /// and is never raced by the sweep's own completion.
     /// </summary>
     private Task<(MainViewModel Vm, RecordingDialogService Dialog, string BackupRoot)> CreateViewModelAsync(int gameCount) =>
         CreateViewModelAsync(gameCount, configuredBackupRoot: null);
@@ -76,6 +77,7 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
         var vm = new MainViewModel(load, dialog);
 
         await WaitForAsync(() => vm.Games.All(row => row.ComparisonKind != BackupComparisonKind.Checking));
+        await WaitForAsync(() => vm.IsFirstFullSweepSettled);
 
         return (vm, dialog, backupRoot);
     }
@@ -106,13 +108,12 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
     public async Task No_unsecured_games_means_no_dialog()
     {
         var (vm, dialog, _) = await CreateViewModelAsync(2);
-        vm.RequestStartupUnsecuredPrompt();
 
         vm.Games[0].ApplyBackupComparison(BackupComparison.UpToDate(DateTime.Now));
         vm.Games[1].ApplyBackupComparison(BackupComparison.NoSaveData(DateTime.Now));
 
         Assert.Empty(vm.GetUnsecuredRows());
-        vm.PromptUnsecuredGamesOnce();
+        vm.RequestStartupUnsecuredPrompt();
 
         Assert.Empty(dialog.ConfirmMessages);
     }
@@ -121,11 +122,10 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
     public async Task Declining_the_prompt_starts_no_backup()
     {
         var (vm, dialog, backupRoot) = await CreateViewModelAsync(1);
-        vm.RequestStartupUnsecuredPrompt();
         dialog.ConfirmToReturn = false;
 
         vm.Games[0].ApplyBackupComparison(BackupComparison.NeverBackedUp());
-        vm.PromptUnsecuredGamesOnce();
+        vm.RequestStartupUnsecuredPrompt();
         await WaitForAsync(() => dialog.ConfirmMessages.Count == 1);
 
         // N = 1 must name the game — the singular resource carries a {0} placeholder, so the
@@ -143,13 +143,12 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
     public async Task Accepting_the_prompt_runs_the_bulk_backup_for_the_unsecured_games()
     {
         var (vm, dialog, backupRoot) = await CreateViewModelAsync(2);
-        vm.RequestStartupUnsecuredPrompt();
         dialog.ConfirmToReturn = true;
 
         vm.Games[0].ApplyBackupComparison(BackupComparison.UpToDate(DateTime.Now));
         vm.Games[1].ApplyBackupComparison(BackupComparison.SavesChangedSinceBackup(DateTime.Now.AddDays(-1), TimeSpan.FromDays(1)));
 
-        vm.PromptUnsecuredGamesOnce();
+        vm.RequestStartupUnsecuredPrompt();
 
         // The bulk run re-derives its targets from the same predicate, so only the unsecured row
         // gets an archive — the up-to-date row must stay untouched.
@@ -170,7 +169,6 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
     public async Task Yes_does_not_start_the_backup_when_the_bulk_command_is_disabled()
     {
         var (vm, dialog, backupRoot) = await CreateViewModelAsync(2);
-        vm.RequestStartupUnsecuredPrompt();
         dialog.ConfirmToReturn = true;
 
         // IsBusy on any row is one of CanBackupAllChanged's gate terms, and it survives here: the
@@ -180,7 +178,7 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
         vm.Games[1].ApplyBackupComparison(BackupComparison.NeverBackedUp());
         Assert.False(vm.BackupAllChangedCommand.CanExecute(null));
 
-        vm.PromptUnsecuredGamesOnce();
+        vm.RequestStartupUnsecuredPrompt();
         await WaitForAsync(() => dialog.ConfirmMessages.Count == 1);
 
         // Long enough for the pre-fix direct-call path to have written an archive; none may appear.
@@ -194,15 +192,16 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
     public async Task Prompt_is_evaluated_at_most_once_per_session()
     {
         var (vm, dialog, _) = await CreateViewModelAsync(2);
-        vm.RequestStartupUnsecuredPrompt();
         dialog.ConfirmToReturn = false;
 
         vm.Games[0].ApplyBackupComparison(BackupComparison.NeverBackedUp());
-        vm.PromptUnsecuredGamesOnce();
+        vm.RequestStartupUnsecuredPrompt();
         await WaitForAsync(() => dialog.ConfirmMessages.Count == 1);
 
-        // A second game becomes unsecured afterwards; the session has already had its one prompt.
+        // A second game becomes unsecured afterwards; the session has already had its one prompt,
+        // so a second arming evaluates to nothing.
         vm.Games[1].ApplyBackupComparison(BackupComparison.NeverBackedUp());
+        vm.RequestStartupUnsecuredPrompt();
         vm.PromptUnsecuredGamesOnce();
 
         Assert.Single(dialog.ConfirmMessages);
@@ -253,10 +252,10 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
         var dialogs = new ThrowingConfirmDialogService();
         var vm2 = new MainViewModel(await GameCatalog.LoadAsync(Path.Combine(_dir, "games.json")), dialogs);
         await WaitForAsync(() => vm2.Games.All(row => row.ComparisonKind != BackupComparisonKind.Checking));
+        await WaitForAsync(() => vm2.IsFirstFullSweepSettled);
 
-        vm2.RequestStartupUnsecuredPrompt();
         vm2.Games[0].ApplyBackupComparison(BackupComparison.NeverBackedUp());
-        vm2.PromptUnsecuredGamesOnce();
+        vm2.RequestStartupUnsecuredPrompt();
 
         // The exception surfaces through the app's normal error path, not as a crash.
         await WaitForAsync(() => dialogs.ErrorMessages.Count == 1);
@@ -271,6 +270,59 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
         Assert.Single(dialogs.ErrorMessages);
         Assert.False(Directory.Exists(Path.Combine(backupRoot, "game-0")));
         Assert.False(vm2.IsBulkBackupRunning);
+    }
+
+    /// <summary>
+    /// Arming can happen after the first full sweep already settled — ReportLoad's reachability
+    /// probe can outlast the sweep — so arming itself must evaluate the prompt at once. Only
+    /// <see cref="MainViewModel.RequestStartupUnsecuredPrompt"/> is called: the prompt must come
+    /// from the arming evaluation, never from another sweep settling afterwards.
+    /// </summary>
+    [Fact]
+    public async Task Arming_after_the_first_full_sweep_settled_prompts_without_another_sweep()
+    {
+        Directory.CreateDirectory(Path.Combine(_dir, "backups"));
+        var (vm, dialog, _) = await CreateViewModelAsync(1);
+
+        vm.Games[0].ApplyBackupComparison(BackupComparison.NeverBackedUp());
+        await WaitForAsync(() => vm.IsFirstFullSweepSettled);
+
+        vm.RequestStartupUnsecuredPrompt();
+
+        await WaitForAsync(() => dialog.ConfirmMessages.Count == 1);
+        Assert.Contains("Game 0", dialog.ConfirmMessages[0]);
+    }
+
+    /// <summary>
+    /// A full sweep over zero rows also counts as settled, so an empty catalog consumes an armed
+    /// prompt on the spot instead of saving it up — a later Refresh after a game was added must
+    /// never show the startup prompt mid-session. The negative proof waits past the point where
+    /// the Refresh's full sweep settles and would asynchronously have shown the dialog.
+    /// </summary>
+    [Fact]
+    public async Task An_empty_catalogs_first_sweep_consumes_the_armed_prompt_so_a_later_refresh_never_shows_it()
+    {
+        Directory.CreateDirectory(Path.Combine(_dir, "backups"));
+        var (vm, dialog, backupRoot) = await CreateViewModelAsync(0);
+        await WaitForAsync(() => vm.IsFirstFullSweepSettled);
+        vm.RequestStartupUnsecuredPrompt();
+
+        var saveDir = Path.Combine(_dir, "saves-new");
+        Directory.CreateDirectory(saveDir);
+        File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), [1, 2, 3]);
+        var catalog = new Catalog
+        {
+            BackupRoot = backupRoot,
+            Games = [new Game { Id = "game-new", DisplayName = "Game new", SaveDirTemplate = saveDir.Replace('\\', '/') }],
+        };
+        await GameCatalog.SaveAsync(Path.Combine(_dir, "games.json"), catalog);
+
+        vm.RefreshCommand.Execute(null);
+        await WaitForAsync(() =>
+            vm.Games.Count == 1 && vm.Games.All(row => row.ComparisonKind != BackupComparisonKind.Checking));
+        await Task.Delay(300);
+
+        Assert.Empty(dialog.ConfirmMessages);
     }
 
     /// <summary>
@@ -289,7 +341,6 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
         Assert.Equal(BackupComparisonKind.BackupFolderNotAvailable, vm.Games[0].ComparisonKind);
 
         vm.RequestStartupUnsecuredPrompt();
-        vm.PromptUnsecuredGamesOnce();
 
         Assert.Empty(vm.GetUnsecuredRows());
         Assert.Empty(dialog.ConfirmMessages);

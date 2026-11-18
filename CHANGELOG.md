@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **The startup reminder about unsecured games no longer turns up mid-session.** With a backup
+  folder set, the reminder could miss its moment at startup and appear later, after a Refresh; it
+  now appears at startup or not at all, and an empty games list no longer saves it up for later.
 - **Choosing a backup folder no longer stalls on a disconnected network drive.** The first backup
   asks for a folder and suggests a start location; with a mapped network drive that was offline,
   finding that suggestion could hold the folder dialog back for a long time. Network and optical

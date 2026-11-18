@@ -201,8 +201,10 @@ public sealed partial class App : Application
             await vm.ReportLoad();
 
             // One prompt, at most once per session, about games whose saves are
-            // not covered by a backup. Armed here and decided by the first full status sweep that
-            // settles — see MainViewModel.PromptUnsecuredGamesOnce. Nothing is persisted.
+            // not covered by a backup. Armed here; the prompt is evaluated at once when the first
+            // full status sweep already settled during ReportLoad's await, otherwise the sweep
+            // that settles decides it — see MainViewModel.PromptUnsecuredGamesOnce. Nothing is
+            // persisted.
             vm.RequestStartupUnsecuredPrompt();
 
 #if DEBUG
