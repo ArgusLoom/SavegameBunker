@@ -257,8 +257,8 @@ Plans:
 - [x] 02-03-PLAN.md — D-07 baseline: demo data, reusable capture tooling, before screenshots from the unchanged UI
 
 **Wave 2** *(blocked on Wave 1 completion)*
-- [ ] 02-04-PLAN.md — Items 19–20: toolbar/menu templates, RowActionButton, DialogFooterButton (D-12); after-19-20 screenshots and access-key pass (D-07)
-- [ ] 02-05-PLAN.md — Item 3: DriveType before IsReady, drive-probe seam (D-05), reachable bulk picker-cancel fact (D-04, D-13)
+- [x] 02-04-PLAN.md — Items 19–20: toolbar/menu templates, RowActionButton, DialogFooterButton (D-12); after-19-20 screenshots and access-key pass (D-07)
+- [x] 02-05-PLAN.md — Item 3: DriveType before IsReady, drive-probe seam (D-05), reachable bulk picker-cancel fact (D-04, D-13)
 
 **Wave 3** *(blocked on Wave 2 completion)*
 - [ ] 02-06-PLAN.md — Items 1–2: startup prompt evaluated on arming after the first sweep; IsBulkPreparing guard
