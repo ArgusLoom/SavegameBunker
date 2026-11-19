@@ -141,10 +141,10 @@ $gamesJson = @'
 '@
 
 $missingDirFwd = ($savesFwd + '/Missing Folder')
-$gamesJson = $gamesJson.Replace('__LARGE__', $largeDirFwd) `
-                       .Replace('__SMALL__', $smallDirFwd) `
-                       .Replace('__NEVER__', $neverDirFwd) `
-                       .Replace('__MISSING__', $missingDirFwd)
+$gamesJson = $gamesJson.Replace('__LARGE__', $largeDirFwd)
+$gamesJson = $gamesJson.Replace('__SMALL__', $smallDirFwd)
+$gamesJson = $gamesJson.Replace('__NEVER__', $neverDirFwd)
+$gamesJson = $gamesJson.Replace('__MISSING__', $missingDirFwd)
 # Re-assert forward slashes in the emitted catalog (the plan requires them everywhere).
 $gamesJson = $gamesJson.Replace('\\', '/')
 
