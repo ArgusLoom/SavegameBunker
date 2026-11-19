@@ -437,50 +437,161 @@
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
                             <!--
-                                Status cell: one icon + verdict sentence + muted relative-time subline,
-                                so the newest backup and the verdict read as one fact per row.
+                                Status cell: idle shows one icon + verdict sentence + muted
+                                relative-time subline, so the newest backup and the verdict read as
+                                one fact per row. Busy swaps that for this row's progress chrome
+                                (ring / large-backup bar / restore bar+text) — moved here from the
+                                Actions column (#D-status-progress): a running operation is a status
+                                fact, not an action trigger. IsBusy alone gates the swap, matching
+                                RowActionButton's own collapse trigger below: it flips true before
+                                RestoreStep is ever set, so idle and busy never render together.
                             -->
                             <DataGridTemplateColumn Width="304" Header="{DynamicResource str_grid_status}">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
-                                        <StackPanel ToolTip="{Binding NewestBackupAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}">
+                                        <Grid>
+                                            <StackPanel ToolTip="{Binding NewestBackupAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}">
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <!--
+                                                    DockPanel, not a horizontal StackPanel: a StackPanel gives
+                                                    its children infinite width, so TextTrimming never fires
+                                                    and a long verdict is chopped mid-word by the cell edge
+                                                    with no ellipsis to show it has been cut.
+                                                -->
+                                                <DockPanel>
+                                                    <ui:SymbolIcon
+                                                        Margin="0,0,6,0"
+                                                        DockPanel.Dock="Left"
+                                                        Style="{StaticResource StatusCellIconStyle}"
+                                                        Tag="{Binding StatusSeverity}" />
+                                                    <TextBlock
+                                                        Style="{StaticResource RowSeverityTextStyle}"
+                                                        Tag="{Binding StatusSeverity}"
+                                                        Text="{Binding VerdictText}"
+                                                        TextTrimming="CharacterEllipsis"
+                                                        ToolTip="{Binding VerdictText}" />
+                                                </DockPanel>
+                                                <StackPanel
+                                                    Margin="{StaticResource StatusCellLineGap}"
+                                                    Orientation="Horizontal"
+                                                    Visibility="{Binding HasNewestBackup, Converter={StaticResource BoolToVis}}">
+                                                    <TextBlock Text="{DynamicResource str_status_backedUpPrefix}">
+                                                        <TextBlock.Style>
+                                                            <Style BasedOn="{StaticResource LabelText}" TargetType="TextBlock">
+                                                                <Style.Triggers>
+                                                                    <DataTrigger Binding="{Binding IsUpToDate}" Value="True">
+                                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                                    </DataTrigger>
+                                                                </Style.Triggers>
+                                                            </Style>
+                                                        </TextBlock.Style>
+                                                    </TextBlock>
+                                                    <TextBlock Style="{StaticResource LabelText}" Text="{Binding NewestBackupAt, Converter={StaticResource RelTime}}" />
+                                                </StackPanel>
+                                            </StackPanel>
                                             <!--
-                                                DockPanel, not a horizontal StackPanel: a StackPanel gives
-                                                its children infinite width, so TextTrimming never fires
-                                                and a long verdict is chopped mid-word by the cell edge
-                                                with no ellipsis to show it has been cut.
+                                                The indeterminate ring stands in for a small backup's
+                                                write — a determinate bar would flicker for a fraction
+                                                of a second and tell the user nothing. At or above the
+                                                50 MB threshold (IsLargeBackup) the determinate bar
+                                                takes over instead. The three sub-states (ring /
+                                                large-backup bar / restore bar+text) are mutually
+                                                exclusive, so showing more than one at once never
+                                                claims two operations are running.
                                             -->
-                                            <DockPanel>
-                                                <ui:SymbolIcon
-                                                    Margin="0,0,6,0"
-                                                    DockPanel.Dock="Left"
-                                                    Style="{StaticResource StatusCellIconStyle}"
-                                                    Tag="{Binding StatusSeverity}" />
-                                                <TextBlock
-                                                    Style="{StaticResource RowSeverityTextStyle}"
-                                                    Tag="{Binding StatusSeverity}"
-                                                    Text="{Binding VerdictText}"
-                                                    TextTrimming="CharacterEllipsis"
-                                                    ToolTip="{Binding VerdictText}" />
-                                            </DockPanel>
-                                            <StackPanel
-                                                Margin="{StaticResource StatusCellLineGap}"
-                                                Orientation="Horizontal"
-                                                Visibility="{Binding HasNewestBackup, Converter={StaticResource BoolToVis}}">
-                                                <TextBlock Text="{DynamicResource str_status_backedUpPrefix}">
-                                                    <TextBlock.Style>
-                                                        <Style BasedOn="{StaticResource LabelText}" TargetType="TextBlock">
+                                            <StackPanel VerticalAlignment="Center" Visibility="Collapsed">
+                                                <StackPanel.Style>
+                                                    <Style TargetType="StackPanel">
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding IsBusy}" Value="True">
+                                                                <Setter Property="Visibility" Value="Visible" />
+                                                            </DataTrigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </StackPanel.Style>
+                                                <ui:ProgressRing
+                                                    Width="24"
+                                                    Height="24"
+                                                    HorizontalAlignment="Left"
+                                                    AutomationProperties.Name="{DynamicResource str_progress_rowBusy}"
+                                                    IsIndeterminate="True"
+                                                    ToolTip="{DynamicResource str_progress_rowBusy}">
+                                                    <ui:ProgressRing.Style>
+                                                        <Style BasedOn="{StaticResource {x:Type ui:ProgressRing}}" TargetType="ui:ProgressRing">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
                                                             <Style.Triggers>
-                                                                <DataTrigger Binding="{Binding IsUpToDate}" Value="True">
-                                                                    <Setter Property="Visibility" Value="Collapsed" />
-                                                                </DataTrigger>
+                                                                <MultiDataTrigger>
+                                                                    <MultiDataTrigger.Conditions>
+                                                                        <Condition Binding="{Binding IsRestoring}" Value="False" />
+                                                                        <Condition Binding="{Binding IsLargeBackup}" Value="False" />
+                                                                    </MultiDataTrigger.Conditions>
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </MultiDataTrigger>
                                                             </Style.Triggers>
                                                         </Style>
-                                                    </TextBlock.Style>
-                                                </TextBlock>
-                                                <TextBlock Style="{StaticResource LabelText}" Text="{Binding NewestBackupAt, Converter={StaticResource RelTime}}" />
+                                                    </ui:ProgressRing.Style>
+                                                </ui:ProgressRing>
+                                                <!--
+                                                    A large backup's determinate bar — the exact
+                                                    complement of the ring's own MultiDataTrigger, so the
+                                                    two can never show at once.
+                                                -->
+                                                <ProgressBar
+                                                    Width="96"
+                                                    Height="4"
+                                                    HorizontalAlignment="Left"
+                                                    AutomationProperties.Name="{DynamicResource str_progress_rowBusy}"
+                                                    Maximum="{Binding BackupBytesTotal, Mode=OneWay}"
+                                                    Minimum="0"
+                                                    ToolTip="{DynamicResource str_progress_rowBusy}"
+                                                    Value="{Binding BackupBytesWritten, Mode=OneWay}">
+                                                    <ProgressBar.Style>
+                                                        <Style TargetType="ProgressBar">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                            <Style.Triggers>
+                                                                <MultiDataTrigger>
+                                                                    <MultiDataTrigger.Conditions>
+                                                                        <Condition Binding="{Binding IsRestoring}" Value="False" />
+                                                                        <Condition Binding="{Binding IsLargeBackup}" Value="True" />
+                                                                    </MultiDataTrigger.Conditions>
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                </MultiDataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </ProgressBar.Style>
+                                                </ProgressBar>
+                                                <!--
+                                                    Restore's three stages are contractual,
+                                                    so Maximum is a fact, not an estimate.
+                                                    Reported from inside RestoreService, where the stage
+                                                    boundaries are actually observable.
+                                                -->
+                                                <StackPanel Visibility="{Binding IsRestoring, Converter={StaticResource BoolToVis}}">
+                                                    <ProgressBar
+                                                        Width="96"
+                                                        Height="4"
+                                                        HorizontalAlignment="Left"
+                                                        Maximum="3"
+                                                        Minimum="0"
+                                                        Value="{Binding RestoreStep, Mode=OneWay}" />
+                                                    <TextBlock
+                                                        MaxWidth="96"
+                                                        Margin="0,4,0,0"
+                                                        Style="{StaticResource LabelText}"
+                                                        Text="{Binding RestoreStepShortText}"
+                                                        TextTrimming="CharacterEllipsis"
+                                                        ToolTip="{Binding RestoreStepText}" />
+                                                </StackPanel>
                                             </StackPanel>
-                                        </StackPanel>
+                                        </Grid>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>
                             </DataGridTemplateColumn>
@@ -488,9 +599,11 @@
                                 Pixel width, not a second star: two Width="*" columns share leftover
                                 equally, so this one would stay too narrow (and clip the overflow)
                                 until the window is huge. Game is the only star. Icons are 32px;
-                                140 covers Back up + Restore + overflow, or the restore bar.
+                                104 covers Back up + Restore + overflow at their natural width — the
+                                progress chrome that used to share this column moved to Status
+                                (#D-status-progress), so there is no wider case left to size for.
                             -->
-                            <DataGridTemplateColumn Width="140" Header="{DynamicResource str_grid_actions}">
+                            <DataGridTemplateColumn Width="104" Header="{DynamicResource str_grid_actions}">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <!--
@@ -501,12 +614,10 @@
                                         -->
                                         <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
                                             <!--
-                                                The indeterminate ring replaces this
-                                                row's Back up button while this row is working, and
-                                                only this row — the window stays live. The ring covers
-                                                a small write, where a determinate bar would flicker
-                                                for a fraction of a second; at or above the 50 MB
-                                                threshold the determinate bar below takes over instead.
+                                                RowActionButton (Styles.xaml) collapses both buttons
+                                                below while this row is busy; the Status column shows
+                                                this row's progress chrome (ring / bar / restore-bar)
+                                                in their place, not this column.
                                             -->
                                             <ui:Button
                                                 AutomationProperties.Name="{DynamicResource str_action_backUp}"
@@ -518,71 +629,6 @@
                                                     <Path Data="{StaticResource Icon.Backup}" Style="{StaticResource ToolbarGlyphPath}" />
                                                 </Viewbox>
                                             </ui:Button>
-                                            <ui:ProgressRing
-                                                Width="24"
-                                                Height="24"
-                                                AutomationProperties.Name="{DynamicResource str_progress_rowBusy}"
-                                                IsIndeterminate="True">
-                                                <!--
-                                                    Backup only, and only a small one —
-                                                    a large backup shows the determinate bar below
-                                                    instead, and a restore shows its own three-step
-                                                    determinate bar; the three are mutually exclusive
-                                                    so showing more than one at once never claims two
-                                                    operations are running.
-                                                -->
-                                                <ui:ProgressRing.Style>
-                                                    <Style BasedOn="{StaticResource {x:Type ui:ProgressRing}}" TargetType="ui:ProgressRing">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                        <Style.Triggers>
-                                                            <MultiDataTrigger>
-                                                                <MultiDataTrigger.Conditions>
-                                                                    <Condition Binding="{Binding IsBusy}" Value="True" />
-                                                                    <Condition Binding="{Binding IsRestoring}" Value="False" />
-                                                                    <Condition Binding="{Binding IsLargeBackup}" Value="False" />
-                                                                </MultiDataTrigger.Conditions>
-                                                                <Setter Property="Visibility" Value="Visible" />
-                                                            </MultiDataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </ui:ProgressRing.Style>
-                                            </ui:ProgressRing>
-                                            <!--
-                                                A large backup's determinate bar —
-                                                the exact complement of the ring's own MultiDataTrigger,
-                                                so the two can never show at once. Plain WPF ProgressBar,
-                                                not a ui: control, matching the restore bar below it.
-                                                Same width/height as that bar so the Actions column's
-                                                layout does not shift between a restore and a large
-                                                backup. Right margin: with
-                                                the Backup and Restore buttons both collapsed while this
-                                                bar is visible, it would otherwise sit flush against the
-                                                overflow DropDownButton with no gap between them.
-                                            -->
-                                            <ProgressBar
-                                                Width="96"
-                                                Height="4"
-                                                Margin="0,0,4,0"
-                                                AutomationProperties.Name="{DynamicResource str_progress_rowBusy}"
-                                                Maximum="{Binding BackupBytesTotal, Mode=OneWay}"
-                                                Minimum="0"
-                                                Value="{Binding BackupBytesWritten, Mode=OneWay}">
-                                                <ProgressBar.Style>
-                                                    <Style TargetType="ProgressBar">
-                                                        <Setter Property="Visibility" Value="Collapsed" />
-                                                        <Style.Triggers>
-                                                            <MultiDataTrigger>
-                                                                <MultiDataTrigger.Conditions>
-                                                                    <Condition Binding="{Binding IsBusy}" Value="True" />
-                                                                    <Condition Binding="{Binding IsRestoring}" Value="False" />
-                                                                    <Condition Binding="{Binding IsLargeBackup}" Value="True" />
-                                                                </MultiDataTrigger.Conditions>
-                                                                <Setter Property="Visibility" Value="Visible" />
-                                                            </MultiDataTrigger>
-                                                        </Style.Triggers>
-                                                    </Style>
-                                                </ProgressBar.Style>
-                                            </ProgressBar>
                                             <ui:Button
                                                 AutomationProperties.Name="{DynamicResource str_common_restore}"
                                                 Command="{Binding DataContext.RestoreCommand, RelativeSource={RelativeSource AncestorType=Window}}"
@@ -637,31 +683,6 @@
                                                     </ContextMenu>
                                                 </ui:DropDownButton.Flyout>
                                             </ui:DropDownButton>
-                                            <!--
-                                                Restore's three stages are contractual,
-                                                so Maximum is a fact, not an estimate.
-                                                Reported from inside RestoreService, where the stage
-                                                boundaries are actually observable.
-                                            -->
-                                            <StackPanel
-                                                VerticalAlignment="Center"
-                                                Orientation="Vertical"
-                                                Visibility="{Binding IsRestoring, Converter={StaticResource BoolToVis}}">
-                                                <ProgressBar
-                                                    Width="96"
-                                                    Height="4"
-                                                    HorizontalAlignment="Left"
-                                                    Maximum="3"
-                                                    Minimum="0"
-                                                    Value="{Binding RestoreStep, Mode=OneWay}" />
-                                                <TextBlock
-                                                    MaxWidth="96"
-                                                    Margin="0,4,0,0"
-                                                    Style="{StaticResource LabelText}"
-                                                    Text="{Binding RestoreStepShortText}"
-                                                    TextTrimming="CharacterEllipsis"
-                                                    ToolTip="{Binding RestoreStepText}" />
-                                            </StackPanel>
                                         </StackPanel>
                                     </DataTemplate>
                                 </DataGridTemplateColumn.CellTemplate>

@@ -50,6 +50,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Dialog buttons are one width, and the title bar's close button turns the standard Windows red
   on hover again.** The app's own error text and icons keep their contrast-corrected red; a few
   gaps in the status bar, the progress panel and the empty list are tidier.
+- **A row's backup/restore progress (spinner, bar, restore steps) now shows in the Status column
+  instead of Actions.** It is a status fact about that row, not something to click; the Actions
+  column keeps just the Back up, Restore and overflow buttons.
 
 ## [1.0.1] - 2026-11-18
 

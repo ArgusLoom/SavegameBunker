@@ -32,6 +32,7 @@ behaviour; this page is the short version for anyone wondering "why doesn't it j
 | Restore order: safety backup → extract to a temp sibling → move the old folder aside → rename the new one in | Deleting the current saves is only defensible because the step before it put them in the backup folder. The order must not change. |
 | Per-row backup/restore is blocked while a bulk operation runs | A row action could otherwise run concurrently with the bulk run on the same files. |
 | A save folder the scan cannot fully read says so on its own row | Backup already warns about unreadable paths; a row whose count silently skips them would let Scan and Backup disagree about completeness. It is a per-game fact, so it goes on the row, not the status line that outcome messages own. |
+| A row's in-progress chrome (ring / determinate bar / restore bar) lives in the Status column, not Actions | A running backup or restore is a status fact about that row, not an action to trigger. The Actions column keeps only the Back up / Restore / overflow buttons, which `RowActionButton` already collapses while the row is busy. |
 
 ## Build and dependencies
 
