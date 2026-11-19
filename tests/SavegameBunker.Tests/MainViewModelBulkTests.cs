@@ -589,48 +589,12 @@ public sealed class MainViewModelBulkTests : MainViewModelTestBase
     }
 
     [Fact]
-    public async Task Help_command_reports_success_through_the_status_surface()
-    {
-        var (vm, dialog, _) = CreateViewModel(Path.Combine(_dir, "backups"));
-        dialog.HelpGuideResultToReturn = OperationResult.Ok(Strings.Get("str_help_opened"));
-
-        await vm.HelpCommand.ExecuteAsync(null);
-
-        var info = Assert.Single(dialog.InfoMessages);
-        // The expected outcome's own resource, not a non-blank check: a wrong sentence crossing the
-        // channel (e.g. the "not found" message on a success path) still passes IsNullOrWhiteSpace.
-        // Asserting against Strings.Get keeps the pin on WHICH resource surfaced, robust to wording
-        // edits of the resource itself.
-        Assert.Equal(Strings.Get("str_help_opened"), info);
-        Assert.Empty(dialog.ErrorMessages);
-        Assert.Single(dialog.HelpGuideLanguages);
-    }
-
-    [Fact]
-    public async Task Help_command_reports_a_failure_as_an_error_and_keeps_running()
-    {
-        var (vm, dialog, _) = CreateViewModel(Path.Combine(_dir, "backups"));
-        dialog.HelpGuideResultToReturn = OperationResult.Fail(Strings.Get("str_help_missing"));
-
-        await vm.HelpCommand.ExecuteAsync(null);
-
-        var error = Assert.Single(dialog.ErrorMessages);
-        // Same content pin: the failure path must surface the missing-guide message, not any
-        // non-blank error.
-        Assert.Equal(Strings.Get("str_help_missing"), error);
-        Assert.Empty(dialog.InfoMessages);
-    }
-
-    [Fact]
-    public async Task Help_command_passes_the_ui_culture_through_to_the_service()
+    public void About_command_opens_the_about_dialog()
     {
         var (vm, dialog, _) = CreateViewModel(Path.Combine(_dir, "backups"));
 
-        await vm.HelpCommand.ExecuteAsync(null);
+        vm.AboutCommand.Execute(null);
 
-        var language = Assert.Single(dialog.HelpGuideLanguages);
-        Assert.Equal(
-            System.Globalization.CultureInfo.CurrentUICulture.TwoLetterISOLanguageName,
-            language);
+        Assert.Equal(1, dialog.ShowAboutDialogCalls);
     }
 }

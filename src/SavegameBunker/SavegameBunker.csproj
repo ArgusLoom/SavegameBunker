@@ -11,7 +11,7 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>app.ico</ApplicationIcon>
     <!-- Shown in the title bar, so a user reporting a problem can say which build they are on. -->
-    <Version>1.0.1</Version>
+    <Version>1.0.2</Version>
     <!-- Compiles the XML doc comments so a <see cref> that no longer resolves is a build
          warning (CS1574 and friends), not silent comment rot. CS1591 and CS1573 stay off: not every
          public member needs a doc comment, and a comment documents only the parameters that
@@ -40,6 +40,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Stamped into the assembly at build time so the About window can show when this build
+         was produced, next to its version. No package needed: AssemblyMetadataAttribute is read
+         back via Assembly.GetCustomAttributes at runtime (see AboutDialogViewModel). -->
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>BuildDate</_Parameter1>
+      <_Parameter2>$([System.DateTime]::UtcNow.ToString("yyyy-MM-dd"))</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="games.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -47,7 +57,7 @@
          ui:TitleBar's Icon needs it reachable as a WPF pack resource too. A .png rather than the
          .ico itself: ImageSource's string TypeConverter handles .ico unreliably. -->
     <Resource Include="titlebar-icon.png" />
-    <!-- Empty-state illustration shown centered in the main window when the catalog has no games. -->
+    <!-- Shown on the left side of the About window. -->
     <Resource Include="empty-state-icon.png" />
     <!-- Toolbar/row geometries merged from App.xaml. Not a Page: a ResourceDictionary
          loaded by Source=, same pack-resource shape as the PNGs above. -->

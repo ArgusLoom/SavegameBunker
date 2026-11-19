@@ -226,6 +226,7 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
             _inner.ShowRestorePickerDialog(gameDisplayName, backups, deleteArchive);
         public string? ShowChangeSaveFolderDialog(string gameDisplayName, string currentTemplate) =>
             _inner.ShowChangeSaveFolderDialog(gameDisplayName, currentTemplate);
+        public void ShowAboutDialog() => _inner.ShowAboutDialog();
     }
 
     [Fact]

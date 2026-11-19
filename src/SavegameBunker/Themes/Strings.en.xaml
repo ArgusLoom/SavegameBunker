@@ -31,6 +31,7 @@
     <sys:String x:Key="str_toolbar_backUpSelected">Back up selected</sys:String>
     <sys:String x:Key="str_toolbar_restoreSelected">Restore selected</sys:String>
     <sys:String x:Key="str_toolbar_toggleTheme">Switch theme</sys:String>
+    <sys:String x:Key="str_toolbar_about">About</sys:String>
 
     <!--
         Access-key variants of the toolbar labels. Each value is
@@ -45,8 +46,7 @@
     <sys:String x:Key="str_toolbar_changeBackupFolder_access">_Change backup folder</sys:String>
     <sys:String x:Key="str_toolbar_backUpSelected_access">_Back up selected</sys:String>
     <sys:String x:Key="str_toolbar_restoreSelected_access">Res_tore selected</sys:String>
-    <sys:String x:Key="str_toolbar_help">Help</sys:String>
-    <sys:String x:Key="str_toolbar_help_access">_Help</sys:String>
+    <sys:String x:Key="str_toolbar_about_access">A_bout</sys:String>
 
     <!--
         Toolbar tooltips: one sentence each on what the button does, because a two-word label
@@ -61,13 +61,27 @@
     <sys:String x:Key="str_toolbar_backUpSelected_tip">Back up every game you ticked, including ones hidden by the search</sys:String>
     <sys:String x:Key="str_toolbar_restoreSelected_tip">Restore every game you ticked from its newest backup — asks before each one</sys:String>
     <sys:String x:Key="str_toolbar_toggleTheme_tip">Switch between light and dark for this session</sys:String>
-    <sys:String x:Key="str_toolbar_help_tip">Open the offline user guide in your browser</sys:String>
+    <sys:String x:Key="str_toolbar_about_tip">About SavegameBunker — version, build date and the user guide</sys:String>
 
     <!--  Offline user guide outcomes — same shape as the PCGamingWiki ones below.  -->
     <sys:String x:Key="str_help_opened">Opened the user guide.</sys:String>
     <sys:String x:Key="str_help_opened_online">Opened the online user guide — no offline copy was found next to the SavegameBunker executable.</sys:String>
     <sys:String x:Key="str_help_failed">Could not open the user guide: {0}</sys:String>
     <sys:String x:Key="str_help_missing">The offline user guide was not found next to the SavegameBunker executable.</sys:String>
+
+    <!--  About window  -->
+    <sys:String x:Key="str_about_title">About SavegameBunker</sys:String>
+    <sys:String x:Key="str_about_appName">SavegameBunker</sys:String>
+    <!--  {0} is the assembly's informational version.  -->
+    <sys:String x:Key="str_about_version">Version {0}</sys:String>
+    <!--  {0} is the build date, UTC, yyyy-MM-dd.  -->
+    <sys:String x:Key="str_about_buildDate">Built {0}</sys:String>
+    <sys:String x:Key="str_about_tagline">Your save games, safely backed up.</sys:String>
+    <!--  Matches README.md's own pitch, trimmed to this window's size.  -->
+    <sys:String x:Key="str_about_body">SavegameBunker copies your PC game saves to a folder you choose and puts them back with a couple of clicks. No account, nothing to install.</sys:String>
+    <sys:String x:Key="str_about_copyright">© ArgusLoom</sys:String>
+    <sys:String x:Key="str_about_helpLink">Open the user guide</sys:String>
+    <sys:String x:Key="str_about_close">Close</sys:String>
 
     <!--  DataGrid column headers  -->
     <sys:String x:Key="str_grid_game">Game</sys:String>

@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **An About window**, opened from a new About button at the far right of the toolbar (replacing
+  Help). Shows the app icon, version and build date, and carries the user guide link Help used to
+  be — the offline copy, falling back to the online one.
+
 ### Fixed
 
 - **Help now opens the online user guide if the offline copy isn't there.** A stripped install or
@@ -53,6 +59,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A row's backup/restore progress (spinner, bar, restore steps) now shows in the Status column
   instead of Actions.** It is a status fact about that row, not something to click; the Actions
   column keeps just the Back up, Restore and overflow buttons.
+- **The empty-state illustration moved to the new About window.** The "no games yet" and
+  "no matches" screens now show only their text and buttons.
 
 ## [1.0.1] - 2026-11-18
 

@@ -190,6 +190,15 @@ public sealed class DialogService : IDialogService
             return dialog.ShowDialog() == true ? vm.SelectedBackup?.Archive : null;
         });
 
+    public void ShowAboutDialog() =>
+        OnUiThread(() =>
+        {
+            var vm = new AboutDialogViewModel(this);
+            var dialog = new AboutDialog(vm) { Owner = _owner };
+            dialog.ShowDialog();
+            return true;
+        });
+
     public string? ShowChangeSaveFolderDialog(string gameDisplayName, string currentTemplate) =>
         OnUiThread(() =>
         {

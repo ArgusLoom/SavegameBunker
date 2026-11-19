@@ -1,5 +1,4 @@
 using System.Collections.ObjectModel;
-using System.Globalization;
 using System.IO;
 using System.Reflection;
 using CommunityToolkit.Mvvm.ComponentModel;
@@ -1046,18 +1045,12 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     }
 
     /// <summary>
-    /// Opens the user guide for the UI language — the offline copy beside the executable when
-    /// present, the same guide on GitHub Pages otherwise. Resolving the offline path touches the
-    /// filesystem, so it runs off the UI thread like every other filesystem-facing call. A launch
-    /// failure is reported, not thrown — the app keeps running normally without it.
+    /// Opens the About window. Synchronous and fire-and-forget like the other dialog-opening
+    /// commands — <see cref="IDialogService.ShowAboutDialog"/> owns the user-guide link that
+    /// replaced this window's old Help button.
     /// </summary>
     [RelayCommand]
-    private async Task HelpAsync()
-    {
-        var language = CultureInfo.CurrentUICulture.TwoLetterISOLanguageName;
-        var result = await Task.Run(() => _dialog.OpenHelpGuide(language));
-        Report(result);
-    }
+    private void About() => _dialog.ShowAboutDialog();
 
     /// <summary>
     /// Re-reads the catalog file from disk and re-scans status — one button, one meaning.

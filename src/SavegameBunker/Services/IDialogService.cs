@@ -64,6 +64,9 @@ public interface IDialogService
     /// </summary>
     OperationResult OpenHelpGuide(string uiLanguage);
 
+    /// <summary>Opens the About window — version, build date and a link to the user guide.</summary>
+    void ShowAboutDialog();
+
     /// <summary>
     /// Opens the restore picker over <paramref name="backups"/>, titled with
     /// <paramref name="gameDisplayName"/> since the window is opened per-row. Returns the picked

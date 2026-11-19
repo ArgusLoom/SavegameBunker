@@ -1,0 +1,119 @@
+﻿<ui:FluentWindow
+    x:Class="SavegameBunker.Views.AboutDialog"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="{DynamicResource str_about_title}"
+    Width="460"
+    Height="380"
+    ExtendsContentIntoTitleBar="True"
+    ResizeMode="NoResize"
+    WindowBackdropType="Mica"
+    WindowStartupLocation="CenterOwner">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="36" />
+            <!--  TitleBar  -->
+            <RowDefinition Height="*" />
+            <!--  window content  -->
+        </Grid.RowDefinitions>
+
+        <ui:TitleBar Title="{DynamicResource str_about_title}" Grid.Row="0" />
+
+        <!--
+            Five fixed rows instead of one DockPanel: the footer (Help link + Close) is its own
+            row rather than competing with the body text for leftover space, which is what left it
+            clipped half off-screen before. Auto-sized rows size to content, so nothing here
+            depends on Height above being exactly right.
+        -->
+        <Grid Grid.Row="1" Margin="24,20,24,20">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <!--  icon + name/tagline  -->
+                <RowDefinition Height="20" />
+                <RowDefinition Height="Auto" />
+                <!--  separator  -->
+                <RowDefinition Height="16" />
+                <RowDefinition Height="Auto" />
+                <!--  body  -->
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <!--  version / build / copyright  -->
+                <RowDefinition Height="16" />
+                <RowDefinition Height="Auto" />
+                <!--  separator  -->
+                <RowDefinition Height="16" />
+                <RowDefinition Height="Auto" />
+                <!--  footer: Help link + Close  -->
+            </Grid.RowDefinitions>
+
+            <!--
+                The icon this window inherited from the main window's empty state (D-status-progress
+                follow-up): it now lives only here, on the left, never in the game list.
+            -->
+            <DockPanel Grid.Row="0">
+                <Image
+                    Width="88"
+                    Height="88"
+                    Margin="0,0,16,0"
+                    VerticalAlignment="Center"
+                    DockPanel.Dock="Left"
+                    Source="pack://application:,,,/empty-state-icon.png"
+                    Stretch="Uniform" />
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock
+                        FontSize="20"
+                        Style="{StaticResource HeadingText}"
+                        Text="{DynamicResource str_about_appName}" />
+                    <TextBlock
+                        Margin="0,2,0,0"
+                        Style="{StaticResource LabelText}"
+                        Text="{DynamicResource str_about_tagline}"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </DockPanel>
+
+            <Border
+                Grid.Row="2"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="0,1,0,0" />
+
+            <TextBlock
+                Grid.Row="4"
+                Style="{StaticResource BodyText}"
+                Text="{DynamicResource str_about_body}"
+                TextWrapping="Wrap" />
+
+            <TextBlock
+                Grid.Row="6"
+                VerticalAlignment="Bottom"
+                Style="{StaticResource LabelText}"
+                Text="{Binding MetaLine}" />
+
+            <Border
+                Grid.Row="8"
+                BorderBrush="{DynamicResource ControlStrokeColorDefaultBrush}"
+                BorderThickness="0,1,0,0" />
+
+            <Grid Grid.Row="10">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <ui:HyperlinkButton
+                    Grid.Column="0"
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Center"
+                    Command="{Binding OpenHelpCommand}"
+                    Content="{DynamicResource str_about_helpLink}"
+                    Foreground="{DynamicResource SavegameBunkerLinkBrush}" />
+                <ui:Button
+                    Grid.Column="1"
+                    Content="{DynamicResource str_about_close}"
+                    IsCancel="True"
+                    IsDefault="True"
+                    Style="{StaticResource DialogFooterButton}" />
+            </Grid>
+        </Grid>
+    </Grid>
+</ui:FluentWindow>

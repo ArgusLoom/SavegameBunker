@@ -149,4 +149,10 @@ public sealed class RecordingDialogService : IDialogService
         ChangeSaveFolderCalls.Add((gameDisplayName, currentTemplate));
         return ChangeSaveFolderToReturn;
     }
+
+    /// <summary>How many times <see cref="ShowAboutDialog"/> was called — About has no return
+    /// value, so a count is the only seam a caller test needs.</summary>
+    public int ShowAboutDialogCalls { get; private set; }
+
+    public void ShowAboutDialog() => ShowAboutDialogCalls++;
 }

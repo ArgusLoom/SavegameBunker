@@ -39,6 +39,20 @@
             -->
             <DockPanel Margin="0,0,0,8" DockPanel.Dock="Top">
                 <!--
+                    Docked right, the rightmost button in the toolbar: About is a window-level
+                    action like its neighbours, but the outermost one — it opens a window of its
+                    own rather than acting on the games list.
+                -->
+                <ui:Button
+                    x:Name="AboutButton"
+                    AutomationProperties.Name="{DynamicResource str_toolbar_about}"
+                    Command="{Binding AboutCommand}"
+                    Content="{DynamicResource str_toolbar_about_access}"
+                    DockPanel.Dock="Right"
+                    Style="{StaticResource ToolbarButton}"
+                    Tag="{StaticResource Icon.Info}"
+                    ToolTip="{DynamicResource str_toolbar_about_tip}" />
+                <!--
                     Session-only Light/Dark toggle (no settings.json — see App.ToggleTheme). Hidden
                     under Windows High Contrast, where Light/Dark is not a choice. Docked
                     right, same size and chrome as the rest of the toolbar.
@@ -65,19 +79,6 @@
                     Style="{StaticResource ToolbarButton}"
                     Tag="{StaticResource Icon.List}"
                     ToolTip="{DynamicResource str_toolbar_openGamesList_tip}" />
-                <!--
-                    Docked right, left of the catalog toggle: opening the guide is a window-level
-                    action like its neighbours, not one of the game actions on the left.
-                -->
-                <ui:Button
-                    x:Name="HelpButton"
-                    AutomationProperties.Name="{DynamicResource str_toolbar_help}"
-                    Command="{Binding HelpCommand}"
-                    Content="{DynamicResource str_toolbar_help_access}"
-                    DockPanel.Dock="Right"
-                    Style="{StaticResource ToolbarButton}"
-                    Tag="{StaticResource Icon.Help}"
-                    ToolTip="{DynamicResource str_toolbar_help_tip}" />
                 <WrapPanel x:Name="MainToolBar">
                     <ui:Button
                         x:Name="FindGamesButton"
@@ -700,14 +701,6 @@
                     VerticalAlignment="Center"
                     Orientation="Horizontal"
                     Visibility="{Binding HasNoGames, Converter={StaticResource BoolToVis}}">
-                    <Image
-                        Width="128"
-                        Height="128"
-                        Margin="0,0,24,0"
-                        VerticalAlignment="Center"
-                        Opacity="1"
-                        Source="pack://application:,,,/empty-state-icon.png"
-                        Stretch="Uniform" />
                     <StackPanel
                         MaxWidth="360"
                         VerticalAlignment="Center"
@@ -738,7 +731,7 @@
                 </StackPanel>
 
                 <!--
-                    Zero-match empty state: same icon/layout shape as the
+                    Zero-match empty state: same layout shape as the
                     zero-games state above, mutually exclusive with it (HasNoVisibleGames
                     requires Games.Count > 0), and with no Find-games/Add-manually row — those
                     actions do not help someone whose search just needs clearing.
@@ -748,14 +741,6 @@
                     VerticalAlignment="Center"
                     Orientation="Horizontal"
                     Visibility="{Binding HasNoVisibleGames, Converter={StaticResource BoolToVis}}">
-                    <Image
-                        Width="128"
-                        Height="128"
-                        Margin="0,0,24,0"
-                        VerticalAlignment="Center"
-                        Opacity="1"
-                        Source="pack://application:,,,/empty-state-icon.png"
-                        Stretch="Uniform" />
                     <StackPanel
                         MaxWidth="360"
                         VerticalAlignment="Center"

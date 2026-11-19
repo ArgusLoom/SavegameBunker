@@ -26,6 +26,7 @@ public sealed class ThrowingDialogService : IDialogService
     public BackupArchive? ShowRestorePickerDialog(string gameDisplayName, IReadOnlyList<BackupArchive> backups,
         Func<string, OperationResult> deleteArchive) => throw new InvalidOperationException("Not expected to be called.");
     public string? ShowChangeSaveFolderDialog(string gameDisplayName, string currentTemplate) => throw new InvalidOperationException("Not expected to be called.");
+    public void ShowAboutDialog() => throw new InvalidOperationException("Not expected to be called.");
 }
 
 /// <summary>
