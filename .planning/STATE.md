@@ -65,7 +65,12 @@ None. Open ideas and accepted limitations are tracked in `.planning/WISHLIST.md`
 
 ## Blockers
 
-None open. Open limitations and deferred ideas are tracked in `.planning/WISHLIST.md`.
+- [Phase 02, Item 11]: The restore picker's per-row delete confirmation renders entirely
+  hidden behind the modal `RestorePickerWindow` and cannot be reached by a real mouse click
+  (confirmed with `SetCursorPos`/`mouse_event` plus `WindowFromPoint`, not just UI
+  Automation's `InvokePattern`, which gave a false positive). Architectural fix needed —
+  surfaced in `02-10-SUMMARY.md` and `02-VALIDATION.md`; not fixed in Phase 02 (read-only
+  audit rule).
 
 ## Session
 
