@@ -289,6 +289,12 @@ public sealed class ServiceContractTests : IDisposable
             [
                 () => _ = HelpPath.Resolve(Missing("help"), "en"),
             ],
+            ["HelpPath.OnlineGuideUrl(String)"] =
+            [
+                () => _ = HelpPath.OnlineGuideUrl(null!),
+                () => _ = HelpPath.OnlineGuideUrl(""),
+                () => _ = HelpPath.OnlineGuideUrl("xx"),
+            ],
             ["IdSlug.Derive(String)"] =
             [
                 () => _ = IdSlug.Derive(""),

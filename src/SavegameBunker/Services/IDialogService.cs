@@ -56,10 +56,11 @@ public interface IDialogService
     /// Opens the offline user guide shipped as <c>help/&lt;lang&gt;/</c> beside the executable
     /// (build the site, the app only reads it). <paramref name="uiLanguage"/> is the UI culture's
     /// two-letter code; German opens <c>help/de/</c>, anything else <c>help/en/</c>, falling back
-    /// to English when the preferred site is absent. When neither site is present the guide is
-    /// not installed — that is reported, not opened (see <see cref="HelpPath"/>). Unlike
-    /// <see cref="OpenInEditor"/>, this resolves the path itself from a trusted base directory,
-    /// so no user-editable path reaches the shell.
+    /// to English when the preferred site is absent. When neither site is present, this opens the
+    /// same guide published on GitHub Pages instead of reporting a dead end (see
+    /// <see cref="HelpPath"/>). Unlike <see cref="OpenInEditor"/>, both the offline path and the
+    /// online fallback URL are resolved from trusted constants, never user input, so neither goes
+    /// through an allowlist before reaching the shell.
     /// </summary>
     OperationResult OpenHelpGuide(string uiLanguage);
 

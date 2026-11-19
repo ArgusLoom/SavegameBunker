@@ -294,7 +294,8 @@ backup destination. The safety backup is what makes "exactly the archive content
   immediately and fill themselves in. Startup is never blocked by a slow or absent volume
 - Window actions: Add game, Scan, Refresh, Open the games list, Change backup folder, Back up all
   changed, Back up selected, Restore selected, Switch theme (light/dark for the session) and Help
-  (the offline user guide). The header shows the catalog file name (full path in the tooltip) and the current
+  (the offline user guide, falling back to the same guide on GitHub Pages when no offline copy is
+  installed next to the executable). The header shows the catalog file name (full path in the tooltip) and the current
   backup folder path, since every error message in the app names one of the two
 - Each row has a checkbox (with a select-all header) feeding the two "selected" actions, and a search
   box above the list filters rows by name without changing which ones are ticked

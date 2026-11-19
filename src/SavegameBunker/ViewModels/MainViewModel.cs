@@ -1046,9 +1046,10 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     }
 
     /// <summary>
-    /// Opens the offline user guide for the UI language. Resolving the guide's path touches the
-    /// filesystem, so it runs off the UI thread like every other filesystem-facing call. A missing
-    /// guide is reported, not thrown — the app keeps running normally without it.
+    /// Opens the user guide for the UI language — the offline copy beside the executable when
+    /// present, the same guide on GitHub Pages otherwise. Resolving the offline path touches the
+    /// filesystem, so it runs off the UI thread like every other filesystem-facing call. A launch
+    /// failure is reported, not thrown — the app keeps running normally without it.
     /// </summary>
     [RelayCommand]
     private async Task HelpAsync()

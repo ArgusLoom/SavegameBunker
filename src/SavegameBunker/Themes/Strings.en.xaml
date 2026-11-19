@@ -65,6 +65,7 @@
 
     <!--  Offline user guide outcomes — same shape as the PCGamingWiki ones below.  -->
     <sys:String x:Key="str_help_opened">Opened the user guide.</sys:String>
+    <sys:String x:Key="str_help_opened_online">Opened the online user guide — no offline copy was found next to the SavegameBunker executable.</sys:String>
     <sys:String x:Key="str_help_failed">Could not open the user guide: {0}</sys:String>
     <sys:String x:Key="str_help_missing">The offline user guide was not found next to the SavegameBunker executable.</sys:String>
 

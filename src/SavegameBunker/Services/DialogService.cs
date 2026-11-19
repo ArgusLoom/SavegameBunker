@@ -239,21 +239,24 @@ public sealed class DialogService : IDialogService
 
     /// <summary>
     /// Like <see cref="OpenInEditor"/>, this creates no <see cref="Window"/> and is safe from a
-    /// background thread. The path is resolved from <see cref="AppContext.BaseDirectory"/> — never
-    /// from user input — so it goes straight to the shell without <see cref="ShellOpen"/>'s
+    /// background thread. The offline path is resolved from <see cref="AppContext.BaseDirectory"/>
+    /// — never from user input — so it goes straight to the shell without <see cref="ShellOpen"/>'s
     /// allowlist, which exists for catalog- and user-supplied paths and allows only `.json` files
-    /// and directories.
+    /// and directories. The GitHub Pages fallback is likewise a fixed constant
+    /// (<see cref="HelpPath.OnlineGuideBase"/>), never user input, so it bypasses
+    /// <see cref="OpenHttps"/>'s wiki-only allowlist for the same reason.
     /// </summary>
     public OperationResult OpenHelpGuide(string uiLanguage)
     {
         var index = HelpPath.Resolve(AppContext.BaseDirectory, uiLanguage);
-        if (index is null)
-            return OperationResult.Fail(Strings.Get("str_help_missing"));
+        var target = index ?? HelpPath.OnlineGuideUrl(uiLanguage);
 
         try
         {
-            Process.Start(new ProcessStartInfo(index) { UseShellExecute = true });
-            return OperationResult.Ok(Strings.Get("str_help_opened"));
+            Process.Start(new ProcessStartInfo(target) { UseShellExecute = true });
+            return index is null
+                ? OperationResult.Ok(Strings.Get("str_help_opened_online"))
+                : OperationResult.Ok(Strings.Get("str_help_opened"));
         }
         catch (Exception ex)
         {

@@ -93,4 +93,15 @@ public sealed class HelpPathTests : IDisposable
 
         Assert.Equal(Path.Combine(_dir, "help", "en", "index.html"), resolved);
     }
+
+    [Theory]
+    [InlineData("de", "https://argusloom.github.io/SavegameBunker/de/")]
+    [InlineData("de-AT", "https://argusloom.github.io/SavegameBunker/de/")]
+    [InlineData("en", "https://argusloom.github.io/SavegameBunker/en/")]
+    [InlineData("fr", "https://argusloom.github.io/SavegameBunker/en/")]
+    [InlineData("", "https://argusloom.github.io/SavegameBunker/en/")]
+    public void OnlineGuideUrl_picks_the_same_language_Resolve_would(string uiLanguage, string expected)
+    {
+        Assert.Equal(expected, HelpPath.OnlineGuideUrl(uiLanguage));
+    }
 }
