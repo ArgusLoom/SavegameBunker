@@ -52,6 +52,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The backup now fails and says why.
 - **Deleting a backup in the restore list and then cancelling now updates the game's row.**
   Before, the row kept showing the deleted backup until you clicked Refresh.
+- **Deleting a backup in the restore list now asks inside the restore list.** The confirmation
+  used to open in the main window behind the restore list, where it could not be seen or clicked
+  while the list was open.
 - **Find Games says "1 file" instead of "1 files".**
 - **The "safety backup" tag in the restore list stays readable when its row is selected.**
 
