@@ -179,6 +179,7 @@ specification constraints and may be revised only by revising the SPEC.
 | Free-space check is advisory only, never a gate | Backup destination choice is the user's; a warning on a deliberate configuration is noise | ✓ Good |
 | Per-row keyboard shortcuts (Ctrl+B/Ctrl+R) route through the existing RelayCommands | One command implementation for keyboard and mouse; no parallel code path to drift | ✓ Good |
 | Block per-row backup/restore while a bulk operation runs | A per-row action on an unrelated row could otherwise start concurrently with a bulk run | ✓ Good |
+| REF-02's ~700-line `MainViewModel.cs` ceiling accepted as measured (1,556 total / 761 code-only) rather than re-split further | Not reachable under the phase's own constraints (no abstraction beyond the named seams, XML docs explaining why); owner accepted the measured figure — Phase 1 (2026-11-17) | ✓ Good — accepted, no further split attempted |
 
 ## Evolution
 
@@ -198,4 +199,4 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-11-17 after the v1.0 initial release*
+*Last updated: 2026-11-19 after Phase 1 (v1.0.1)*
