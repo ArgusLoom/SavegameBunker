@@ -12,9 +12,9 @@
     WindowStartupLocation="CenterOwner">
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="36" />  
+            <RowDefinition Height="36" />
             <!--  TitleBar  -->
-            <RowDefinition Height="*" />   
+            <RowDefinition Height="*" />
             <!--  window content  -->
         </Grid.RowDefinitions>
 
@@ -117,5 +117,16 @@
                 </ListBox.ItemTemplate>
             </ListBox>
         </DockPanel>
+
+        <!--
+            A ContentDialog is drawn inside the window that hosts it. This window is modal over
+            MainWindow (ShowDialog with Owner), so a delete confirmation hosted by MainWindow's own
+            RootDialogHost painted underneath it and could not be seen or clicked (G-02-6). The
+            picker's own delete confirmation and delete errors render here instead.
+        -->
+        <ui:ContentDialogHost
+            x:Name="RootDialogHost"
+            Grid.Row="0"
+            Grid.RowSpan="2" />
     </Grid>
 </ui:FluentWindow>

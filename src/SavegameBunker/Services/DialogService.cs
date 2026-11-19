@@ -185,8 +185,19 @@ public sealed class DialogService : IDialogService
         Func<string, OperationResult> deleteArchive) =>
         OnUiThread(() =>
         {
-            var vm = new RestorePickerViewModel(gameDisplayName, backups, this, deleteArchive);
-            var dialog = new RestorePickerWindow(vm) { Owner = _owner };
+            // The picker is modal over the main window, so a confirmation drawn in the main
+            // window's host sits under it, out of reach (G-02-6). A DialogService owned by the
+            // picker draws into the picker's own host instead. It keeps its own dialog queue, so a
+            // dialog still waiting in the main window — which nobody can answer while the picker is
+            // modal — cannot hold the delete confirmation back. The snackbar stays the main
+            // window's: the picker raises only Confirm and Error.
+            var dialog = new RestorePickerWindow { Owner = _owner };
+            var pickerContentDialogs = new ContentDialogService();
+            pickerContentDialogs.SetDialogHost(dialog.RootDialogHost);
+            var pickerDialogs = new DialogService(dialog, pickerContentDialogs, _snackbarService);
+
+            var vm = new RestorePickerViewModel(gameDisplayName, backups, pickerDialogs, deleteArchive);
+            dialog.DataContext = vm;
             return dialog.ShowDialog() == true ? vm.SelectedBackup?.Archive : null;
         });
 
