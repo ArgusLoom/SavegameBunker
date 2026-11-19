@@ -33,6 +33,7 @@ behaviour; this page is the short version for anyone wondering "why doesn't it j
 | Per-row backup/restore is blocked while a bulk operation runs | A row action could otherwise run concurrently with the bulk run on the same files. |
 | A save folder the scan cannot fully read says so on its own row | Backup already warns about unreadable paths; a row whose count silently skips them would let Scan and Backup disagree about completeness. It is a per-game fact, so it goes on the row, not the status line that outcome messages own. |
 | A row's in-progress chrome (ring / determinate bar / restore bar) lives in the Status column, not Actions | A running backup or restore is a status fact about that row, not an action to trigger. The Actions column keeps only the Back up / Restore / overflow buttons, which `RowActionButton` already collapses while the row is busy. |
+| The Actions column is 128px wide, with 1px gaps between its three buttons | 104px (3×32px icons + 8px slack) measured too tight at `MinWidth` (1000): the overflow button's right edge rendered outside the window. 128px leaves real margin; the 1px gaps keep the three icon buttons from reading as one fused block. |
 
 ## Build and dependencies
 

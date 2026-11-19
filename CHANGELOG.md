@@ -15,6 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **Each row's overflow ("more actions") button no longer renders cut off at the window's right
+  edge.** The Actions column was 104px — just enough for the three 32px icon buttons in theory, but
+  too tight at the window's minimum width once real padding was accounted for. It is now 128px,
+  with a 1px gap between the icon buttons.
 - **Help now opens the online user guide if the offline copy isn't there.** A stripped install or
   a deleted `help` folder used to make the Help button report that the guide was missing; it now
   opens the same guide at https://argusloom.github.io/SavegameBunker/ instead.

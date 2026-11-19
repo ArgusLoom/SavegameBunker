@@ -600,11 +600,14 @@
                                 Pixel width, not a second star: two Width="*" columns share leftover
                                 equally, so this one would stay too narrow (and clip the overflow)
                                 until the window is huge. Game is the only star. Icons are 32px;
-                                104 covers Back up + Restore + overflow at their natural width — the
-                                progress chrome that used to share this column moved to Status
-                                (#D-status-progress), so there is no wider case left to size for.
+                                three of them need 96px — 104 was tried and measured too tight: at
+                                MinWidth (1000), the DataGrid's own padding left no slack and the
+                                overflow button's right edge rendered outside the window. 128 leaves
+                                real breathing room. The progress chrome that used to share this
+                                column moved to Status (#D-status-progress), so there is no wider
+                                case left to size for.
                             -->
-                            <DataGridTemplateColumn Width="104" Header="{DynamicResource str_grid_actions}">
+                            <DataGridTemplateColumn Width="128" Header="{DynamicResource str_grid_actions}">
                                 <DataGridTemplateColumn.CellTemplate>
                                     <DataTemplate>
                                         <!--
@@ -631,6 +634,7 @@
                                                 </Viewbox>
                                             </ui:Button>
                                             <ui:Button
+                                                Margin="1,0,0,0"
                                                 AutomationProperties.Name="{DynamicResource str_common_restore}"
                                                 Command="{Binding DataContext.RestoreCommand, RelativeSource={RelativeSource AncestorType=Window}}"
                                                 CommandParameter="{Binding}"
@@ -648,6 +652,7 @@
                                             <ui:DropDownButton
                                                 Width="32"
                                                 Height="32"
+                                                Margin="1,0,0,0"
                                                 AutomationProperties.Name="{DynamicResource str_overflow_moreActions}"
                                                 IsEnabled="{Binding IsBusy, Converter={StaticResource NotBool}}"
                                                 Style="{StaticResource IconActionButton}"

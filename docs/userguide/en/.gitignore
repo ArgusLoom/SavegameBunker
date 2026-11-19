@@ -1,2 +1,5 @@
 site/
 .cache/
+# Copied from ../../../screenshot.png by pages.yml/release.yml before build — single source,
+# not duplicated across languages.
+docs/assets/screenshot.png
