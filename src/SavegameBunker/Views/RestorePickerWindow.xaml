@@ -57,11 +57,32 @@
                 ItemsSource="{Binding Rows}"
                 ScrollViewer.VerticalScrollBarVisibility="Auto"
                 SelectedItem="{Binding SelectedBackup, Mode=TwoWay}">
+                <!--
+                    WPF-UI's default ListBoxItem selection paints the full row in the app's accent
+                    colour, which reads as too saturated for a full-row fill (accent is meant for
+                    thin highlights — hover glyphs, the restore-tag text brush — not a solid block).
+                    Same muted treatment as MainWindow's GridRowStyle selected state.
+                -->
+                <ListBox.ItemContainerStyle>
+                    <Style TargetType="ListBoxItem">
+                        <Setter Property="Padding" Value="0" />
+                        <Style.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource ControlFillColorSecondaryBrush}" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter Property="Background" Value="{DynamicResource ControlFillColorTertiaryBrush}" />
+                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorPrimaryBrush}" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ListBox.ItemContainerStyle>
                 <ListBox.ItemTemplate>
                     <DataTemplate>
                         <Border Padding="0,8,12,8" ToolTip="{Binding TakenAt, StringFormat='{}{0:yyyy-MM-dd HH:mm}'}">
                             <DockPanel>
                                 <ui:Button
+                                    Margin="8,0,0,0"
                                     Padding="4"
                                     VerticalAlignment="Center"
                                     AutomationProperties.Name="{DynamicResource str_restorePicker_delete}"
@@ -92,24 +113,9 @@
                                     -->
                                     <TextBlock
                                         Margin="6,0,0,0"
+                                        Foreground="{DynamicResource TextFillColorTertiaryBrush}"
                                         Text="{DynamicResource str_restorePicker_safetyTag}"
-                                        Visibility="{Binding IsSafetyBackup, Converter={StaticResource BoolToVis}}">
-                                        <TextBlock.Style>
-                                            <Style TargetType="TextBlock">
-                                                <Setter Property="Foreground" Value="{DynamicResource TextFillColorTertiaryBrush}" />
-                                                <Style.Triggers>
-                                                    <!--
-                                                        The muted tag's grey is illegible on the selected row's
-                                                        bright accent background, so a selected row's tag takes
-                                                        the same on-accent text brush as the rest of the row.
-                                                    -->
-                                                    <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=ListBoxItem}, Path=IsSelected}" Value="True">
-                                                        <Setter Property="Foreground" Value="{DynamicResource SavegameBunkerOnAccentTextBrush}" />
-                                                    </DataTrigger>
-                                                </Style.Triggers>
-                                            </Style>
-                                        </TextBlock.Style>
-                                    </TextBlock>
+                                        Visibility="{Binding IsSafetyBackup, Converter={StaticResource BoolToVis}}" />
                                 </StackPanel>
                             </DockPanel>
                         </Border>
