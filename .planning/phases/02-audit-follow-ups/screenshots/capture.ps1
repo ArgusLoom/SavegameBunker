@@ -16,7 +16,9 @@
 #
 # Controls are driven through UI Automation: toolbar buttons by AutomationId (= their x:Name
 # in MainWindow.xaml), row actions by AutomationProperties.Name ("Back up", "Restore",
-# "More actions"), dialogs by their button text ("Back up now", "Cancel", "OK").
+# "More actions") found inside the row's own ControlType.DataItem via its nested display-name
+# Text descendant (Find-RowButton), never a position guess, dialogs by their button text
+# ("Back up now", "Cancel", "OK").
 # Where UI Automation cannot reach a control, the session's own desktop-control or
 # screenshot tooling may stand in — record which shots were taken that way in the SUMMARY.
 
@@ -87,6 +89,31 @@ function Find-ButtonByName {
                 [System.Windows.Automation.ControlType]::Button)))))
 }
 
+function Find-RowButton {
+    # The grid's rows are ControlType.DataItem elements whose own Name is the row view model's
+    # type name; each cell is a generic element whose Name is a Windows-localised
+    # "item, column index" label — the display name exists only as a nested ControlType.Text
+    # descendant. So the row is the DataItem that has a Text descendant whose Name equals
+    # $DisplayName exactly, and the button is Find-ButtonByName inside that same DataItem.
+    # Returns $null when either the row or the button is not found (no positional fallback).
+    param($Root, [string]$DisplayName, [string]$ButtonName)
+    $rows = $Root.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+        (New-Object System.Windows.Automation.PropertyCondition(
+            [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+            [System.Windows.Automation.ControlType]::DataItem)))
+    foreach ($row in $rows) {
+        $text = $row.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+            (New-Object System.Windows.Automation.AndCondition(
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                    [System.Windows.Automation.ControlType]::Text)),
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::NameProperty, $DisplayName)))))
+        if ($text) { return (Find-ButtonByName $row $ButtonName) }
+    }
+    return $null
+}
+
 function Invoke-Element {
     param($Element)
     if (-not $Element) { return $false }
@@ -134,7 +161,10 @@ function Save-ElementShot {
     $wrect = New-Object Win32.Native+RECT
     [Win32.Native]::GetWindowRect($proc.MainWindowHandle, [ref]$wrect) | Out-Null
     $er = $Element.Current.BoundingRectangle
-    $bmp = New-Object System.Drawing.Bitmap($wrect.Right - $wrect.Left, $wrect.Bottom - $wrect.Top)
+    # Parenthesize each subtraction: inside a method-argument list, PowerShell's comma binds
+    # tighter than `-`, so an unparenthesized `a - b, c - d` becomes an array literal minus a
+    # scalar and throws op_Subtraction (G-02-7).
+    $bmp = New-Object System.Drawing.Bitmap(($wrect.Right - $wrect.Left), ($wrect.Bottom - $wrect.Top))
     $gfx = [System.Drawing.Graphics]::FromImage($bmp)
     $gfx.CopyFromScreen($wrect.Left, $wrect.Top, 0, 0, $bmp.Size)
     $gfx.Dispose()
@@ -195,26 +225,12 @@ function Confirm-Dialog {
 }
 
 function Backup-SmallGameRow {
-    # Back up "Small Save Game" once through its row Backup button, so later shots have a
-    # backup to restore from. Row actions are found by AutomationProperties.Name within the
-    # row whose Game cell text is the display name.
+    # Back up "Small Save Game" once through its row Back up button, so later shots have a
+    # backup to restore from. The row is found via Find-RowButton (DataItem + nested Text), not
+    # a position guess — a positional fallback backs up whichever row happens to sit there.
     $win = Find-AppWindow
-    $rows = $win.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-        (New-Object System.Windows.Automation.PropertyCondition(
-            [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
-            [System.Windows.Automation.ControlType]::Custom)))
-    foreach ($row in $rows) {
-        if ($row.Current.Name -match 'Small Save Game') {
-            $btn = Find-ButtonByName $row 'Back up'
-            if ($btn) { [void](Invoke-Element $btn); return $true }
-        }
-    }
-    # Fallback: rows may surface their name differently; search every "Back up" button's row.
-    $backs = $win.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-        (New-Object System.Windows.Automation.PropertyCondition(
-            [System.Windows.Automation.AutomationElement]::NameProperty, 'Back up')))
-    if ($backs.Count -gt 1) { [void](Invoke-Element $backs[1]); return $true }  # row order: Large, Small, ...
-    if ($backs.Count -eq 1) { [void](Invoke-Element $backs[0]); return $true }
+    $btn = Find-RowButton $win 'Small Save Game' 'Back up'
+    if ($btn) { [void](Invoke-Element $btn); return $true }
     return $false
 }
 
@@ -266,9 +282,13 @@ function Shot-04OverflowMenu {
 function Shot-05RowActionsIdle {
     param([string]$Path)
     $win = Find-AppWindow
-    $more = Find-ButtonByName $win 'More actions'
-    if (-not $more) { throw 'a row action cell not found' }
-    Save-ElementShot $more $Path
+    $more = Find-RowButton $win 'Large Save Game' 'More actions'
+    if (-not $more) { throw 'Large Save Game row More actions button not found' }
+    # The Actions cell's StackPanel has no automation peer, so walking up from the button one
+    # control-view step lands on the cell (or, where that peer is also absent, the row) — either
+    # way the crop includes all three idle action buttons, not just this one.
+    $cell = [System.Windows.Automation.TreeWalker]::ControlViewWalker.GetParent($more)
+    Save-ElementShot $cell $Path
 }
 
 function Shot-06BusyBulk {
@@ -293,11 +313,12 @@ function Shot-07Statusbar {
     $rect = New-Object Win32.Native+RECT
     [Win32.Native]::GetWindowRect($proc.MainWindowHandle, [ref]$rect) | Out-Null
     $w = $rect.Right - $rect.Left
-    $bmp = New-Object System.Drawing.Bitmap($w, $rect.Bottom - $rect.Top)
+    # Parenthesized for the same op_Subtraction reason as Save-ElementShot above (G-02-7).
+    $bmp = New-Object System.Drawing.Bitmap($w, ($rect.Bottom - $rect.Top))
     $gfx = [System.Drawing.Graphics]::FromImage($bmp)
     $gfx.CopyFromScreen($rect.Left, $rect.Top, 0, 0, $bmp.Size)
     $gfx.Dispose()
-    $strip = New-Object System.Drawing.Rectangle(0, $bmp.Height - 60, $bmp.Width, 60)
+    $strip = New-Object System.Drawing.Rectangle(0, ($bmp.Height - 60), $bmp.Width, 60)
     $out = $bmp.Clone($strip, $bmp.PixelFormat)
     $out.Save($Path, [System.Drawing.Imaging.ImageFormat]::Png)
     $out.Dispose(); $bmp.Dispose()
@@ -306,17 +327,7 @@ function Shot-07Statusbar {
 function Shot-08RestoreSteps {
     param([string]$Path)
     $win = Find-AppWindow
-    $rows = $win.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-        (New-Object System.Windows.Automation.PropertyCondition(
-            [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
-            [System.Windows.Automation.ControlType]::Custom)))
-    $restore = $null
-    foreach ($row in $rows) {
-        if ($row.Current.Name -match 'Large Save Game') {
-            $restore = Find-ButtonByName $row 'Restore'
-            break
-        }
-    }
+    $restore = Find-RowButton $win 'Large Save Game' 'Restore'
     if (-not $restore) { throw 'Large Save Game row Restore button not found' }
     [void](Invoke-Element $restore)
     Wait-Seconds 1
@@ -411,17 +422,7 @@ function Shot-13RestorePickerFooter {
     param([string]$Path)
     $win = Find-AppWindow
     # "Small Save Game" was backed up at run start, so its Restore opens the restore picker.
-    $rows = $win.FindAll([System.Windows.Automation.TreeScope]::Descendants,
-        (New-Object System.Windows.Automation.PropertyCondition(
-            [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
-            [System.Windows.Automation.ControlType]::Custom)))
-    $restore = $null
-    foreach ($row in $rows) {
-        if ($row.Current.Name -match 'Small Save Game') {
-            $restore = Find-ButtonByName $row 'Restore'
-            break
-        }
-    }
+    $restore = Find-RowButton $win 'Small Save Game' 'Restore'
     if (-not $restore) { throw 'Small Save Game row Restore button not found' }
     [void](Invoke-Element $restore)
     Wait-Seconds 2
@@ -469,7 +470,9 @@ Wait-Seconds 2
 Dismiss-StartupPrompt
 
 # Back up "Small Save Game" once so restore shots (08, 13) have a backup to restore from.
-[void](Backup-SmallGameRow)
+if (-not (Backup-SmallGameRow)) {
+    Write-Host "WARNING: Small Save Game row Back up button not found - shot 13 will have no backup to restore"
+}
 Wait-Seconds 5
 Dismiss-StartupPrompt   # a snackbar or follow-up dialog, if any, is not part of a shot
 
