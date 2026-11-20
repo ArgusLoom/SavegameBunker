@@ -248,7 +248,7 @@ Everything else is independent.
 **Requirements**: none registered — scope is items 0–7, 9, 11, 14–16, 19–24 above, the
 `MainWindow.xaml:286-287` comment, and decisions D-01..D-13 (`02-CONTEXT.md`)
 **Depends on:** Phase 1
-**Plans:** 15 plans
+**Plans:** 18 plans
 
 Plans:
 **Wave 1**
@@ -283,3 +283,8 @@ Plans:
 
 **Wave 9** *(blocked on Wave 8 completion)*
 - [ ] 02-15-PLAN.md — Item 23: split MainViewModelTests.cs into seven classes in one collection
+
+**Gap closure (UAT 2026-11-19)** *(waves continue the numbering above; no file overlap with the plans that share a wave number; strictly sequential — 02-17 and 02-18 launch and kill the app)*
+- [ ] 02-16-PLAN.md — Wave 6 · G-02-6: the restore picker hosts its own delete confirmation (picker-owned DialogService + ContentDialogHost), proven by real mouse clicks
+- [ ] 02-17-PLAN.md — Wave 7 · G-02-7: capture.ps1 arithmetic arguments, DataItem row lookup, restore picker / overflow menu / dialog flows — all fourteen shots capturable
+- [ ] 02-18-PLAN.md — Wave 8 · G-02-7: the five missing shots added to before/, after-19-20/ and after-21/ from their recorded builds
