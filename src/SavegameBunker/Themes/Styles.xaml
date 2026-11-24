@@ -121,7 +121,7 @@
     <!--
         Every dialog's confirm and cancel buttons share one minimum — the width that fits the
         longest footer label, "Update folder" — so the four dialogs line up instead of carrying
-        80/90/110 each (D-12: the one intended visible change of ITEM-20). Per-dialog margins,
+        80/90/110 each. Per-dialog margins,
         Appearance, IsDefault/IsCancel and the DialogResult behaviour stay at the use site.
     -->
     <Style

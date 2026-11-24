@@ -5,7 +5,7 @@ namespace SavegameBunker.Services;
 /// <summary>
 /// The one place paths are compared for containment — three diverging copies
 /// (<c>BackupService</c>'s own normaliser, <c>DirectoryWalk</c>'s prune check and
-/// <c>PathResolver.ToTemplate</c>'s trim) were the drive-root bug (ITEM-4): a normalized drive
+/// <c>PathResolver.ToTemplate</c>'s trim) were the drive-root bug: a normalized drive
 /// root keeps its trailing separator, and appending a second one to it meant nothing was ever
 /// "inside" a drive root.
 /// </summary>

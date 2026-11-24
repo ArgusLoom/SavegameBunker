@@ -5,7 +5,7 @@ namespace SavegameBunker.Tests;
 
 /// <summary>
 /// The two game-with-saves builders the service and coordinator tests share: two names because
-/// both shapes take three strings, so an overload would be ambiguous (ITEM-22).
+/// both shapes take three strings, so an overload would be ambiguous.
 /// </summary>
 internal static class TestGames
 {

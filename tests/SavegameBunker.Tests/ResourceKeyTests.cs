@@ -12,7 +12,7 @@ namespace SavegameBunker.Tests;
 /// but never defined: every error-severity row rendered in the ordinary foreground colour, so a
 /// failed row looked exactly like a healthy one. Found by hand during a manual
 /// walkthrough, not by the suite. The key has since been renamed <c>SavegameBunkerDangerBrush</c>
-/// (D-06): <c>PaletteRedColor</c>/<c>PaletteRedBrush</c> collided with WPF-UI's own identically-named
+/// <c>PaletteRedColor</c>/<c>PaletteRedBrush</c> collided with WPF-UI's own identically-named
 /// keys, which the app's dictionary shadowed app-wide.
 ///
 /// Scope is deliberately narrow: only the palette keys SavegameBunker owns. Keys supplied by WPF-UI
@@ -50,7 +50,7 @@ public class ResourceKeyTests
         }
 
         // The keys this project owns rather than inherits: our palette names. "Palette" has no
-        // owner today (D-06 renamed the one key that carried it) but stays in the guard so any
+        // owner today (a rename removed the one key that carried it) but stays in the guard so any
         // future PaletteFoo key fails here instead of silently resolving to WPF-UI's own
         // identically-named resource.
         var ownedPrefixes = new[] { "Palette", "SavegameBunker" };

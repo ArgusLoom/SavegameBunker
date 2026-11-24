@@ -442,7 +442,7 @@
                                 relative-time subline, so the newest backup and the verdict read as
                                 one fact per row. Busy swaps that for this row's progress chrome
                                 (ring / large-backup bar / restore bar+text) — moved here from the
-                                Actions column (#D-status-progress): a running operation is a status
+                                Actions column: a running operation is a status
                                 fact, not an action trigger. IsBusy alone gates the swap, matching
                                 RowActionButton's own collapse trigger below: it flips true before
                                 RestoreStep is ever set, so idle and busy never render together.
@@ -604,7 +604,7 @@
                                 MinWidth (1000), the DataGrid's own padding left no slack and the
                                 overflow button's right edge rendered outside the window. 128 leaves
                                 real breathing room. The progress chrome that used to share this
-                                column moved to Status (#D-status-progress), so there is no wider
+                                column moved to Status, so there is no wider
                                 case left to size for.
                             -->
                             <DataGridTemplateColumn Width="128" Header="{DynamicResource str_grid_actions}">

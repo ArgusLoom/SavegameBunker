@@ -193,7 +193,7 @@ public sealed class DialogService : IDialogService
         OnUiThread(() =>
         {
             // The picker is modal over the main window, so a confirmation drawn in the main
-            // window's host sits under it, out of reach (G-02-6). A DialogService owned by the
+            // window's host sits under it, out of reach. A DialogService owned by the
             // picker draws into the picker's own host instead. It keeps its own dialog queue, so a
             // dialog still waiting in the main window — which nobody can answer while the picker is
             // modal — cannot hold the delete confirmation back. The snackbar stays the main
@@ -215,7 +215,7 @@ public sealed class DialogService : IDialogService
     public void ShowAboutDialog() =>
         OnUiThread(() =>
         {
-            // Same reason as the restore picker (G-02-6): About is modal over the main window, so
+            // Same reason as the restore picker: About is modal over the main window, so
             // a help-link error drawn in the main window's host would sit under it, out of reach.
             // A DialogService owned by About draws into About's own host and snackbar presenter —
             // the outcome note ("no offline copy was found") must be visible, and About has no

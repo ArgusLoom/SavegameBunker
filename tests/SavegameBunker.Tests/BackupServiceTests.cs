@@ -774,7 +774,7 @@ public sealed class BackupServiceTests : IDisposable
         Assert.DoesNotContain(names, name => name.EndsWith(".zip", StringComparison.OrdinalIgnoreCase));
     }
 
-    // ITEM-5: InspectSaveDir's empty check walks without the exclusions, so a save folder whose
+    // InspectSaveDir's empty check walks without the exclusions, so a save folder whose
     // only files sit in the backup folder passes it — the archive pass then excludes that same
     // folder and collects nothing, which a zero-entry archive would otherwise verify (0 equals 0)
     // and report as a successful backup.
@@ -1277,7 +1277,7 @@ public sealed class BackupServiceTests : IDisposable
         Assert.Equal(["a.dat", "sub/b.dat"], names);
     }
 
-    // D-01: a folder the walk leaves out on purpose (the backup folder inside the save folder) is
+    // A folder the walk leaves out on purpose (the backup folder inside the save folder) is
     // named once, in a plain note — never with the unreadable-path warning wording, which would
     // read as a fault in a layout the user chose on purpose.
     [Fact]
@@ -1297,7 +1297,7 @@ public sealed class BackupServiceTests : IDisposable
         Assert.Equal("save.dat", Assert.Single(zip.Entries).FullName);
     }
 
-    // D-01, plural form: with the backup root AT a shared save folder, both games' archive folders
+    // Plural form: with the backup root AT a shared save folder, both games' archive folders
     // are named and the note ends "(backup folders).".
     [Fact]
     public void A_backup_root_equal_to_a_shared_save_folder_names_the_other_games_archive_folders_as_left_out()
@@ -1363,8 +1363,9 @@ public sealed class BackupServiceTests : IDisposable
     {
         var backupRoot = Path.Combine(_dir, "bunker");
         var saveDir = Path.Combine(backupRoot, "own");
-        Directory.CreateDirectory(saveDir);
+        Directory.CreateDirectory(Path.Combine(saveDir, "profile"));
         File.WriteAllText(Path.Combine(saveDir, "save.dat"), "payload");
+        File.WriteAllText(Path.Combine(saveDir, "profile", "slot.sav"), "payload");
         var game = new Game { Id = "own", DisplayName = "Own", SaveDirTemplate = saveDir.Replace('\\', '/') };
 
         Assert.True(_service.Backup(game, backupRoot).Success);
@@ -1372,8 +1373,10 @@ public sealed class BackupServiceTests : IDisposable
 
         Assert.True(second.Success, second.Message);
         Assert.DoesNotContain("NOT in this backup", second.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("Left out", second.Message, StringComparison.Ordinal);
         using var zip = ZipFile.OpenRead(secondPath!);
-        Assert.Equal("save.dat", Assert.Single(zip.Entries).FullName);
+        // This app never writes subfolders into an archive folder, so "profile" is save data.
+        Assert.Equal(["save.dat", "profile/slot.sav"], zip.Entries.Select(e => e.FullName).ToList());
     }
 
     // A save subfolder that merely CONTAINS the backup folder is walked, not pruned whole: save

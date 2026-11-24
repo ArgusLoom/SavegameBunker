@@ -8,7 +8,7 @@ namespace SavegameBunker.Services;
 /// unexpected failure. <see cref="DirectoryNotFoundException"/>, <see cref="FileNotFoundException"/>
 /// and <see cref="PathTooLongException"/> all derive from <see cref="IOException"/>, so the
 /// per-site lists that used to name them beside <see cref="IOException"/> were the same set
-/// spelled differently (ITEM-9) — this predicate is behavior-identical to every list it replaces.
+/// spelled differently — this predicate is behavior-identical to every list it replaces.
 /// </summary>
 internal static class FileSystemFault
 {

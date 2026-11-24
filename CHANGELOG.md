@@ -72,10 +72,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that only the online guide was found showed behind it too.
 - **The restore list can no longer be closed while its delete confirmation is open**, which left
   the confirmation unanswerable.
-- **Removing a game or changing its save folder now waits while "Back up" is still choosing its
-  backup folder**, so the backup can no longer run on a removed game or an old save folder.
+- **Removing, adding or finding games and changing a save folder now wait while "Back up" is still
+  choosing its backup folder**, so the backup can no longer run on a removed game or an old save
+  folder, and two catalog saves no longer race.
 - **A save folder that is the game's own backup folder no longer packs earlier backups.** Each
-  backup used to include every earlier one and warn about a file it could not read.
+  backup used to include every earlier one and warn about a file it could not read; its
+  subfolders are now backed up too.
 - **The startup reminder no longer gets lost when you click Refresh right after starting.** With a
   slow backup folder it could count zero unsecured games while the list was still being checked.
 - **Find Games says "1 file" instead of "1 files".**

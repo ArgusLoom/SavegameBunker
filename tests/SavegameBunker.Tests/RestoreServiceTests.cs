@@ -767,7 +767,7 @@ public sealed class RestoreServiceTests : IDisposable
         Assert.False(RestoreService.ExceedsArchiveLimits(archive, maxUncompressedBytes: 10));
     }
 
-    // D-02: every layout restore refuses is pinned by a test that checks nothing was deleted —
+    // Every layout restore refuses is pinned by a test that checks nothing was deleted —
     // the archive, the other archives and the save files all survive a refused restore.
 
     [Fact]
@@ -812,7 +812,7 @@ public sealed class RestoreServiceTests : IDisposable
         Assert.Equal("payload", File.ReadAllText(Path.Combine(saveDir, "save.dat")));
     }
 
-    // D-11: a save folder equal to the game's own archive folder (<backupRoot>/<id>) would be
+    // A save folder equal to the game's own archive folder (<backupRoot>/<id>) would be
     // replaced — with every archive of the game inside it — by the rename-aside-and-delete restore
     // performs. Backup in that layout stays supported; replacing the folder is refused before the
     // first write, so the safety backup this method is about to take never happens either.

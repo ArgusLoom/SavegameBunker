@@ -4,7 +4,7 @@ namespace SavegameBunker.Services;
 
 /// <summary>
 /// The resolve line the Add game and Change save folder dialogs both show, kept in one place so
-/// the two cannot drift apart (ITEM-16).
+/// the two cannot drift apart.
 /// </summary>
 /// <remarks>
 /// Pure apart from the read-only folder walk: <see cref="PathResolver.TryResolve"/>,

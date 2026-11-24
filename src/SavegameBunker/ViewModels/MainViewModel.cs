@@ -121,7 +121,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
 
     /// <summary>
     /// The start-folder probe is the picker path's only touch of the machine's real drives;
-    /// it is injected so tests can pass a fixed folder instead of walking actual volumes (D-05).
+    /// it is injected so tests can pass a fixed folder instead of walking actual volumes.
     /// Production always uses <see cref="DriveHints.SuggestBackupStartFolder"/> via the public
     /// constructor.
     /// </summary>
@@ -214,6 +214,8 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         RestoreSelectedCommand.NotifyCanExecuteChanged();
         BackupCommand.NotifyCanExecuteChanged();
         RestoreCommand.NotifyCanExecuteChanged();
+        AddGameCommand.NotifyCanExecuteChanged();
+        FindGamesCommand.NotifyCanExecuteChanged();
     }
 
     /// <summary>
@@ -252,8 +254,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
                     break;
                 case nameof(GameRowViewModel.IsBusy):
                     OnPropertyChanged(nameof(IsAnyRowBusy));
-                    // Also requeries BackupCommand/RestoreCommand (ITEM-14's one deliberate,
-                    // enablement-only change): CanBackupRow/CanRestoreRow read row.IsBusy too, so
+                    // Also requeries BackupCommand/RestoreCommand (an enablement-only change): CanBackupRow/CanRestoreRow read row.IsBusy too, so
                     // a row going busy must re-query its own Backup/Restore, not only the toolbar.
                     RequeryOperationGates();
                     break;
@@ -927,8 +928,15 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// cancelled dialog writes nothing and is not a failure. A failed save removes the entry
     /// from memory again so it matches what is actually on disk.
     /// </summary>
-    [RelayCommand]
+    [RelayCommand(CanExecute = nameof(CanEditCatalog))]
     private Task AddGameAsync() => AddGameCoreAsync(initialSaveFolder: null);
+
+    /// <summary>
+    /// Add Game and Find Games write the catalog; while a bulk run is still preparing its backup
+    /// folder it may be writing the catalog too (the chosen <c>backupRoot</c>), and two writers
+    /// would race the catalog's changed-on-disk check.
+    /// </summary>
+    private bool CanEditCatalog() => !IsBulkPreparing;
 
     /// <summary>
     /// Opens Add Game with <paramref name="folder"/> already in the save-folder field.
@@ -940,6 +948,10 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
 
     private async Task AddGameCoreAsync(string? initialSaveFolder)
     {
+        // The drop-a-folder route reaches here without CanExecute; same gate as CanEditCatalog.
+        if (IsBulkPreparing)
+            return;
+
         var existingIds = _session.Games.Select(g => g.Id).ToList();
         var result = _dialog.ShowAddGameDialog(existingIds, initialSaveFolder);
         if (result is null)
@@ -1039,7 +1051,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         }
     }
 
-    private bool CanFindGames() => !IsScanRunning;
+    private bool CanFindGames() => !IsScanRunning && CanEditCatalog();
 
     /// <summary>
     /// Opens the loaded catalog file in its associated editor, falling back to Explorer when
@@ -1375,6 +1387,10 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
 
         _selectedIds.Remove(row.Game.Id);
         Games.Remove(row);
+
+        // A startup prompt deferred while rows were Checking is otherwise re-evaluated only when
+        // a row settles; removing the last Checking row settles nothing, so evaluate it here.
+        PromptUnsecuredGamesOnce();
 
         // The removed game may have been part of the selected or changed totals the status line
         // still shows; no sweep follows a removal to settle them.

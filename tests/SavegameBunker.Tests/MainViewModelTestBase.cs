@@ -8,7 +8,7 @@ namespace SavegameBunker.Tests;
 
 /// <summary>
 /// The shared fixture and builders of the MainViewModel test classes, split from one
-/// 3,000-line file along its section markers (ITEM-23). Abstract and therefore not sealed —
+/// 3,000-line file along its section markers. Abstract and therefore not sealed —
 /// the one reason CLAUDE.md allows it.
 /// </summary>
 public abstract class MainViewModelTestBase : IDisposable

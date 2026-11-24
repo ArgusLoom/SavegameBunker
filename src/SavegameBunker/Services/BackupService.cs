@@ -111,7 +111,7 @@ public sealed class BackupService
 
             // Folders the walk leaves out BY RULE (the backup folder inside the save folder), not
             // skips — kept in their own list so the note that names them never reuses the
-            // unreadable-path wording (D-01). Collected from the archive pass only.
+            // unreadable-path wording. Collected from the archive pass only.
             var leftOut = new List<string>();
 
             // Subfolders pruned only because the save folder itself IS a backup folder: they may be
@@ -132,6 +132,13 @@ public sealed class BackupService
             var skipRootArchives = PathCompare.IsSameOrInside(saveDir, targetDir)
                                    && PathCompare.IsSameOrInside(targetDir, saveDir);
 
+            // In that layout no folder exclusion applies: this app never writes subfolders into a
+            // game's archive folder, and the backup root is its parent, so every subfolder is save
+            // data. Without this the prune-every-subfolder rule (meant for a save folder equal to
+            // the backup root, shared with other games' archive folders) would drop them all.
+            if (skipRootArchives)
+                excludedDirs = [];
+
             Dictionary<string, string> entryHashes;
             try
             {
@@ -148,7 +155,7 @@ public sealed class BackupService
                 return OperationResult.Fail($"Backup failed for {game.DisplayName}: {ex.Message}");
             }
 
-            // ITEM-5: InspectSaveDir's own empty check walks without the exclusions, so a save
+            // InspectSaveDir's own empty check walks without the exclusions, so a save
             // folder whose only files sit in the backup folder passes it, and the archive pass
             // above excludes that same folder — leaving a zero-entry archive that would otherwise
             // verify (0 equals 0) and be reported as a backup. Gated on "and nothing was skipped"
@@ -842,8 +849,9 @@ public sealed class BackupService
     /// Sums <paramref name="game"/>'s save directory via the same <see cref="EnumerateRelativeFiles"/>
     /// walk <see cref="ArchiveSaveDir"/> archives from, so this number never disagrees with what
     /// gets archived. Passes no excluded directories: as a display-only denominator it may
-    /// over-count when the backup folder sits inside the save folder, which only makes the archive
-    /// smaller than this figure, never larger. Never throws across the service boundary, because its
+    /// over-count when the backup folder sits inside the save folder, or when the save folder is
+    /// the game's own archive folder (its earlier archives are counted), which only makes the
+    /// archive smaller than this figure, never larger. Never throws across the service boundary, because its
     /// only consumers are advisory displays where a failure must be an absent number, not an error.
     /// </summary>
     public long ComputeSaveDataSize(Game game)

@@ -127,7 +127,7 @@
         <!--
             A ContentDialog is drawn inside the window that hosts it. This window is modal over
             MainWindow (ShowDialog with Owner), so a delete confirmation hosted by MainWindow's own
-            RootDialogHost painted underneath it and could not be seen or clicked (G-02-6). The
+            RootDialogHost painted underneath it and could not be seen or clicked. The
             picker's own delete confirmation and delete errors render here instead.
         -->
         <ui:ContentDialogHost

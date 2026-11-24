@@ -203,7 +203,7 @@ public sealed class MainViewModelTests : MainViewModelTestBase
     /// picker is called, a row's own Backup/Restore, Refresh, Change backup folder, Back up all
     /// changed and Restore selected must all be unable to execute, and the window could not close.
     /// A row backup running beside the bulk loop could otherwise delete the other's in-flight
-    /// staging file (D-13: observed from the OnPickFolder hook, with no timing assumption).
+    /// staging file (observed from the OnPickFolder hook, with no timing assumption).
     /// </summary>
     [Fact]
     public async Task Back_up_selected_blocks_every_other_operation_while_its_folder_picker_is_open()
@@ -254,7 +254,7 @@ public sealed class MainViewModelTests : MainViewModelTestBase
     /// directly (no CanExecute), so both commands must refuse on their own while preparing.
     /// </summary>
     [Fact]
-    public async Task Remove_and_change_save_folder_do_nothing_while_a_bulk_run_is_preparing()
+    public async Task Catalog_edits_do_nothing_while_a_bulk_run_is_preparing()
     {
         var (vm, dialog, _) = CreateViewModel(backupRoot: "");
         dialog.FolderToReturn = null; // the user cancels the picker
@@ -267,10 +267,13 @@ public sealed class MainViewModelTests : MainViewModelTestBase
         row.IsSelected = true;
         await WaitForAsync(() => vm.BackupSelectedCommand.CanExecute(null));
 
+        bool addGame = true, findGames = true;
         dialog.OnPickFolder = () =>
         {
             vm.RemoveGameCommand.Execute(row);
             vm.ChangeSaveFolderCommand.Execute(row);
+            addGame = vm.AddGameCommand.CanExecute(null);
+            findGames = vm.FindGamesCommand.CanExecute(null);
         };
 
         vm.BackupSelectedCommand.Execute(null);
@@ -280,6 +283,10 @@ public sealed class MainViewModelTests : MainViewModelTestBase
         Assert.Contains(row, vm.Games);
         Assert.Empty(dialog.ConfirmMessages);
         Assert.Empty(dialog.ChangeSaveFolderCalls);
+        // Both write the catalog, which the bulk run may be writing too.
+        Assert.False(addGame);
+        Assert.False(findGames);
+        Assert.True(vm.AddGameCommand.CanExecute(null));
     }
 
     [Fact]

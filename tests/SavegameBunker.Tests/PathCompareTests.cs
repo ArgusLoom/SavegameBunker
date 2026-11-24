@@ -3,7 +3,7 @@ using SavegameBunker.Services;
 namespace SavegameBunker.Tests;
 
 /// <summary>
-/// Pins <see cref="PathCompare"/> against the drive-root bug (ITEM-4): a normalized drive root
+/// Pins <see cref="PathCompare"/> against the drive-root bug: a normalized drive root
 /// keeps its trailing separator, and <see cref="PathCompare.IsSameOrInside"/> must not append a
 /// second one when testing containment — the exact mistake the old
 /// <c>BackupService.IsSameOrInside</c> made (<c>root + '\\'</c> became <c>E:\\</c>, so nothing was

@@ -299,6 +299,27 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
     }
 
     /// <summary>
+    /// Removing the last row still on Checking settles no row, so the removal itself must decide a
+    /// prompt that was deferred while rows were Checking.
+    /// </summary>
+    [Fact]
+    public async Task Removing_the_last_checking_row_decides_a_deferred_prompt()
+    {
+        var (vm, dialog, _) = await CreateViewModelAsync(2);
+        dialog.ConfirmReturnSequence = new Queue<bool>([true, false]); // remove: yes; prompt: no
+
+        vm.Games[0].ApplyBackupComparison(BackupComparison.NeverBackedUp());
+        vm.Games[1].ApplyBackupComparison(BackupComparison.Checking());
+        vm.RequestStartupUnsecuredPrompt();
+        Assert.Empty(dialog.ConfirmMessages);
+
+        await vm.RemoveGameCommand.ExecuteAsync(vm.Games[1]);
+
+        await WaitForAsync(() => dialog.ConfirmMessages.Count == 2);
+        Assert.Contains("Game 0", dialog.ConfirmMessages[1]);
+    }
+
+    /// <summary>
     /// A full sweep over zero rows also counts as settled, so an empty catalog consumes an armed
     /// prompt on the spot instead of saving it up — a later Refresh after a game was added must
     /// never show the startup prompt mid-session. The negative proof waits past the point where
@@ -336,7 +357,7 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
     /// NeverBackedUp. With an unset backup root every row settles on FolderNotAvailable, so
     /// nothing is unsecured and the prompt is a synchronous no-op: the picker route an unset root
     /// would take is unreachable from here and covered by the bulk-path fact in
-    /// <see cref="MainViewModelTests"/> instead (D-04, D-13).
+    /// <see cref="MainViewModelTests"/> instead.
     /// </summary>
     [Fact]
     public async Task An_unset_backup_root_never_reaches_the_prompt()

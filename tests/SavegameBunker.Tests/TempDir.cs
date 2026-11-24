@@ -6,7 +6,7 @@ namespace SavegameBunker.Tests;
 /// The one fixture every test class shares: creates a fresh directory under
 /// <c>%TEMP%/SavegameBunkerTests/&lt;guid&gt;</c> and always runs the full cleanup — deny-rule
 /// removal, junction removal, then a recursive delete — so a test that adds a deny rule or a
-/// junction later cannot leave its directory behind (ITEM-22).
+/// junction later cannot leave its directory behind.
 /// </summary>
 internal sealed class TempDir : IDisposable
 {

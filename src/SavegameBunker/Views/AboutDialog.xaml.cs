@@ -6,7 +6,7 @@ namespace SavegameBunker.Views;
 /// <summary>
 /// The About window: version, build date and the user guide link. Modal over the main window, so
 /// it carries its own dialog host — a help-link error drawn in the main window's host would sit
-/// under it, out of reach (same as G-02-6 for the restore picker).
+/// under it, out of reach (same as for the restore picker).
 /// </summary>
 public sealed partial class AboutDialog : FluentWindow
 {

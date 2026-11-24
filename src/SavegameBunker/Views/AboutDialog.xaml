@@ -48,8 +48,7 @@
             </Grid.RowDefinitions>
 
             <!--
-                The icon this window inherited from the main window's empty state (D-status-progress
-                follow-up): it now lives only here, on the left, never in the game list.
+                The icon this window inherited from the main window's empty state: it now lives only here, on the left, never in the game list.
             -->
             <DockPanel Grid.Row="0">
                 <Image
@@ -119,7 +118,7 @@
         <!--
             A ContentDialog is drawn inside the window that hosts it. This window is modal over
             MainWindow, so an error hosted by MainWindow's own RootDialogHost would paint underneath
-            it, out of reach (same as G-02-6 for the restore picker). Help-link errors render here,
+            it, out of reach (same as for the restore picker). Help-link errors render here,
             and so does the success snackbar, which would otherwise show behind this window too.
         -->
         <ui:ContentDialogHost

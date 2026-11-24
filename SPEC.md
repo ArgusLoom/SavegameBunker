@@ -221,7 +221,7 @@ and silently replacing a broken catalog would destroy the user's own configurati
 - A `backupRoot` inside the game's own save directory, or equal to it, is honoured for Backup —
   the archive walk leaves out exactly the folders that hold backups: the subfolder that is
   `backupRoot` or the game's archive folder `<backupRoot>\<id>`, and, when the save directory is
-  itself `backupRoot` or `<backupRoot>\<id>`, every subfolder of it, because other games' archive
+  itself `backupRoot`, every subfolder of it, because other games' archive
   folders cannot be told apart from save data there. A subfolder that merely contains `backupRoot`
   (save folder `S`, backup folder `S\data\Backups`) is walked, so save files beside the backup
   folder (`S\data\slot.sav`) are archived — pruning the whole `data` folder would leave them out
@@ -238,7 +238,7 @@ and silently replacing a broken catalog would destroy the user's own configurati
   the save directory holds, the backup fails and names them. When the save directory is the game's
   own archive folder `<backupRoot>\<id>`, the `*.zip` archives and `*.zip.tmp` staging files
   directly in it are this app's own files and are never packed, so a backup never contains the
-  earlier ones.
+  earlier ones; its subfolders are all archived, since this app never writes subfolders there.
 - Restore is refused for a game whose archive folder `<backupRoot>\<id>` lies inside, or is, its
   save directory — this covers every `backupRoot` inside or equal to the save directory — because
   restore renames the save directory aside and deletes it, which would delete the archives with
