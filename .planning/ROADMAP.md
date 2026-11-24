@@ -248,7 +248,7 @@ Everything else is independent.
 **Requirements**: none registered — scope is items 0–7, 9, 11, 14–16, 19–24 above, the
 `MainWindow.xaml:286-287` comment, and decisions D-01..D-13 (`02-CONTEXT.md`)
 **Depends on:** Phase 1
-**Plans:** 18 plans
+**Plans:** 18/18 plans complete
 
 Plans:
 **Wave 1**
@@ -264,25 +264,25 @@ Plans:
 - [x] 02-06-PLAN.md — Items 1–2: startup prompt evaluated on arming after the first sweep; IsBulkPreparing guard
 
 **Wave 4** *(blocked on Wave 3 completion)*
-- [ ] 02-07-PLAN.md — Items 4–5: PathCompare at drive roots, ToTemplate root fix, no empty archives
-- [ ] 02-08-PLAN.md — Items 14–15: RequeryOperationGates, one bulk progress callback type
+- [x] 02-07-PLAN.md — Items 4–5: PathCompare at drive roots, ToTemplate root fix, no empty archives
+- [x] 02-08-PLAN.md — Items 14–15: RequeryOperationGates, one bulk progress callback type
 
 **Wave 5** *(blocked on Wave 4 completion)*
-- [ ] 02-09-PLAN.md — Items 7, 6, 9: two verification modes, rename ladder extracted, FileSystemFault predicate
-- [ ] 02-10-PLAN.md — Item 11: picker delete action from the caller, Confirm asserts its thread contract
-- [ ] 02-11-PLAN.md — Item 21 + item-18 comment: SavegameBunkerDanger* rename (D-06), one-sided margins, unused tokens; after-21 screenshots
+- [x] 02-09-PLAN.md — Items 7, 6, 9: two verification modes, rename ladder extracted, FileSystemFault predicate
+- [x] 02-10-PLAN.md — Item 11: picker delete action from the caller, Confirm asserts its thread contract
+- [x] 02-11-PLAN.md — Item 21 + item-18 comment: SavegameBunkerDanger* rename (D-06), one-sided margins, unused tokens; after-21 screenshots
 
 **Wave 6** *(blocked on Wave 5 completion)*
-- [ ] 02-12-PLAN.md — Item 22 (part 1): TempDir, TestWait, RecordingDialogService file; view-model test classes
+- [x] 02-12-PLAN.md — Item 22 (part 1): TempDir, TestWait, RecordingDialogService file; view-model test classes
 
 **Wave 7** *(blocked on Wave 6 completion)*
-- [ ] 02-13-PLAN.md — Item 22 (part 2): TestGames builders; service and coordinator test classes
+- [x] 02-13-PLAN.md — Item 22 (part 2): TestGames builders; service and coordinator test classes
 
 **Wave 8** *(blocked on Wave 7 completion)*
-- [ ] 02-14-PLAN.md — Item 24: named wait budgets, asserted poll
+- [x] 02-14-PLAN.md — Item 24: named wait budgets, asserted poll
 
 **Wave 9** *(blocked on Wave 8 completion)*
-- [ ] 02-15-PLAN.md — Item 23: split MainViewModelTests.cs into seven classes in one collection
+- [x] 02-15-PLAN.md — Item 23: split MainViewModelTests.cs into seven classes in one collection
 
 **Gap closure (UAT 2026-11-19)** *(waves continue the numbering above; no file overlap with the plans that share a wave number; strictly sequential — 02-17 and 02-18 launch and kill the app)*
 - [x] 02-16-PLAN.md — Wave 6 · G-02-6: the restore picker hosts its own delete confirmation (picker-owned DialogService + ContentDialogHost), proven by real mouse clicks

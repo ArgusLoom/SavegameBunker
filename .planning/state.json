@@ -4,9 +4,9 @@
   "milestone": "v1.0.1 — Hardening & Refactoring",
   "phases": [],
   "next": {
-    "command": "/gsd-debug",
-    "label": "Debug the blocker",
-    "reason": "Blocked · 1 blocker(s) — resolve before continuing"
+    "command": "/gsd-new-milestone",
+    "label": "Start a new milestone",
+    "reason": "All phases complete — start a new milestone"
   },
-  "updated_at": "2026-11-19T17:50:42.993Z"
+  "updated_at": "2026-11-24T19:31:14.486Z"
 }
