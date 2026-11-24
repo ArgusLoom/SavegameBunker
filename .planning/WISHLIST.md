@@ -56,6 +56,13 @@ within a tier, order is rough preference, not a schedule.
 - **Heuristic discovery of unknown vendor folders** in the Find games scan — deferred, not
   rejected. Superseded in intent by Steam integration; only revisit if Steam
   integration stalls
+- **Backing up a save folder equal to its own archive folder repacks every earlier archive on
+  each run** (2026-11-19 code review, WR-01). Not data loss — Restore already refuses this
+  layout — but wasteful. Fix means detecting the save/archive overlap before the zip write, not
+  just before restore
+- **Orphaned `xs` spacing token left in `Styles.xaml`** (2026-11-19 code review, IN-01) by a since-landed
+  layout change (`Styles.xaml:57`). Cosmetic, no behavior impact; remove on the next pass through
+  that file
 
 ## Accepted limitations that could one day be lifted
 

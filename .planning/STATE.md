@@ -66,12 +66,9 @@ None. Open ideas and accepted limitations are tracked in `.planning/WISHLIST.md`
 
 ## Blockers
 
-- [Phase 02, Item 11]: The restore picker's per-row delete confirmation renders entirely
-  hidden behind the modal `RestorePickerWindow` and cannot be reached by a real mouse click
-  (confirmed with `SetCursorPos`/`mouse_event` plus `WindowFromPoint`, not just UI
-  Automation's `InvokePattern`, which gave a false positive). Architectural fix needed —
-  surfaced in `02-10-SUMMARY.md` and `02-VALIDATION.md`; not fixed in Phase 02 (read-only
-  audit rule).
+None open. [Phase 02, Item 11] (restore picker delete confirmation hidden behind the modal
+`RestorePickerWindow`) was fixed by `02-16-PLAN.md` (picker-owned `ContentDialogHost` +
+`DialogService`) and confirmed with a real mouse click in UAT test 8 (2026-11-24).
 
 ## Session
 

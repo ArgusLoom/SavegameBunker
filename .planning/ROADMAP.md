@@ -285,6 +285,6 @@ Plans:
 - [ ] 02-15-PLAN.md — Item 23: split MainViewModelTests.cs into seven classes in one collection
 
 **Gap closure (UAT 2026-11-19)** *(waves continue the numbering above; no file overlap with the plans that share a wave number; strictly sequential — 02-17 and 02-18 launch and kill the app)*
-- [ ] 02-16-PLAN.md — Wave 6 · G-02-6: the restore picker hosts its own delete confirmation (picker-owned DialogService + ContentDialogHost), proven by real mouse clicks
-- [ ] 02-17-PLAN.md — Wave 7 · G-02-7: capture.ps1 arithmetic arguments, DataItem row lookup, restore picker / overflow menu / dialog flows — all fourteen shots capturable
-- [ ] 02-18-PLAN.md — Wave 8 · G-02-7: the five missing shots added to before/, after-19-20/ and after-21/ from their recorded builds
+- [x] 02-16-PLAN.md — Wave 6 · G-02-6: the restore picker hosts its own delete confirmation (picker-owned DialogService + ContentDialogHost), proven by real mouse clicks
+- [x] 02-17-PLAN.md — Wave 7 · G-02-7: capture.ps1 arithmetic arguments, DataItem row lookup, restore picker / overflow menu / dialog flows — all fourteen shots capturable
+- [x] 02-18-PLAN.md — Wave 8 · G-02-7: the five missing shots added to before/, after-19-20/ and after-21/ from their recorded builds

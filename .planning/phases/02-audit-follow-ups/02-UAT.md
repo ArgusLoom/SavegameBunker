@@ -3,7 +3,7 @@ status: complete
 phase: 02-audit-follow-ups
 source: [02-VERIFICATION.md]
 started: 2026-11-19T00:00:00Z
-updated: 2026-11-24T00:00:00Z
+updated: 2026-11-24T13:00:00Z
 ---
 
 ## Current Test
@@ -42,26 +42,27 @@ result: issue — 9/14 shots captured (01,02,03,04,06,09,10,12,14), each shows o
 
 ### 8. Re-run UAT test 6: on a catalog where a game has two or more backups, open Restore, press a row's delete button, Cancel, then press it again and Delete — both with a real mouse.
 expected: The confirmation renders inside the restore list window and is answerable by both clicks while the list is open; Cancel keeps the archive, Delete removes exactly that one row and its file.
-result: [pending]
+result: pass
 
 ### 9. Re-run UAT test 1 (before/ vs after-19-20/ comparison for items 19, 20) on the now-complete fourteen-shot sets.
 expected: Toolbar icons/labels/spacing/hover/Alt-underlines identical 01-05; menu/row-action identical 04-06; 01-09-14 pixel-identical; 10-13 differ only in footer-button width (D-12).
-result: [pending]
+result: pass
 
 ### 10. Re-run UAT test 5 (after-19-20/ vs after-21/ comparison for item 21) and UAT test 7 (before/ shot-table completeness) on the complete sets.
 expected: Spacing changes appear only at the status bar/bulk-progress panel/restore-step text/empty-state link; close-button hover colour changes; every one of the fourteen named shots is present and shows only the app window in its named state.
-result: [pending]
+result: pass
 
 ### 11. Decide whether to restore the two disclosed-but-now-untracked findings (WR-01 backup-of-own-archive-folder repack; IN-01 orphaned `xs` Styles.xaml token) to WISHLIST.md or a fresh 02-REVIEW-DISPOSITION.md row.
 expected: Either both findings get a durable home (WISHLIST.md or a disposition row), or an explicit owner decision that losing them is acceptable.
-result: [pending]
+result: pass
+note: "Initially failed (neither finding was tracked anywhere — see Gaps G-02-11); owner chose WISHLIST.md, both added under Tier 3."
 
 ## Summary
 
 total: 11
-passed: 5
+passed: 9
 issues: 2
-pending: 4
+pending: 0
 skipped: 0
 blocked: 0
 
@@ -69,7 +70,7 @@ blocked: 0
 
 - gap_id: G-02-6
   truth: "The confirmation can be answered both times while the restore list is open; Cancel keeps the archive, Delete removes exactly that one row and its file."
-  status: failed
+  status: resolved
   reason: "User reported: confirmation renders hidden behind the modal RestorePickerWindow, unreachable by a real click (confirmed with SetCursorPos/mouse_event plus WindowFromPoint; see 02-10-SUMMARY.md and .planning/STATE.md Blockers)"
   severity: major
   test: 6
@@ -85,10 +86,12 @@ blocked: 0
     - "RestorePickerWindow needs its own ContentDialogHost in XAML"
     - "DialogService.ShowRestorePickerDialog needs to construct a second ContentDialogService bound to that host plus a second DialogService instance owned by the picker dialog (not _owner/MainWindow), passed into RestorePickerViewModel instead of this"
   debug_session: ""
+  resolved_by: "02-16-PLAN.md"
+  resolved_at: "2026-11-20"
 
 - gap_id: G-02-7
   truth: "Each shot not on disk has a reason; every screenshot in screenshots/before/ is capturable and shows only the app window in the expected state."
-  status: failed
+  status: resolved
   reason: "User reported: 5/14 shots (05-row-actions-idle, 07-statusbar, 08-restore-steps, 11-changesavefolder-footer, 13-restorepicker-footer) uncapturable due to capture.ps1 element-finder gaps. The demo-data.ps1 backtick/CRLF bug named in the original report is NOT reproducible — git history (commit 0e546aec, same day, already on dev/v1.1) already split the chained .Replace() calls; current working tree matches HEAD with no diff. Only the capture.ps1 gaps remain open."
   severity: minor
   test: 7
@@ -105,6 +108,25 @@ blocked: 0
     - "Row/cell lookup: iterate ControlType.DataItem rows, match a nested ControlType.Text descendant to the display name, then find the Restore button within that same DataItem"
     - "Shot 11: search ControlType.MenuItem (not Button) scoped to AutomationElement.RootElement's top-level children, matching the pattern Shot-12ScanFooter/Shot-13RestorePickerFooter already use for other popups"
   debug_session: ""
+  resolved_by: "02-17-PLAN.md"
+  resolved_at: "2026-11-24"
+
+- gap_id: G-02-11
+  truth: "Either both findings (2026-11-19 WR-01 backup-of-own-archive-folder repack; IN-01 orphaned `xs` Styles.xaml token) get a durable home (WISHLIST.md or a disposition row), or an explicit owner decision that losing them is acceptable."
+  status: resolved
+  reason: "Neither finding is tracked anywhere. 02-REVIEW-DISPOSITION.md's current WR-01 row is a same-id-but-different finding from the 2026-11-24 review (Confirm blocked-thread leak, already accepted per T-02-30) — it silently replaced, rather than carried forward, the 2026-11-19 review's WR-01. Per 02-VERIFICATION.md Human Verification item 4, this needs an owner decision, not a code fix."
+  severity: minor
+  test: 11
+  root_cause: "02-REVIEW-DISPOSITION.md was overwritten wholesale by the 2026-11-24 code-review run instead of appended to, dropping the 2026-11-19 review's WR-01 and IN-01 rows. Neither was ever added to WISHLIST.md as a fallback."
+  artifacts:
+    - path: ".planning/phases/02-audit-follow-ups/02-REVIEW-DISPOSITION.md"
+      issue: "Only holds the 2026-11-24 review's WR-01 (Confirm thread leak); the 2026-11-19 WR-01 (repack) and IN-01 (orphaned xs token) rows are gone"
+    - path: ".planning/WISHLIST.md"
+      issue: "Neither finding was ever added here either"
+  missing: []
+  debug_session: ""
+  resolved_by: "manual (owner decision 2026-11-24: WISHLIST.md Tier 3, not a plan/execute cycle)"
+  resolved_at: "2026-11-24"
 
 - Items 2 and 3 passed live: Alt-mnemonic keys respond correctly, and a real bulk-backup run
   against a 500MB+ save showed the progress panel behaving as expected.
