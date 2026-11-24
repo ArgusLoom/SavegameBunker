@@ -59,6 +59,20 @@ $script:Missing = @()
 # Helpers
 # ---------------------------------------------------------------------------
 
+function Set-ForegroundReliable {
+    # Plain SetForegroundWindow can be silently denied by Windows' foreground-lock timeout
+    # when the calling process did not generate the most recent input — exactly what happens
+    # after this script's own multi-second Wait-Seconds calls while the desktop is used for
+    # anything else. Found while verifying this plan against an older build: a capture taken
+    # right after such a wait held a wholly unrelated window's content (T-02-31), because this
+    # call had silently done nothing. Tapping Alt first is the standard workaround: it gives
+    # this process a fresh input event, which Windows accepts as grounds to grant the request.
+    param([System.IntPtr]$HWnd)
+    [Win32.Native]::keybd_event(0x12, 0, 0, [System.IntPtr]::Zero)        # VK_MENU down
+    [Win32.Native]::keybd_event(0x12, 0, 2, [System.IntPtr]::Zero)        # VK_MENU up (KEYEVENTF_KEYUP)
+    [void][Win32.Native]::SetForegroundWindow($HWnd)
+}
+
 function Invoke-DemoResetWithRoot {
     param([string]$DemoRoot)
     $demoData = Join-Path $PSScriptRoot 'demo-data.ps1'
@@ -239,7 +253,7 @@ function Save-WindowShot {
     # on a shared desktop another window can occlude it between shots, especially across a long
     # wait (T-02-31; hit once during this plan's own verification, after the restore safety
     # backup's ~20s wait). Raising the app window first makes that the topmost content again.
-    [Win32.Native]::SetForegroundWindow($proc.MainWindowHandle) | Out-Null
+    Set-ForegroundReliable $proc.MainWindowHandle
     Start-Sleep -Milliseconds 200
     $rect = New-Object Win32.Native+RECT
     [Win32.Native]::GetWindowRect($proc.MainWindowHandle, [ref]$rect) | Out-Null
@@ -259,7 +273,7 @@ function Save-ElementShot {
     $proc = Get-Process -Name 'SavegameBunker' -ErrorAction SilentlyContinue |
         Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
     # Same reason as Save-WindowShot: raise the window before copying screen pixels (T-02-31).
-    [Win32.Native]::SetForegroundWindow($proc.MainWindowHandle) | Out-Null
+    Set-ForegroundReliable $proc.MainWindowHandle
     Start-Sleep -Milliseconds 200
     $wrect = New-Object Win32.Native+RECT
     [Win32.Native]::GetWindowRect($proc.MainWindowHandle, [ref]$wrect) | Out-Null
@@ -443,7 +457,7 @@ function Shot-07Statusbar {
     # copying screen pixels, or another window can occlude the captured region on a shared
     # desktop. Found while verifying this plan against an older build: without this, the
     # cropped strip sometimes held desktop content instead of the status bar.
-    [Win32.Native]::SetForegroundWindow($proc.MainWindowHandle) | Out-Null
+    Set-ForegroundReliable $proc.MainWindowHandle
     Start-Sleep -Milliseconds 200
     $rect = New-Object Win32.Native+RECT
     [Win32.Native]::GetWindowRect($proc.MainWindowHandle, [ref]$rect) | Out-Null
