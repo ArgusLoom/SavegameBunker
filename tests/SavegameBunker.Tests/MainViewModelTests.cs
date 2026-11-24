@@ -289,6 +289,32 @@ public sealed class MainViewModelTests : MainViewModelTestBase
         Assert.True(vm.AddGameCommand.CanExecute(null));
     }
 
+    /// <summary>
+    /// A single-row Backup choosing its first backup folder writes the catalog too, so catalog
+    /// edits wait while its picker is open — the same race the bulk preparation gate closes.
+    /// </summary>
+    [Fact]
+    public async Task Catalog_edits_wait_while_a_row_backup_chooses_its_first_backup_folder()
+    {
+        var (vm, dialog, _) = CreateViewModel(backupRoot: "");
+        dialog.FolderToReturn = null; // the user cancels the picker
+        await WaitForAsync(() => vm.Games.All(row => row.ComparisonKind != BackupComparisonKind.Checking));
+
+        bool addGame = true, findGames = true;
+        dialog.OnPickFolder = () =>
+        {
+            addGame = vm.AddGameCommand.CanExecute(null);
+            findGames = vm.FindGamesCommand.CanExecute(null);
+        };
+
+        vm.BackupCommand.Execute(vm.Games[0]);
+        await WaitForAsync(() => dialog.PickFolderCalls == 1 && !vm.IsAnyOperationRunning);
+
+        Assert.False(addGame);
+        Assert.False(findGames);
+        Assert.True(vm.AddGameCommand.CanExecute(null));
+    }
+
     [Fact]
     public async Task A_whitespace_backup_root_opens_the_picker_like_an_absent_one()
     {

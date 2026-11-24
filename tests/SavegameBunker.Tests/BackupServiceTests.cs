@@ -1389,14 +1389,17 @@ public sealed class BackupServiceTests : IDisposable
         Directory.CreateDirectory(saveDir);
         File.WriteAllText(Path.Combine(saveDir, "slot1.zip"), "game data");
         File.WriteAllText(Path.Combine(saveDir, "cache.zip.tmp"), "game data");
+        File.WriteAllText(Path.Combine(saveDir, ".autosave.zip.tmp"), "game data");
         var game = new Game { Id = "zipper", DisplayName = "Zipper", SaveDirTemplate = saveDir.Replace('\\', '/') };
 
         var result = _service.Backup(game, backupRoot, "", out var archivePath);
 
         Assert.True(result.Success, result.Message);
         using var zip = ZipFile.OpenRead(archivePath!);
-        Assert.Equal(["cache.zip.tmp", "slot1.zip"], zip.Entries.Select(e => e.FullName).Order().ToList());
+        Assert.Equal([".autosave.zip.tmp", "cache.zip.tmp", "slot1.zip"],
+            zip.Entries.Select(e => e.FullName).Order(StringComparer.Ordinal).ToList());
         Assert.True(File.Exists(Path.Combine(saveDir, "cache.zip.tmp")));
+        Assert.True(File.Exists(Path.Combine(saveDir, ".autosave.zip.tmp")));
     }
 
     // An archive-folder save folder holding only earlier backups: the refusal names that, not a

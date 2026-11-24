@@ -182,7 +182,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         // IsCatalogCommandRunning is part of IsAnyOperationRunning, so the gates reading it must
         // be re-queried when one of those commands starts or finishes.
         foreach (var command in new IAsyncRelayCommand[]
-                 { RefreshCommand, AddGameCommand, ChangeSaveFolderCommand, RemoveGameCommand })
+                 { RefreshCommand, ChangeBackupRootCommand, AddGameCommand, ChangeSaveFolderCommand, RemoveGameCommand })
         {
             command.PropertyChanged += (_, e) =>
             {
@@ -353,15 +353,34 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         || IsCatalogCommandRunning;
 
     /// <summary>
-    /// Refresh, Add Game, Change save folder or Remove game still in flight. Each rebuilds or
-    /// replaces rows after an await; a bulk run started meanwhile would claim rows that are about
-    /// to be dropped or replaced, and back up an old save path or a removed game. Find Games is
-    /// left out on purpose: its scan can run long and only adds rows, so Refresh and backups stay
-    /// available while it runs.
+    /// Refresh, Change backup folder, Add Game, Change save folder or Remove game still in flight.
+    /// Each reloads or rewrites the catalog, or rebuilds or replaces rows, after an await; a backup
+    /// started meanwhile could claim rows that are about to be dropped or replaced, or resolve the
+    /// backup folder mid-change. Find Games is left out on purpose: its scan can run long and only
+    /// adds rows, so Refresh and backups stay available while it runs.
     /// </summary>
     private bool IsCatalogCommandRunning =>
-        RefreshCommand.IsRunning || AddGameCommand.IsRunning
+        RefreshCommand.IsRunning || ChangeBackupRootCommand.IsRunning || AddGameCommand.IsRunning
         || ChangeSaveFolderCommand.IsRunning || RemoveGameCommand.IsRunning;
+
+    /// <summary>
+    /// Something other than a catalog edit itself is reloading or writing the catalog: a backup
+    /// choosing its first backup folder (bulk or single-row), Refresh, or Change backup folder. A
+    /// catalog edit started then would race that write's changed-on-disk check, or be replaced by
+    /// Refresh's rebuild. The edit commands' own bodies check this (not
+    /// <see cref="IsCatalogCommandRunning"/>, which includes the command running the check).
+    /// </summary>
+    private bool IsCatalogWriteInFlight =>
+        IsBulkPreparing || IsChoosingBackupRoot || RefreshCommand.IsRunning || ChangeBackupRootCommand.IsRunning;
+
+    /// <summary>
+    /// True while <see cref="EnsureBackupRootAsync"/> is asking for and saving a first backup
+    /// folder — the catalog write a single-row Backup makes, which IsBulkPreparing does not cover.
+    /// </summary>
+    [ObservableProperty]
+    public partial bool IsChoosingBackupRoot { get; private set; }
+
+    partial void OnIsChoosingBackupRootChanged(bool value) => RequeryOperationGates();
 
     /// <summary>How many rows are currently checked — the durable count the bulk actions gate on.</summary>
     public int SelectedCount => Games.Count(row => row.IsSelected);
@@ -957,11 +976,11 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     private Task AddGameAsync() => AddGameCoreAsync(initialSaveFolder: null);
 
     /// <summary>
-    /// Add Game and Find Games write the catalog; while a bulk run is still preparing its backup
-    /// folder it may be writing the catalog too (the chosen <c>backupRoot</c>), and two writers
-    /// would race the catalog's changed-on-disk check.
+    /// Add Game and Find Games write the catalog; while another catalog write or reload is in
+    /// flight (<see cref="IsCatalogWriteInFlight"/>, or another edit command) two writers would
+    /// race the catalog's changed-on-disk check.
     /// </summary>
-    private bool CanEditCatalog() => !IsBulkPreparing;
+    private bool CanEditCatalog() => !IsCatalogWriteInFlight && !IsCatalogCommandRunning;
 
     /// <summary>
     /// Opens Add Game with <paramref name="folder"/> already in the save-folder field.
@@ -974,7 +993,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     private async Task AddGameCoreAsync(string? initialSaveFolder)
     {
         // The drop-a-folder route reaches here without CanExecute; same gate as CanEditCatalog.
-        if (IsBulkPreparing)
+        if (IsCatalogWriteInFlight)
         {
             StatusMessage = Strings.Get("str_addGame_busy");
             return;
@@ -1336,7 +1355,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         // busy (it is still resolving the backup folder), so replacing this row now would let the
         // run back up the old Game with its old save path. The overflow menu calls Execute
         // directly, which skips CanExecute, so the guard lives here.
-        if (row is null || row.IsBusy || IsBulkPreparing)
+        if (row is null || row.IsBusy || IsCatalogWriteInFlight)
             return;
 
         var newTemplate = _dialog.ShowChangeSaveFolderDialog(row.DisplayName, row.Game.SaveDirTemplate);
@@ -1393,7 +1412,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     {
         // IsBulkPreparing: same window as ChangeSaveFolderAsync — the bulk run's targets are
         // captured but not yet busy, so a removal now would still be backed up afterwards.
-        if (row is null || row.IsBusy || IsBulkPreparing)
+        if (row is null || row.IsBusy || IsCatalogWriteInFlight)
             return;
 
         var confirmed = await Task.Run(() =>
@@ -1646,19 +1665,28 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
             return existing;
         }
 
-        var start = await Task.Run(_suggestBackupStartFolder);
-        var picked = _dialog.PickFolder(Strings.Get("str_common_pickBackupFolderTitle"), start);
-        if (picked is null)
+        string? picked;
+        IsChoosingBackupRoot = true;
+        try
         {
-            StatusMessage = Strings.Get("str_backup_cancelledNoFolder");
-            return null;
-        }
+            var start = await Task.Run(_suggestBackupStartFolder);
+            picked = _dialog.PickFolder(Strings.Get("str_common_pickBackupFolderTitle"), start);
+            if (picked is null)
+            {
+                StatusMessage = Strings.Get("str_backup_cancelledNoFolder");
+                return null;
+            }
 
-        var saveResult = await _session.SetBackupRootAsync(picked);
-        if (!saveResult.Success)
+            var saveResult = await _session.SetBackupRootAsync(picked);
+            if (!saveResult.Success)
+            {
+                Report(saveResult);
+                return null;
+            }
+        }
+        finally
         {
-            Report(saveResult);
-            return null;
+            IsChoosingBackupRoot = false;
         }
 
         OnPropertyChanged(nameof(BackupRootDisplay));

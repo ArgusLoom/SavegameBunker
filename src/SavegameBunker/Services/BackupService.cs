@@ -916,13 +916,28 @@ public sealed class BackupService
         || (fileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) && HasTimestampPrefix(fileName));
 
     /// <summary>
-    /// The <c>.zip.tmp</c> names this app writes: dot-prefixed <c>.{guid}.zip.tmp</c> staging and
-    /// <c>.probe-{guid}.zip.tmp</c> probe files, plus the <c>yyyy-MM-dd_HHmmss….zip.tmp</c> staging
-    /// name earlier versions used, so their leftovers are still swept.
+    /// The <c>.zip.tmp</c> names this app writes: <c>.{guid}.zip.tmp</c> staging and
+    /// <c>.probe-{guid}.zip.tmp</c> probe files (32 hex digits, <c>Guid.ToString("N")</c>), plus the
+    /// <c>yyyy-MM-dd_HHmmss….zip.tmp</c> staging name earlier versions used, so their leftovers are
+    /// still swept. Exact shapes, so a game's own <c>.autosave.zip.tmp</c> is never taken for one.
     /// </summary>
-    private static bool IsOwnTempFileName(string fileName) =>
-        fileName.EndsWith(".zip.tmp", StringComparison.OrdinalIgnoreCase)
-        && (fileName.StartsWith('.') || HasTimestampPrefix(fileName));
+    private static bool IsOwnTempFileName(string fileName)
+    {
+        const string suffix = ".zip.tmp";
+        if (!fileName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (HasTimestampPrefix(fileName))
+            return true;
+
+        var stem = fileName[..^suffix.Length];
+        if (stem.StartsWith(".probe-", StringComparison.Ordinal))
+            stem = stem[".probe-".Length..];
+        else if (stem.StartsWith('.'))
+            stem = stem[1..];
+        else
+            return false;
+        return stem.Length == 32 && Guid.TryParseExact(stem, "N", out _);
+    }
 
     private static bool HasTimestampPrefix(string fileName) =>
         fileName.Length >= 17
