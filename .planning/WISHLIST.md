@@ -63,6 +63,14 @@ within a tier, order is rough preference, not a schedule.
 - **Orphaned `xs` spacing token left in `Styles.xaml`** (2026-11-19 code review, IN-01) by a since-landed
   layout change (`Styles.xaml:57`). Cosmetic, no behavior impact; remove on the next pass through
   that file
+- **Keyboard-shortcuts reference still documents "Alt, H -> Help"** in both user-guide languages
+  (2026-11-24 code review, WR-04) — stale since Help was replaced by the About button (Alt+B) in an
+  earlier commit. Fix is a one-line edit in each of the two keyboard-shortcuts.md files
+- **Alt+B mnemonic collision between "Back up" and "About"** (2026-11-24 code review, WR-05) — WPF's
+  `AccessKeyManager` is case-insensitive, so `_Back up`'s `B` and `A_bout`'s `b` collide in the same
+  unscoped toolbar region; `StringsTests.cs`'s mnemonic-uniqueness check deliberately excludes
+  "about" from its letter set, so this is untested. Pre-existing, not a regression from any single
+  change. Fix means picking a different mnemonic for one of the two
 
 ## Accepted limitations that could one day be lifted
 

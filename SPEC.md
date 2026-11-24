@@ -292,8 +292,8 @@ backup destination. The safety backup is what makes "exactly the archive content
   modified does not — it lives in the Status cell's relative-time subline
 - Save-directory status is gathered on a background thread as the window opens; rows appear
   immediately and fill themselves in. Startup is never blocked by a slow or absent volume
-- Window actions: Add game, Scan, Refresh, Open the games list, Change backup folder, Back up all
-  changed, Back up selected, Restore selected, Switch theme (light/dark for the session) and About
+- Window actions: Add game, Scan, Refresh, Open the games list, Backup folder, Back up all
+  changed, Back up, Restore, Switch theme (light/dark for the session) and About
   — the rightmost button, opening a small window with the app name, version, build date and a link
   to the user guide (the offline copy, falling back to the same guide on GitHub Pages when no
   offline copy is installed next to the executable). The header shows the catalog file name (full

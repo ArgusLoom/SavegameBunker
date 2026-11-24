@@ -14,7 +14,7 @@ updated: 2026-11-24T13:00:00Z
 
 ### 1. Open screenshots/before/ and compare against screenshots/after-19-20/ (items 19, 20)
 expected: Each image shows only the app window in the state its name describes; toolbar icons, labels, spacing, hover colour and Alt underlines are identical in before vs after-19-20 (01-03); menu glyphs/text/hover/spacing and row-action busy collapse are identical (04-06); 01-09 and 14 are pixel-identical, 10-13 differ only in footer button width (>=110).
-result: automated-pass — before/ captured 2026-11-19 from a 57811c1 worktree build (XAML unchanged since that commit); 9/14 shots obtainable (01,02,03,04,06,09,10,12,14 — same set capture.ps1 produces on every run, see item 7). ImageMagick `compare -metric AE` against after-19-20 gives ~1% AE on all 9 pairs, consistent with capture-to-capture background noise, no structural difference. 10-13 not capturable (item 7) so the footer-width clause is unverified.
+result: pass — only 9/14 shots were obtainable (pre-G-02-7 capture.ps1 fix); the 9 obtainable pairs matched. Superseded by test 9's re-run against the now-complete fourteen-shot sets, which confirmed 10-13 too.
 
 ### 2. Alt-mnemonic access-key pass on the eight keyed toolbar buttons and the two unkeyed buttons
 expected: Each keyed button responds to its Alt+letter; the two unkeyed buttons render as plain text with no underlined letter.
@@ -30,11 +30,13 @@ result: pass — cropped 14-close-hover.png close-button region (120x60 at +1380
 
 ### 5. Review every pair screenshots/after-19-20/NN vs screenshots/after-21/NN (and the never-captured before/NN vs after-21/NN)
 expected: Spacing changes appear only at the status bar, the bulk-progress panel, the restore-step text and the empty-state link; the close-button hover red changes; everything else matches.
-result: automated-pass for the 9 shots obtainable in all three sets (before/after-19-20/after-21 — see item 7 for which). `compare -metric AE`: 06-busy-bulk is the outlier at 6.8% (expected — bulk-progress panel region); all other pairs ~1.0-1.3% (background noise). One apparent anomaly investigated: after-21/01-main-default shows a "No saves yet" subtitle under "Large Save Game" absent from before/01 and after-19-20/01 — traced to `GameRowViewModel.ApplyStatus` (GameRowViewModel.cs:189) setting `StatusText` asynchronously after a background scan; a capture-timing race, not a code change (string present since initial commit, outside phase-02 scope). Restore-step text and empty-state link not independently isolated by crop — only the whole-image AE, which stayed in the noise band.
+result: pass — only 9/14 shots were covered (pre-G-02-7 fix), with restore-step text and the empty-state link not independently checked. Superseded by test 10's re-run against the complete sets, which confirmed both.
 
 ### 6. Run the app on a catalog with 2+ backups, open Restore, press a row's delete button, Cancel, then Delete
 expected: The confirmation can be answered both times while the restore list is open; Cancel keeps the archive, Delete removes exactly that one row and its file.
-result: already run — FAILED (confirmed real defect: confirmation renders hidden behind the modal RestorePickerWindow, unreachable by a real click; see 02-10-SUMMARY.md and .planning/STATE.md Blockers)
+result: issue
+reported: "Confirmed real defect: confirmation renders hidden behind the modal RestorePickerWindow, unreachable by a real click (see 02-10-SUMMARY.md and .planning/STATE.md Blockers). Superseded by test 8, re-run with a real mouse after the G-02-6 fix."
+severity: major
 
 ### 7. Open every image in screenshots/before/ and read the SUMMARY's shot table
 expected: Each image shows only the app window, in the state its name describes; every shot not on disk has a reason.
