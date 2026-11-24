@@ -278,6 +278,27 @@ public sealed class StartupUnsecuredPromptTests : IDisposable
     }
 
     /// <summary>
+    /// A Refresh clicked while ReportLoad's reachability probe is still running puts the rows back
+    /// on Checking after the first sweep settled. Arming then must not count those rows (zero
+    /// unsecured) and spend the one shot; the row that settles afterwards decides the prompt.
+    /// </summary>
+    [Fact]
+    public async Task Arming_while_rows_are_checking_again_waits_for_them_to_settle()
+    {
+        var (vm, dialog, _) = await CreateViewModelAsync(1);
+        dialog.ConfirmToReturn = false;
+
+        vm.Games[0].ApplyBackupComparison(BackupComparison.Checking());
+        vm.RequestStartupUnsecuredPrompt();
+        Assert.Empty(dialog.ConfirmMessages);
+
+        vm.Games[0].ApplyBackupComparison(BackupComparison.NeverBackedUp());
+
+        await WaitForAsync(() => dialog.ConfirmMessages.Count == 1);
+        Assert.Contains("Game 0", dialog.ConfirmMessages[0]);
+    }
+
+    /// <summary>
     /// A full sweep over zero rows also counts as settled, so an empty catalog consumes an armed
     /// prompt on the spot instead of saving it up — a later Refresh after a game was added must
     /// never show the startup prompt mid-session. The negative proof waits past the point where

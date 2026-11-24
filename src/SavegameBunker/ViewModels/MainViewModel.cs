@@ -74,8 +74,8 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// Armed once by <c>App.OnStartup</c> (via <see cref="RequestStartupUnsecuredPrompt"/>) so the
     /// startup prompt can only ever be offered around application start, never by an ordinary
     /// mid-session Refresh's sweep completion. Arming evaluates the prompt at once when the first
-    /// full sweep has already settled (see <see cref="_firstFullSweepSettled"/>); otherwise the
-    /// first full sweep that settles afterwards consumes it. Either way at most once per session.
+    /// full sweep has already settled (see <see cref="_firstFullSweepSettled"/>) and no row is on
+    /// Checking; otherwise the moment both hold decides it. Either way at most once per session.
     /// </summary>
     private bool _startupPromptPending;
 
@@ -245,6 +245,10 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
                     BackupAllChangedCommand.NotifyCanExecuteChanged();
                     BackupSelectedCommand.NotifyCanExecuteChanged();
                     RestoreSelectedCommand.NotifyCanExecuteChanged();
+                    // A prompt armed while some sweep still had rows on Checking was deferred;
+                    // the row that settles last decides it (see PromptUnsecuredGamesOnce).
+                    if (row.ComparisonKind != BackupComparisonKind.Checking)
+                        PromptUnsecuredGamesOnce();
                     break;
                 case nameof(GameRowViewModel.IsBusy):
                     OnPropertyChanged(nameof(IsAnyRowBusy));
@@ -868,9 +872,14 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         // arming and settling, so the arm/settle pair can neither lose nor double the prompt.
         // Everything below — the unsecured count, the message, the Task.Run with Confirm —
         // stays outside it.
+        //
+        // Not consumed while any row is on Checking: a Refresh clicked during ReportLoad's
+        // reachability probe puts every row back to Checking after the first sweep settled, and
+        // counting then would find zero unsecured games and spend the one shot. The row that
+        // settles last calls back in (RegisterRow's ComparisonKind case).
         lock (_startupPromptLock)
         {
-            if (_startupPromptShown || !_startupPromptPending)
+            if (_startupPromptShown || !_startupPromptPending || !_firstFullSweepSettled || IsAnyRowChecking)
                 return;
             _startupPromptPending = false;
             _startupPromptShown = true;

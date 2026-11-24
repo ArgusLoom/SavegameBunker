@@ -125,6 +125,13 @@ public sealed class BackupService
             // listed too for the case where the backup folder IS the save folder.
             var excludedDirs = new[] { PathCompare.Normalize(backupRoot), PathCompare.Normalize(targetDir) };
 
+            // The save folder IS this game's archive folder: its earlier archives and this run's
+            // own staging file sit at the walk root, where the folder exclusions above never
+            // reach. Without skipping them every backup would pack all earlier ones, and the open
+            // staging file would land in the unreadable-path warning.
+            var skipRootArchives = PathCompare.IsSameOrInside(saveDir, targetDir)
+                                   && PathCompare.IsSameOrInside(targetDir, saveDir);
+
             Dictionary<string, string> entryHashes;
             try
             {
@@ -132,7 +139,7 @@ public sealed class BackupService
                 // and would archive whatever they point at (Documents, SSH keys, …). The empty-check
                 // and the scanner already skip reparse points; the zip must skip them too.
                 entryHashes = ArchiveSaveDir(saveDir, tempPath, progress, excludedDirs, skippedPaths,
-                    (path, isBackupFolder) => (isBackupFolder ? leftOut : notBackedUp).Add(path));
+                    (path, isBackupFolder) => (isBackupFolder ? leftOut : notBackedUp).Add(path), skipRootArchives);
             }
             catch (Exception ex)
             {
@@ -152,15 +159,18 @@ public sealed class BackupService
             if (entryHashes.Count == 0 && skippedPaths.Count == 0)
             {
                 TryDelete(tempPath);
-                return OperationResult.Fail(leftOut.Count + notBackedUp.Count > 0
-                    ? $"Backup failed for {game.DisplayName}: {saveDir} holds nothing but the backup folder, so there is nothing to back up."
-                    : $"Save folder is empty: {saveDir}");
+                return OperationResult.Fail(
+                    notBackedUp.Count > 0
+                        ? $"Backup failed for {game.DisplayName}: {saveDir} is also the backup folder, so its subfolders cannot be told apart from other games' backups and were left out: {DirectoryWalk.FormatSkippedList(notBackedUp)}. Choose a backup folder outside the save folder."
+                        : leftOut.Count > 0 || skipRootArchives
+                            ? $"Backup failed for {game.DisplayName}: {saveDir} holds nothing but the backup folder, so there is nothing to back up."
+                            : $"Save folder is empty: {saveDir}");
             }
 
             // Success is reported only after the archive is reopened and its entries matched
             // against a fresh walk of the save directory.
             var verificationFailure = DescribeVerificationFailure(
-                tempPath, saveDir, excludedDirs, skippedPaths, entryHashes);
+                tempPath, saveDir, excludedDirs, skippedPaths, entryHashes, skipRootArchives);
             if (verificationFailure is not null)
             {
                 TryDelete(tempPath);
@@ -553,17 +563,21 @@ public sealed class BackupService
     /// <paramref name="sourceDir"/> instead and compares that against the archive entry's hash,
     /// proving the extraction wrote what the archive holds.
     /// </param>
+    /// <param name="skipRootArchives">
+    /// The same flag the archive pass used, so the fresh walk steps over the same root-level
+    /// archives and staging file when the save folder is this game's own archive folder.
+    /// </param>
     internal static string? DescribeVerificationFailure(
         string archivePath, string sourceDir, IReadOnlyCollection<string>? excludedDirs = null,
         IReadOnlyCollection<string>? skipped = null,
-        IReadOnlyDictionary<string, string>? expectedHashes = null)
+        IReadOnlyDictionary<string, string>? expectedHashes = null, bool skipRootArchives = false)
     {
         Dictionary<string, long> sourceFiles;
         try
         {
             // Re-enumerated fresh rather than reusing a list captured before the write: a file
             // that changed during the backup must surface as a mismatch.
-            sourceFiles = EnumerateRelativeFiles(sourceDir, excludedDirs);
+            sourceFiles = EnumerateRelativeFiles(sourceDir, excludedDirs, skipRootArchives: skipRootArchives);
         }
         catch (Exception ex)
         {
@@ -683,15 +697,24 @@ public sealed class BackupService
     /// <see cref="DirectoryWalk.ForEachFile"/>'s exclusion reporter with its is-a-backup-folder
     /// flag. Deliberate exclusions, not unreadable paths.
     /// </param>
+    /// <param name="skipRootArchives">
+    /// True when <paramref name="rootDir"/> is this game's own archive folder: the app's
+    /// <c>*.zip</c> archives and <c>*.zip.tmp</c> staging/probe files directly in it are this app's
+    /// own files, not save data, so they are stepped over.
+    /// </param>
     private static Dictionary<string, long> EnumerateRelativeFiles(
         string rootDir, IReadOnlyCollection<string>? excludedDirs = null, ICollection<string>? skipped = null,
-        Action<string, bool>? onExcluded = null)
+        Action<string, bool>? onExcluded = null, bool skipRootArchives = false)
     {
         var result = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
 
         DirectoryWalk.ForEachFile(rootDir, info =>
         {
             var relative = Path.GetRelativePath(rootDir, info.FullName).Replace(Path.DirectorySeparatorChar, '/');
+            if (skipRootArchives && !relative.Contains('/')
+                && (relative.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)
+                    || relative.EndsWith(".zip.tmp", StringComparison.OrdinalIgnoreCase)))
+                return;
             result[relative] = info.Length;
         }, excludedDirs, skipped is null ? null : skipped.Add, onExcluded);
 
@@ -728,6 +751,7 @@ public sealed class BackupService
     /// Optional reporter forwarded to <see cref="EnumerateRelativeFiles"/> — the subfolders the
     /// walk leaves out on purpose, with whether each is a backup folder.
     /// </param>
+    /// <param name="skipRootArchives">Forwarded to <see cref="EnumerateRelativeFiles"/>.</param>
     /// <returns>
     /// SHA-256 of every entry's uncompressed content, keyed by entry name — recorded for
     /// <see cref="DescribeVerificationFailure"/>'s content check, so a file torn mid-write that
@@ -735,7 +759,7 @@ public sealed class BackupService
     /// </returns>
     private static Dictionary<string, string> ArchiveSaveDir(
         string saveDir, string tempPath, IProgress<long>? progress, IReadOnlyCollection<string>? excludedDirs = null,
-        ICollection<string>? skipped = null, Action<string, bool>? onExcluded = null)
+        ICollection<string>? skipped = null, Action<string, bool>? onExcluded = null, bool skipRootArchives = false)
     {
         var entryHashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         using var zip = ZipFile.Open(tempPath, ZipArchiveMode.Create);
@@ -743,7 +767,7 @@ public sealed class BackupService
         long completed = 0;
         long lastReported = 0;
 
-        foreach (var (relative, length) in EnumerateRelativeFiles(saveDir, excludedDirs, skipped, onExcluded))
+        foreach (var (relative, length) in EnumerateRelativeFiles(saveDir, excludedDirs, skipped, onExcluded, skipRootArchives))
         {
             var fullPath = Path.Combine(saveDir, relative.Replace('/', Path.DirectorySeparatorChar));
 

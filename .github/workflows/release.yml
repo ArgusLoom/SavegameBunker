@@ -104,6 +104,7 @@ jobs:
           dotnet publish src/SavegameBunker/SavegameBunker.csproj -c Release \
             -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true \
             -p:EnableWindowsTargeting=true -p:DebugType=none -p:DebugSymbols=false \
+            -p:BuildDate="${{ steps.version.outputs.release_date }}" \
             -o publish
           test -f publish/SavegameBunker.exe
           # The .NET 10 SDK emits portable symbols in Release publish; the app

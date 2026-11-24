@@ -15,6 +15,10 @@ public sealed partial class AboutDialogViewModel : CommunityToolkitObservableObj
 {
     private readonly IDialogService _dialog;
 
+    /// <param name="dialog">
+    /// The About window's own dialog service, so a help-link error renders inside About rather
+    /// than behind it in the main window.
+    /// </param>
     public AboutDialogViewModel(IDialogService dialog)
     {
         _dialog = dialog;

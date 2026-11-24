@@ -1337,6 +1337,45 @@ public sealed class BackupServiceTests : IDisposable
         Assert.DoesNotContain("profiles (backup folder", result.Message, StringComparison.Ordinal);
     }
 
+    // Save data only in subfolders of a save folder that is also the backup folder: nothing is
+    // archived, and the refusal must name those subfolders instead of claiming the folder holds
+    // nothing but the backup folder.
+    [Fact]
+    public void A_save_folder_that_is_the_backup_folder_with_saves_only_in_subfolders_names_them_in_the_failure()
+    {
+        var saveDir = Path.Combine(_dir, "eq-only-sub");
+        Directory.CreateDirectory(Path.Combine(saveDir, "profile1"));
+        File.WriteAllText(Path.Combine(saveDir, "profile1", "slot.sav"), "payload");
+        var game = new Game { Id = "eq-sub", DisplayName = "Eq Sub", SaveDirTemplate = saveDir.Replace('\\', '/') };
+
+        var result = _service.Backup(game, saveDir);
+
+        Assert.False(result.Success);
+        Assert.Contains("is also the backup folder", result.Message, StringComparison.Ordinal);
+        Assert.Contains("profile1", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("nothing but the backup folder", result.Message, StringComparison.Ordinal);
+    }
+
+    // The save folder IS the game's own archive folder (<backupRoot>/<id>): earlier archives and
+    // the open staging file sit at the walk root, and must never be packed or reported unreadable.
+    [Fact]
+    public void A_save_folder_that_is_its_own_archive_folder_never_packs_earlier_archives()
+    {
+        var backupRoot = Path.Combine(_dir, "bunker");
+        var saveDir = Path.Combine(backupRoot, "own");
+        Directory.CreateDirectory(saveDir);
+        File.WriteAllText(Path.Combine(saveDir, "save.dat"), "payload");
+        var game = new Game { Id = "own", DisplayName = "Own", SaveDirTemplate = saveDir.Replace('\\', '/') };
+
+        Assert.True(_service.Backup(game, backupRoot).Success);
+        var second = _service.Backup(game, backupRoot, "-second", out var secondPath);
+
+        Assert.True(second.Success, second.Message);
+        Assert.DoesNotContain("NOT in this backup", second.Message, StringComparison.Ordinal);
+        using var zip = ZipFile.OpenRead(secondPath!);
+        Assert.Equal("save.dat", Assert.Single(zip.Entries).FullName);
+    }
+
     // A save subfolder that merely CONTAINS the backup folder is walked, not pruned whole: save
     // files beside the backup folder must be archived, or a later restore would delete them.
     [Fact]

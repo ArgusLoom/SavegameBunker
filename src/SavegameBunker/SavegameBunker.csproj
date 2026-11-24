@@ -40,12 +40,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <!-- Stamped into the assembly at build time so the About window can show when this build
-         was produced, next to its version. No package needed: AssemblyMetadataAttribute is read
-         back via Assembly.GetCustomAttributes at runtime (see AboutDialogViewModel). -->
-    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+    <!-- Stamped into the assembly so the About window can show the release date next to its
+         version. No package needed: AssemblyMetadataAttribute is read back via
+         Assembly.GetCustomAttributes at runtime (see AboutDialogViewModel). Only when BuildDate is
+         passed in (release.yml passes the CHANGELOG release date): a clock-derived value would
+         change the generated AssemblyInfo, and so recompile the project, on every build, and two
+         builds of one tag would differ. Without it the About window omits the date. -->
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute" Condition="'$(BuildDate)' != ''">
       <_Parameter1>BuildDate</_Parameter1>
-      <_Parameter2>$([System.DateTime]::UtcNow.ToString("yyyy-MM-dd"))</_Parameter2>
+      <_Parameter2>$(BuildDate)</_Parameter2>
     </AssemblyAttribute>
   </ItemGroup>
 

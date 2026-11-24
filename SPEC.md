@@ -234,7 +234,11 @@ and silently replacing a broken catalog would destroy the user's own configurati
   destination* rule still holds; left-out backup folders are not unreadable paths and never raise
   the "NOT in this backup" warning. Subfolders left out only because the save directory is itself
   the backup folder are different: they may be real save data, so they are named in a warning
-  ("… subfolder(s) are NOT in this backup: …") and never called backup folders.
+  ("… subfolder(s) are NOT in this backup: …") and never called backup folders; when they are all
+  the save directory holds, the backup fails and names them. When the save directory is the game's
+  own archive folder `<backupRoot>\<id>`, the `*.zip` archives and `*.zip.tmp` staging files
+  directly in it are this app's own files and are never packed, so a backup never contains the
+  earlier ones.
 - Restore is refused for a game whose archive folder `<backupRoot>\<id>` lies inside, or is, its
   save directory — this covers every `backupRoot` inside or equal to the save directory — because
   restore renames the save directory aside and deletes it, which would delete the archives with

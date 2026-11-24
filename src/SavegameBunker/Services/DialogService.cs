@@ -204,6 +204,10 @@ public sealed class DialogService : IDialogService
             return dialog.ShowDialog() == true ? vm.SelectedBackup?.Archive : null;
         });
 
+    /// <summary>
+    /// Opens About with a dialog service of its own, drawing into About's own host, because About
+    /// is modal over the main window (see <see cref="ShowRestorePickerDialog"/> for the same case).
+    /// </summary>
     public void ShowAboutDialog() =>
         OnUiThread(() =>
         {

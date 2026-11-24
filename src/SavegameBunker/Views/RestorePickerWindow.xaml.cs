@@ -2,7 +2,11 @@ using Wpf.Ui.Controls;
 
 namespace SavegameBunker.Views;
 
-public partial class RestorePickerWindow : FluentWindow
+/// <summary>
+/// The restore picker: modal over the main window, so it carries its own dialog host for the
+/// confirmations and errors it raises (G-02-6).
+/// </summary>
+public sealed partial class RestorePickerWindow : FluentWindow
 {
     /// <summary>
     /// Takes no view model, unlike the sibling dialogs. <see cref="Services.DialogService"/> needs

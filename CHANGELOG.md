@@ -71,6 +71,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   It used to open in the main window behind it, where it could not be seen or clicked.
 - **Removing a game or changing its save folder now waits while "Back up" is still choosing its
   backup folder**, so the backup can no longer run on a removed game or an old save folder.
+- **A save folder that is the game's own backup folder no longer packs earlier backups.** Each
+  backup used to include every earlier one and warn about a file it could not read.
+- **The startup reminder no longer gets lost when you click Refresh right after starting.** With a
+  slow backup folder it could count zero unsecured games while the list was still being checked.
 - **Find Games says "1 file" instead of "1 files".**
 - **The "safety backup" tag in the restore list stays readable when its row is selected.**
 
