@@ -67,8 +67,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **A save folder that is also the backup folder now warns about the subfolders it skips.** Those
   subfolders were named as "backup folder" in the backup message even when they held save data;
   they are now listed in a warning as not backed up.
-- **An error opening the user guide from the About window now shows inside the About window.**
-  It used to open in the main window behind it, where it could not be seen or clicked.
+- **Opening the user guide from the About window now reports inside the About window.** An error
+  used to open in the main window behind it, where it could not be seen or clicked, and the note
+  that only the online guide was found showed behind it too.
+- **The restore list can no longer be closed while its delete confirmation is open**, which left
+  the confirmation unanswerable.
 - **Removing a game or changing its save folder now waits while "Back up" is still choosing its
   backup folder**, so the backup can no longer run on a removed game or an old save folder.
 - **A save folder that is the game's own backup folder no longer packs earlier backups.** Each

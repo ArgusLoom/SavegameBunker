@@ -18,4 +18,16 @@ public sealed partial class RestorePickerWindow : FluentWindow
     {
         InitializeComponent();
     }
+
+    /// <summary>
+    /// Refuses to close while a delete confirmation is open in this window's own host. The view
+    /// model's background thread waits on that dialog; closing the window would take the dialog
+    /// with it and leave the wait, and the delete, hanging for the rest of the session.
+    /// </summary>
+    protected override void OnClosing(System.ComponentModel.CancelEventArgs e)
+    {
+        if (DataContext is ViewModels.RestorePickerViewModel { IsDeletePending: true })
+            e.Cancel = true;
+        base.OnClosing(e);
+    }
 }

@@ -119,10 +119,15 @@
         <!--
             A ContentDialog is drawn inside the window that hosts it. This window is modal over
             MainWindow, so an error hosted by MainWindow's own RootDialogHost would paint underneath
-            it, out of reach (same as G-02-6 for the restore picker). Help-link errors render here.
+            it, out of reach (same as G-02-6 for the restore picker). Help-link errors render here,
+            and so does the success snackbar, which would otherwise show behind this window too.
         -->
         <ui:ContentDialogHost
             x:Name="RootDialogHost"
+            Grid.Row="0"
+            Grid.RowSpan="2" />
+        <ui:SnackbarPresenter
+            x:Name="RootSnackbarPresenter"
             Grid.Row="0"
             Grid.RowSpan="2" />
     </Grid>

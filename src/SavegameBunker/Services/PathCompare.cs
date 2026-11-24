@@ -19,9 +19,11 @@ namespace SavegameBunker.Services;
 internal static class PathCompare
 {
     /// <summary>
-    /// Full path with any trailing separator trimmed — except a drive root (<c>E:\</c>) or a UNC
-    /// share root (<c>\\server\share\</c>), which keeps its separator: trimming it would turn
-    /// <c>E:\</c> into <c>E:</c>, the current directory on that drive rather than its root.
+    /// Full path with any trailing separator trimmed — except a drive root (<c>E:\</c>), which
+    /// keeps its separator: trimming it would turn <c>E:\</c> into <c>E:</c>, the current directory
+    /// on that drive rather than its root. A UNC share root (<c>\\server\share\</c>) is trimmed
+    /// like any other path, because <see cref="Path.GetPathRoot(string)"/> reports it without the
+    /// separator; <see cref="IsSameOrInside"/> appends one back before comparing.
     /// </summary>
     internal static string Normalize(string path)
     {
