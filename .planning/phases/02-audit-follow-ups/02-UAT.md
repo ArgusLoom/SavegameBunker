@@ -3,7 +3,7 @@ status: complete
 phase: 02-audit-follow-ups
 source: [02-VERIFICATION.md]
 started: 2026-11-19T00:00:00Z
-updated: 2026-11-19T22:36:13.852Z
+updated: 2026-11-24T00:00:00Z
 ---
 
 ## Current Test
@@ -40,12 +40,28 @@ result: already run — FAILED (confirmed real defect: confirmation renders hidd
 expected: Each image shows only the app window, in the state its name describes; every shot not on disk has a reason.
 result: issue — 9/14 shots captured (01,02,03,04,06,09,10,12,14), each shows only the app window in the expected state. 5 missing, same failure on both the 57811c1 build and current HEAD (so a capture.ps1 element-finder gap, not an app regression): 05-row-actions-idle and 07-statusbar ("op_Subtraction" method-not-found in capture.ps1's own element lookup), 08-restore-steps and 13-restorepicker-footer ("Restore button not found"), 11-changesavefolder-footer ("Change save folder menu item not found"). The demo-data.ps1 backtick/CRLF bug originally named here is NOT reproducible — diagnosis found it already fixed on this branch by commit 0e546aec (same day); only the 3 capture.ps1 element-lookup bugs remain open (see Gaps G-02-7).
 
+### 8. Re-run UAT test 6: on a catalog where a game has two or more backups, open Restore, press a row's delete button, Cancel, then press it again and Delete — both with a real mouse.
+expected: The confirmation renders inside the restore list window and is answerable by both clicks while the list is open; Cancel keeps the archive, Delete removes exactly that one row and its file.
+result: [pending]
+
+### 9. Re-run UAT test 1 (before/ vs after-19-20/ comparison for items 19, 20) on the now-complete fourteen-shot sets.
+expected: Toolbar icons/labels/spacing/hover/Alt-underlines identical 01-05; menu/row-action identical 04-06; 01-09-14 pixel-identical; 10-13 differ only in footer-button width (D-12).
+result: [pending]
+
+### 10. Re-run UAT test 5 (after-19-20/ vs after-21/ comparison for item 21) and UAT test 7 (before/ shot-table completeness) on the complete sets.
+expected: Spacing changes appear only at the status bar/bulk-progress panel/restore-step text/empty-state link; close-button hover colour changes; every one of the fourteen named shots is present and shows only the app window in its named state.
+result: [pending]
+
+### 11. Decide whether to restore the two disclosed-but-now-untracked findings (WR-01 backup-of-own-archive-folder repack; IN-01 orphaned `xs` Styles.xaml token) to WISHLIST.md or a fresh 02-REVIEW-DISPOSITION.md row.
+expected: Either both findings get a durable home (WISHLIST.md or a disposition row), or an explicit owner decision that losing them is acceptable.
+result: [pending]
+
 ## Summary
 
-total: 7
+total: 11
 passed: 5
 issues: 2
-pending: 0
+pending: 4
 skipped: 0
 blocked: 0
 

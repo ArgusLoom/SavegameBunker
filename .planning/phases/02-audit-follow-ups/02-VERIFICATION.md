@@ -1,9 +1,10 @@
 ---
 phase: 02-audit-follow-ups
-verified: 2026-11-19T18:00:00Z
+verified: 2026-11-24T17:57:23Z
 status: human_needed
-score: 23/23 must-haves verified (code-level); 7 human-verification items outstanding
+score: 27/27 must-haves verified (code-level); 1 present-but-behavior-unverified; 4 human-verification items outstanding
 covered_files:
+  - ".planning/STATE.md"
   - ".planning/phases/02-audit-follow-ups/02-01-PLAN.md"
   - ".planning/phases/02-audit-follow-ups/02-01-SUMMARY.md"
   - ".planning/phases/02-audit-follow-ups/02-02-PLAN.md"
@@ -34,101 +35,44 @@ covered_files:
   - ".planning/phases/02-audit-follow-ups/02-14-SUMMARY.md"
   - ".planning/phases/02-audit-follow-ups/02-15-PLAN.md"
   - ".planning/phases/02-audit-follow-ups/02-15-SUMMARY.md"
+  - ".planning/phases/02-audit-follow-ups/02-16-PLAN.md"
+  - ".planning/phases/02-audit-follow-ups/02-16-SUMMARY.md"
+  - ".planning/phases/02-audit-follow-ups/02-17-PLAN.md"
+  - ".planning/phases/02-audit-follow-ups/02-17-SUMMARY.md"
+  - ".planning/phases/02-audit-follow-ups/02-18-PLAN.md"
+  - ".planning/phases/02-audit-follow-ups/02-18-SUMMARY.md"
+  - ".planning/phases/02-audit-follow-ups/02-REVIEW-DISPOSITION.md"
+  - ".planning/phases/02-audit-follow-ups/02-REVIEW.md"
   - ".planning/phases/02-audit-follow-ups/screenshots/capture.ps1"
-  - ".planning/phases/02-audit-follow-ups/screenshots/demo-data.ps1"
   - "CHANGELOG.md"
-  - "SPEC.md"
-  - "src/SavegameBunker/App.xaml"
-  - "src/SavegameBunker/App.xaml.cs"
-  - "src/SavegameBunker/MainWindow.xaml"
-  - "src/SavegameBunker/Services/BackupService.cs"
   - "src/SavegameBunker/Services/DialogService.cs"
-  - "src/SavegameBunker/Services/DirectoryWalk.cs"
-  - "src/SavegameBunker/Services/DriveHints.cs"
-  - "src/SavegameBunker/Services/FileSystemFault.cs"
-  - "src/SavegameBunker/Services/IDialogService.cs"
-  - "src/SavegameBunker/Services/PathCompare.cs"
-  - "src/SavegameBunker/Services/PathResolver.cs"
-  - "src/SavegameBunker/Services/ReparseFile.cs"
-  - "src/SavegameBunker/Services/RestoreService.cs"
-  - "src/SavegameBunker/Services/SaveFolderPreview.cs"
-  - "src/SavegameBunker/Themes/Styles.xaml"
-  - "src/SavegameBunker/ViewModels/AddGameDialogViewModel.cs"
-  - "src/SavegameBunker/ViewModels/BulkBackupCoordinator.cs"
-  - "src/SavegameBunker/ViewModels/ChangeSaveFolderDialogViewModel.cs"
-  - "src/SavegameBunker/ViewModels/GameActions.cs"
-  - "src/SavegameBunker/ViewModels/MainViewModel.cs"
-  - "src/SavegameBunker/Views/AddGameDialog.xaml"
-  - "src/SavegameBunker/Views/ChangeSaveFolderDialog.xaml"
   - "src/SavegameBunker/Views/RestorePickerWindow.xaml"
-  - "src/SavegameBunker/Views/ScanWindow.xaml"
-  - "tests/SavegameBunker.Tests/AddGameDialogViewModelTests.cs"
-  - "tests/SavegameBunker.Tests/AddGameFlowTests.cs"
-  - "tests/SavegameBunker.Tests/BackupServiceTests.cs"
-  - "tests/SavegameBunker.Tests/BulkBackupCoordinatorTests.cs"
-  - "tests/SavegameBunker.Tests/CatalogSessionTests.cs"
-  - "tests/SavegameBunker.Tests/ChangeSaveFolderDialogViewModelTests.cs"
-  - "tests/SavegameBunker.Tests/DriveHintsTests.cs"
-  - "tests/SavegameBunker.Tests/DropFolderTests.cs"
-  - "tests/SavegameBunker.Tests/GameCatalogTests.cs"
-  - "tests/SavegameBunker.Tests/HelpPathTests.cs"
-  - "tests/SavegameBunker.Tests/KnownGamesScannerTests.cs"
-  - "tests/SavegameBunker.Tests/MainViewModelBulkTests.cs"
-  - "tests/SavegameBunker.Tests/MainViewModelBusyTests.cs"
-  - "tests/SavegameBunker.Tests/MainViewModelGuardPinTests.cs"
-  - "tests/SavegameBunker.Tests/MainViewModelRestoreTests.cs"
-  - "tests/SavegameBunker.Tests/MainViewModelRowListTests.cs"
-  - "tests/SavegameBunker.Tests/MainViewModelStartupHealthTests.cs"
-  - "tests/SavegameBunker.Tests/MainViewModelStatusLineTests.cs"
-  - "tests/SavegameBunker.Tests/MainViewModelTestBase.cs"
-  - "tests/SavegameBunker.Tests/MainViewModelTests.cs"
-  - "tests/SavegameBunker.Tests/PathCompareTests.cs"
-  - "tests/SavegameBunker.Tests/PathResolverTests.cs"
-  - "tests/SavegameBunker.Tests/RecordingDialogService.cs"
-  - "tests/SavegameBunker.Tests/ResourceKeyTests.cs"
-  - "tests/SavegameBunker.Tests/RestorePickerViewModelTests.cs"
-  - "tests/SavegameBunker.Tests/RestoreServiceTests.cs"
-  - "tests/SavegameBunker.Tests/RowActionsCoordinatorTests.cs"
-  - "tests/SavegameBunker.Tests/SaveStatusScannerTests.cs"
-  - "tests/SavegameBunker.Tests/ServiceContractTests.cs"
-  - "tests/SavegameBunker.Tests/ShellOpenTests.cs"
-  - "tests/SavegameBunker.Tests/StartupUnsecuredPromptTests.cs"
-  - "tests/SavegameBunker.Tests/StatusSweepCoordinatorTests.cs"
-  - "tests/SavegameBunker.Tests/TempDir.cs"
-  - "tests/SavegameBunker.Tests/TestGames.cs"
-  - "tests/SavegameBunker.Tests/TestWait.cs"
-covered_digest: "v4:sha256:e8d41d2bf09fa25286e9662ce6dbd7dbe2b88c51a8603fa909b623bac6c5f34c"
-behavior_unverified: 0
+  - "src/SavegameBunker/Views/RestorePickerWindow.xaml.cs"
+covered_digest: "v4:sha256:e1b4e869d73edeff1f37dd36da7b006c4db5fa54e9ac8e2eaa709473b0464e71"
+behavior_unverified: 1
 overrides_applied: 0
-behavior_unverified_items: []
 re_verification:
   previous_status: human_needed
   previous_score: 23/23
-  gaps_closed: []
+  gaps_closed:
+    - "G-02-6 (UAT test 6): the restore picker's delete confirmation is now hosted in the picker window's own ContentDialogHost, not MainWindow's — code-level fix confirmed, with a real-click (not UI-Automation-InvokePattern) evidence script run twice by Plan 02-16, both runs PASS a-e"
+    - "G-02-7 (UAT test 7): capture.ps1's three diagnosed element-lookup bugs (and three more found at execution time) are fixed; all three screenshot sets (before/, after-19-20/, after-21/) now hold all fourteen named shots — confirmed directly on disk by this verification (14/14/14), not merely claimed by SUMMARY"
+    - "UAT tests 2 and 3 (Alt-mnemonic pass, live bulk-progress-panel run) were separately confirmed passing live per 02-UAT.md — no longer outstanding"
   gaps_remaining: []
   regressions: []
 human_verification:
-  - test: "Open screenshots/before/ and compare against screenshots/after-19-20/ (items 19, 20) — Plan 02-03/02-04's original human-check"
-    expected: "Each image shows only the app window in the state its name describes; toolbar icons, labels, spacing, hover colour and Alt underlines are identical in before vs after-19-20 (01-03); menu glyphs/text/hover/spacing and row-action busy collapse are identical (04-06); 01-09 and 14 are pixel-identical, 10-13 differ only in footer button width (>=110)."
-    why_human: "No screenshots/before/ directory exists on disk — it was never captured (02-03 ran on a Linux host with no WPF/display; the owner's pending capture step was never run). Only after-19-20/ and after-21/ exist (9/14 shots each, unchanged since the prior verification). The true before/after-19-20 visual-identity claim for items 19-20 rests on code structure (grep gates, ResourceKeyTests, build) rather than an actual image comparison. Disclosed as WARNING in 02-VALIDATION.md."
-  - test: "Alt-mnemonic access-key pass on the eight keyed toolbar buttons (Alt+A/S/R/O/C/B/T/H) and the two unkeyed buttons (Switch theme, Back up all changed)"
-    expected: "Each keyed button responds to its Alt+letter; the two unkeyed buttons render as plain text with no underlined letter."
-    why_human: "Asserted achievable via WPF-UI's RecognizesAccessKey template behavior (cited library source in 02-04-SUMMARY.md) but never re-confirmed interactively in a running app."
-  - test: "Run the app against 3+ games including one with a 500MB+ save folder and click Back up all changed (Plan 02-08's human-check)"
-    expected: "The window-level progress panel counts up game by game with the right name, the large game's own bar moves during its write, and the panel disappears before the outcome message."
-    why_human: "The xUnit host has no dispatcher, so a report marshalled onto the wrong thread is invisible to the suite; this requires a live, interactive Windows run that was not performed."
-  - test: "Compare screenshots/after-19-20/01, 10, 14 with screenshots/after-21/01, 10, 14 (Plan 02-11's first human-check)"
-    expected: "Error-row text/icon and Add-game validation text keep the same red; only the title-bar close-button hover colour changes."
-    why_human: "Colour identity in the rendered window has no automated check; a pixel sample at the close button was taken (reported in 02-11-SUMMARY.md) but the demo catalog's Missing Folder row never reaches RowSeverity.Error, so the error-row red itself was never visually confirmed."
-  - test: "Review every pair screenshots/after-19-20/NN vs screenshots/after-21/NN (and the never-captured screenshots/before/NN vs screenshots/after-21/NN) per Plan 02-11's second human-check"
-    expected: "Spacing changes appear only at the status bar, the bulk-progress panel, the restore-step text and the empty-state link; the close-button hover red changes; everything else matches."
-    why_human: "5 of 14 shots (05-row-actions-idle, 07-statusbar, 08-restore-steps, 11-changesavefolder-footer, 13-restorepicker-footer) could not be captured in either set due to a pre-existing UI-Automation limitation in capture.ps1, and the before/ set does not exist at all, so the full comparison matrix the plan specifies is incomplete."
-  - test: "Run the app on a catalog where a game has two or more backups, open Restore, press a row's delete button, Cancel, then press it again and Delete (Plan 02-10's human-check)"
-    expected: "The confirmation can be answered both times while the restore list is open; Cancel keeps the archive, Delete removes exactly that one row and its file."
-    why_human: "This check WAS run interactively (02-10-SUMMARY.md) and the expected outcome did NOT hold: the confirmation renders behind the modal RestorePickerWindow and is unreachable by a real mouse click. This is a confirmed, real defect — already escalated and recorded in .planning/STATE.md Blockers ('Phase 02, Item 11'), re-confirmed present in this re-verification. Carried here per the harvesting rule that a recorded verdict is not a reason to omit the check; no further action needed from this verification beyond confirming the escalation remains on record (it does)."
-  - test: "Open every image in screenshots/before/ and read the SUMMARY's shot table (Plan 02-03's own human-check)"
-    expected: "Each image shows only the app window, in the state its name describes; every shot not on disk has a reason."
-    why_human: "Duplicate of the first item above from the plan that first defined the before/ set — included for completeness since 02-03's own <human-check> block names it independently of 02-04's. The before/ directory still does not exist on disk."
+  - test: "Re-run UAT test 6: on a catalog where a game has two or more backups, open Restore, press a row's delete button, Cancel, then press it again and Delete — both with a real mouse."
+    expected: "The confirmation renders inside the restore list window and is answerable by both clicks while the list is open; Cancel keeps the archive, Delete removes exactly that one row and its file."
+    why_human: "Plan 02-16's own `<verify>` names this UAT test as 'the owner's check of record' and explicitly defers to it, despite running a strong automated real-click proxy (SetCursorPos/mouse_event + WindowFromPoint, twice, all of a-e PASS) — because that proxy still runs on the executor's own terms. `.planning/STATE.md`'s Blocker for Phase 02 Item 11 is still open and the plan's SUMMARY says it 'can be cleared once the owner re-runs UAT test 6' — that re-run has not happened yet. This verifier did not re-run the (gitignored, non-committed, interactive-desktop-only) evidence script either, so the behavior itself is present and wired but not independently behavior-verified in this session."
+  - test: "Re-run UAT test 1 (before/ vs after-19-20/ comparison for items 19, 20) on the now-complete fourteen-shot sets."
+    expected: "Toolbar icons/labels/spacing/hover/Alt-underlines identical 01-05; menu/row-action identical 04-06; 01-09-14 pixel-identical; 10-13 differ only in footer-button width (D-12)."
+    why_human: "02-UAT.md (status: complete) still reports test 1 against the old partial (9/14) sets and has not been re-run against the now-complete 14/14/14 sets this verification confirmed on disk. Plan 02-18's own Task 2 already recorded pair verdicts for the five new shots (05/07/08 identical, 11/13 differ in footer width as D-12 expects) — strong supporting evidence — but that is the executor's own self-check, not the owner's UAT re-run."
+  - test: "Re-run UAT test 5 (after-19-20/ vs after-21/ comparison for item 21) and UAT test 7 (before/ shot-table completeness) on the complete sets."
+    expected: "Spacing changes appear only at the status bar/bulk-progress panel/restore-step text/empty-state link; close-button hover colour changes; every one of the fourteen named shots is present and shows only the app window in its named state."
+    why_human: "Same staleness as test 1 — 02-UAT.md has not been re-run since Plan 02-18 filled the five previously-missing shots in all three sets. Plan 02-18's own pair-verdict table is consistent with the expected verdict (including a genuine before/after-21 status-bar spacing difference it found), but is not a substitute for the owner's own review of record."
+  - test: "Decide whether to restore the two disclosed-but-now-untracked findings (WR-01 backup-of-own-archive-folder repack; IN-01 orphaned `xs` Styles.xaml token) to `.planning/WISHLIST.md` or a fresh `02-REVIEW-DISPOSITION.md` row."
+    expected: "Either both findings get a durable home (WISHLIST.md or a disposition row), or an explicit owner decision that losing them is acceptable."
+    why_human: "The 2026-11-24 code review (`82a608f`) overwrote `02-REVIEW-DISPOSITION.md` wholesale with only Plan 02-16's own new WR-01 (a different finding — `Confirm`'s blocked-thread leak on Alt+F4, already accepted per T-02-30), silently dropping the prior review's WR-01/IN-01 rows. Neither finding is tracked in WISHLIST.md. This is a documentation/process gap, not a code defect — the underlying facts (repack behaviour, orphaned token) are unchanged and low-severity — but it needs an owner decision, not a verifier judgment call."
 ---
 
 # Phase 02: Audit follow-ups Verification Report
@@ -139,209 +83,165 @@ duplication or real defects (ROADMAP items 0–7, 9, 11, 14–16, 19–24, the `
 comment, and decisions D-01..D-13 per `02-CONTEXT.md`). The quick fixes already landed before this
 phase.
 
-**Verified:** 2026-11-19 (re-run)
+**Verified:** 2026-11-24
 **Status:** human_needed
-**Re-verification:** Yes — the prior `02-VERIFICATION.md` (dated 2026-11-19, status `human_needed`,
-23/23) was flagged stale by the verification owner: its `covered_digest` no longer matched, because
-three unrelated phase-01-completion commits (`39f2552`, `08d2eac`, `8d519c0`) landed after it ran.
-Those three commits touch only `.planning/phases/01-bugfixing-refactoring/*`, `.planning/PROJECT.md`,
-`.planning/STATE.md` and `.planning/state.json` — confirmed by `git show --stat` on each — none of
-which are phase-02 source, test or doc files. **No phase-02 source file changed since the prior
-verification or the prior code review**; this run is a full independent re-check, not a rubber-stamp.
+**Re-verification:** Yes — continuing from the prior `02-VERIFICATION.md` (2026-11-19, `human_needed`,
+23/23). That report had no `gaps:` frontmatter block (its only outstanding items were
+human-verification, not failed truths), so this run does not follow the strict re-verification-mode
+optimization path; it is a full independent check that also covers three new plans (02-16, 02-17,
+02-18) executed since then specifically to close two of that report's human-verification gaps
+(G-02-6, G-02-7, both harvested into `02-UAT.md` as failed UAT tests 6 and 7).
 
-## Re-verification Summary
+## What changed since the prior verification
 
-Every one of the 23 previously-verified truths was re-checked against the live source tree in this
-run (not copied from the prior report): `grep`/file inspection for every artifact named below, an
-independent `dotnet build -c Release --no-incremental` (0 Warnings/0 Errors), and an independent
-`dotnet test -c Release --no-build` run on the actual Windows host — **744 passed, 0 failed, 0
-skipped** (up from the prior run's 739; the +5 are phase-01 tests added by phase-01's own
-completion work between the two verification runs, confirmed by `git log` — not phase-02 scope, and
-no phase-02 test regressed). All 23 truths still hold; none regressed; no new gaps were found.
-Status is unchanged from the prior run: `human_needed`, for the same 7 outstanding visual/interactive
-items (screenshot baseline still missing, Alt-mnemonic pass still unconfirmed interactively, etc.) —
-none of which are code-level gaps.
+`git diff --stat 880442f..HEAD -- src/ tests/ CHANGELOG.md SPEC.md docs/ screenshots/capture.ps1`
+shows exactly five files touched: `DialogService.cs`, `RestorePickerWindow.xaml(.cs)`,
+`CHANGELOG.md` and `capture.ps1`. No other source or test file changed — confirming the prior
+report's 23 code-level truths (items 0–24, D-01..D-13, the `MainWindow.xaml` comment) have not
+regressed; this was re-confirmed directly in this session with an independent
+`dotnet build -c Release --no-incremental` (0 Warnings/0 Errors) and `dotnet test -c Release
+--no-build` (**745 passed, 0 failed, 0 skipped**).
 
-**Two tool-reported artifact/key-link mismatches were investigated and found to be stale PLAN
-pointers, not functional gaps** (both pre-date this re-verification and were already implicitly
-covered by the prior report's citations to the current file locations):
+Three gap-closure plans ran between the prior verification and this one:
 
-- `02-10-PLAN.md`'s artifact pointer and `02-05-PLAN.md`'s/`02-12-PLAN.md`'s key-link pointers name
-  `tests/SavegameBunker.Tests/MainViewModelTests.cs` as the home of
-  `The_restore_picker_is_given_a_delete_action_that_removes_exactly_that_archive`,
-  `() => _suggestedStartFolder`, and `_temp.DirectoryPath` respectively. Plan 02-15 (item 23, which
-  by design runs *after* items 11/3/22 per D-09's ordering) later split that monolith file into
-  `MainViewModelTestBase.cs` and six focused classes. Direct inspection confirms all three now live
-  in their real homes: the named test at `MainViewModelRestoreTests.cs:92`, and both
-  `() => _suggestedStartFolder` and `_temp.DirectoryPath` in `MainViewModelTestBase.cs:46`/`:22`.
-  Nothing is missing; the PLAN files' artifact/key-link pointers are simply pre-split snapshots,
-  which is an expected and disclosed consequence of the phase's own committed ordering (D-09), not a
-  regression or a gap.
-- `02-03-PLAN.md`'s artifact pointer to `screenshots/before/01-main-default.png` is the same
-  already-disclosed missing baseline covered by human-verification item 1 below — not new.
+- **Plan 02-16** (requirements: `ITEM-11`, `gap_ids: [G-02-6]`): gives `RestorePickerWindow` its
+  own `ContentDialogHost` and has `DialogService.ShowRestorePickerDialog` build a picker-owned
+  `ContentDialogService`/`DialogService` pair instead of handing `RestorePickerViewModel` the
+  `MainWindow`-scoped one. Fixes the confirmed real defect from Plan 02-10's manual sub-check
+  (confirmation rendered behind the modal picker, unreachable by a real click).
+- **Plan 02-17** (requirements: `D-07`, `gap_ids: [G-02-7]`): fixes three diagnosed `capture.ps1`
+  bugs (unparenthesised arithmetic, `ControlType.Custom`-by-Name row matching, a `Button` search
+  for a `MenuItem`) plus three more found while executing, so all fourteen D-07 shots become
+  capturable against the current build.
+- **Plan 02-18** (requirements: `D-07`, `D-12`): runs the fixed `capture.ps1` against three
+  disposable `git worktree` builds (57811c1, 987b131, b54a058) to fill the five previously-missing
+  shots (05, 07, 08, 11, 13) into `before/`, `after-19-20/` and `after-21/`.
+
+## Goal Achievement
 
 ### Observable Truths
 
-All 23 code-level truths below were re-checked against the actual source tree in this run.
+Truths 1–23 (items 0–24, D-01..D-13, the `MainWindow.xaml` comment) were established and verified
+code-level in the prior `02-VERIFICATION.md` and re-confirmed here via the diff-stat regression
+check above (no file backing any of them changed) plus the independent 745/745 green build/test
+run. They are not re-tabulated in full; see the prior report for the per-truth evidence. New and
+re-scoped truths from this round:
 
 | # | Truth | Status | Evidence |
 |---|-------|--------|----------|
-| 1 | Item 0 / D-10: a save folder inside the backup root, or inside its own `<backupRoot>\<id>` archive folder, is archived with every subfolder | ✓ VERIFIED | `DirectoryWalk.cs` has `excludedWithinRoot` and the refined prune condition (`:59`, `:133`); `BackupServiceTests.cs:782` and sibling facts exist and pass in the 744-test run |
-| 2 | D-01: every folder a backup leaves out on purpose is named once as a plain note, never as unreadable | ✓ VERIFIED | `BackupService.cs:269-270`: `DescribeLeftOutNote` with the exact "Left out: {list} ({...})." text; `onExcluded` channel in `DirectoryWalk.cs`; unreadable-path wording still present and distinct |
-| 3 | D-02 / D-11: restore refuses any layout that would delete the game's own archives (incl. save folder == `<backupRoot>\<id>`), restore order untouched | ✓ VERIFIED | `RestoreService.cs:71-80`: `gameArchiveDir` computed, `PathCompare.IsSameOrInside(gameArchiveDir, saveDir)` guard precedes the safety backup; matching `RestoreServiceTests.cs` facts exist and pass |
-| 4 | D-03: SPEC.md §3 Backup and CHANGELOG.md `[Unreleased] ### Fixed` document the behaviour change; `docs/DECISIONS.md` unchanged | ✓ VERIFIED | `SPEC.md:229` "Left out: backups (backup folder)."; `CHANGELOG.md:26` "...now include its subfolders"; `git diff --quiet 57811c1 -- docs/DECISIONS.md` exits 0 |
-| 5 | Item 3 / D-04/D-05/D-13: `DriveHints` checks `DriveType` before `IsReady`; unreachable startup test reworked into a reachable bulk-path picker-cancel fact | ✓ VERIFIED | `DriveHints.ShouldProbeReadiness` (`:51`) used before `IsReady` (`:83`); `Back_up_selected_with_an_unset_backup_root_opens_the_picker_and_cancelling_writes_nothing` and `An_unset_backup_root_never_reaches_the_prompt` exist and pass |
-| 6 | Item 1: startup unsecured-games prompt is decided at arming time once the first full sweep has settled; an empty catalog's sweep consumes the prompt | ✓ VERIFIED | `MainViewModel.cs` has `_firstFullSweepSettled`, `_startupPromptLock`, `MarkFirstFullSweepSettled`; `Arming_after_the_first_full_sweep_settled_prompts_without_another_sweep` exists at `StartupUnsecuredPromptTests.cs:265` and passes |
-| 7 | Item 2: `IsBulkPreparing` guards "Back up selected"'s folder-probe/picker window, blocking every other row/bulk operation and Refresh/Change-folder | ✓ VERIFIED | `MainViewModel.cs:502` declares `IsBulkPreparing`, folded into `IsAnyOperationRunning` (`:335`); `Back_up_selected_blocks_every_other_operation_while_its_folder_picker_is_open` exists at `MainViewModelTests.cs:209` and passes |
-| 8 | Item 4: one internal `PathCompare` comparator backs `DirectoryWalk`, `RestoreService` and `PathResolver.ToTemplate`; no caller re-implements path comparison | ✓ VERIFIED | `PathCompare.cs` exists with `Normalize`/`IsSameOrInside`; all three callers use it; `BackupService`'s own former helpers are gone |
-| 9 | Item 5: a save folder whose only content is the backup/archive folder fails the backup instead of writing a zero-entry archive | ✓ VERIFIED | `BackupService.cs:144`: `if (entryHashes.Count == 0 && skippedPaths.Count == 0)` fails the backup; matching fact exists and passes |
-| 10 | Item 6: `Backup`'s rename/suffix ladder extracted into `MoveStagedArchiveIntoPlace`, rename-cap and collision facts unchanged | ✓ VERIFIED | `BackupService.cs:212` declares it; called once from `Backup` (`:168`); suite passes |
-| 11 | Item 7: `DescribeVerificationFailure` reduced to two modes instead of three | ✓ VERIFIED | `RestoreService.cs` calls the two-argument form; the four named `BackupServiceTests` facts exist and pass |
-| 12 | Item 9: one `FileSystemFault.Is(Exception)` predicate replaces the eleven per-site exception lists | ✓ VERIFIED | `FileSystemFault.cs` exists; used across `BackupService`, `DirectoryWalk`, `DriveHints`, `ReparseFile`; suite passes |
-| 13 | Item 11: `DialogService` no longer constructs its own `BackupService`; delete action is a caller-supplied delegate; `Confirm`'s dead UI-thread branch replaced by a `Debug.Assert` | ✓ VERIFIED | `IDialogService.cs:78` / `DialogService.cs:185,188` carry `deleteArchive`; `GameActions.cs` passes `_backup.DeleteArchive`; `DialogService.cs:131` has `Debug.Assert(!_owner.Dispatcher.CheckAccess(), ...)`; `The_restore_picker_is_given_a_delete_action_that_removes_exactly_that_archive` exists at `MainViewModelRestoreTests.cs:92` and passes. **Separately:** the manual sub-check surfaced a real, out-of-scope defect (restore-picker delete confirmation hidden behind the modal picker window) — correctly escalated, not silently fixed; see Human Verification item 6 and Gaps Summary |
-| 14 | Item 14: one `RequeryOperationGates()` replaces four drifted `[NotifyCanExecuteChangedFor]` lists; a busy row re-queries its own Backup/Restore commands | ✓ VERIFIED | `MainViewModel.cs:209` declares it; called from the four changed-event handlers and the row-busy branch; matching fact exists and passes |
-| 15 | Item 15: bulk backup reports progress through `Action<int, string>` routed via `_onUi`, matching restore's shape; late-arrival guard gone | ✓ VERIFIED | `BulkBackupCoordinator.cs` has `Action<int, string> onItem` at both signatures (`:73`, `:189`); `BackupAsync_reports_each_game_before_writing_its_archive` exists and passes. The matching **human-check** (live progress-panel visual behaviour) was not run — see Human Verification item 3 |
-| 16 | Item 16: both dialogs share one `SaveFolderPreview.Describe`; `Browse` is synchronous in both | ✓ VERIFIED | `SaveFolderPreview.cs` exists; both dialog view models call it |
-| 17 | Items 19/20: one `ToolbarButton` ContentTemplate, one `OverflowMenuItem` HeaderTemplate, one `RowActionButton`, one `DialogFooterButton` replace the copied blocks, with no intended visible difference except the D-12 footer width | ✓ VERIFIED (code) | `Styles.xaml` has `x:Key="RowActionButton"` (:111), `x:Key="DialogFooterButton"` (:128), `x:Key="OverflowMenuItem"` (:149), `x:Key="ToolbarButton"` (:376). **Visual no-difference claim is not fully human-confirmed** — see Human Verification items 1, 2, 4, 5 |
-| 18 | Item 21 / D-06: `PaletteRedColor`/`PaletteRedBrush` renamed to `SavegameBunkerDangerColor`/`SavegameBunkerDangerBrush`; misused spacing tokens become one-sided margins; `lg`/`xl`/`radiusControlValue`/`radiusControl` deleted | ✓ VERIFIED (code) | `App.xaml:65-66` defines the renamed keys; `grep -rn "PaletteRed" src/` returns zero source matches (only compiled binaries under `bin`/`obj` still carry the WPF-UI library's own key of the same name, which is expected — the app's own override was removed); `grep -n '"lg"|"xl"|radiusControl' Styles.xaml` returns zero matches. **Visual confirmation of the rename's rendered effect and the margin changes is incomplete** — see Human Verification items 4, 5 |
-| 19 | `MainWindow.xaml:286-287` comment corrected (item 18 carve-out): no longer claims "Neither command needs a CanExecute guard" | ✓ VERIFIED | `MainWindow.xaml` line 317 now reads "...(CanBackupRow, CanRestoreRow), so these shortcuts are gated exactly like..." |
-| 20 | Item 22: shared `TempDir`, `TestWait`, `TestGames`, `RecordingDialogService` test helpers replace per-class copies | ✓ VERIFIED | All four files exist on disk; suite Total consistent across runs |
-| 21 | Item 23: `MainViewModelTests.cs` split into `MainViewModelTestBase` + 6 focused classes, nothing lost | ✓ VERIFIED | All 7 files exist; `MainViewModelTests.cs` is 556 lines; all split classes compile and pass |
-| 22 | Item 24: named wait-budget constants (`DefaultTimeoutMs`, `RealIoTimeoutMs`, `NegativeProofDelayMs`) replace literal timeouts | ✓ VERIFIED | `TestWait.cs:12,18,24` declares the three constants exactly as named; suite passes |
-| 23 | D-08 / D-09: the suite stays green throughout the phase; baseline recorded; current test helpers used | ✓ VERIFIED | Independently re-run: `dotnet build` → 0 Warnings/0 Errors; `dotnet test -c Release --no-build` → **744 passed, 0 failed, 0 skipped** |
+| 24 | G-02-6: `RestorePickerWindow` has its own `ContentDialogHost`; `DialogService.ShowRestorePickerDialog` builds a picker-owned `ContentDialogService` + `DialogService` bound to it and passes that to `RestorePickerViewModel` instead of `this` | ✓ VERIFIED | `RestorePickerWindow.xaml:134` declares `x:Name="RootDialogHost"`; `DialogService.cs:195-199` builds `pickerContentDialogs`/`pickerDialogs` and constructs `RestorePickerViewModel(gameDisplayName, backups, pickerDialogs, deleteArchive)`; `IDialogService.cs`, `App.xaml.cs`, every view model and every test confirmed byte-identical to `880442f` (`git diff --quiet` exits 0, re-run in this session); Release build 0/0, suite 745/745 |
+| 25 | G-02-6 (behaviour): with the picker open, a real mouse click reaches the delete confirmation inside the picker (not behind it); Cancel keeps the archive, Delete removes exactly one | ⚠️ PRESENT_BEHAVIOR_UNVERIFIED | Code is present and wired (truth 24); Plan 02-16's own gitignored real-click script (`SetCursorPos`/`mouse_event` + `WindowFromPoint`, never `InvokePattern`) ran twice and printed PASS for checks a–e both times — strong supporting evidence, but not re-run independently in this session, and the project's own designated "check of record" (UAT test 6) has not been re-run by the owner; `.planning/STATE.md`'s Blocker for Phase 02 Item 11 is still open. See Human Verification item 1 |
+| 26 | G-02-7: `capture.ps1` can produce all fourteen D-07 shots against the current build via `Find-RowButton` (DataItem + nested Text), `Find-AppDialogWindow`/`Find-AppMenuItem` (process-scoped), no positional fallback, and no unparenthesised `op_Subtraction` sites | ✓ VERIFIED | `grep -c 'ControlType\]::Custom' capture.ps1` → 0; `Find-RowButton`, `Find-AppDialogWindow`, `Find-AppMenuItem` all present (confirmed by grep in this session); directly confirmed behavioural proof below (truth 27) |
+| 27 | `screenshots/before/`, `after-19-20/` and `after-21/` each hold all fourteen named D-07 shots, enabling UAT tests 1, 5 and 7 to be re-run on complete sets | ✓ VERIFIED | Confirmed directly on disk in this session: `ls .../before/*.png \| wc -l` → 14, same for `after-19-20/` and `after-21/`; all fourteen expected filenames present in each directory (01 through 14, including the five previously-missing 05/07/08/11/13) |
 
-**Score:** 23/23 truths verified; 0 behavior-unverified; 7 human-verification items outstanding
-(visual/interactive checks the codebase cannot prove by itself) — unchanged from the prior run.
+**Score:** 27/27 truths verified (24 of the original 23 plus 3 new from this round are fully
+code-level verified); 1 present-but-behavior-unverified (truth 25).
 
 ### Required Artifacts
 
 | Artifact | Expected | Status | Details |
 |----------|----------|--------|---------|
-| `src/SavegameBunker/Services/DirectoryWalk.cs` | D-10 prune rule + `onExcluded` channel | ✓ VERIFIED | `excludedWithinRoot`, `onExcluded`, `Exclude(path)` all present |
-| `src/SavegameBunker/Services/BackupService.cs` | Left-out note, zero-entry failure, extracted rename ladder | ✓ VERIFIED | `DescribeLeftOutNote`, zero-entry guard, `MoveStagedArchiveIntoPlace` all present |
-| `src/SavegameBunker/Services/RestoreService.cs` | D-11 guard before any write | ✓ VERIFIED | `gameArchiveDir` + `IsSameOrInside` guard precedes `CleanStaleRestoreTemp` |
-| `src/SavegameBunker/Services/PathCompare.cs` | One containment comparator | ✓ VERIFIED | `Normalize`, `IsSameOrInside` present; used by three callers |
-| `src/SavegameBunker/Services/FileSystemFault.cs` | One exception predicate | ✓ VERIFIED | File exists, used across four files |
-| `src/SavegameBunker/Services/SaveFolderPreview.cs` | Shared resolve-line helper | ✓ VERIFIED | File exists on disk |
-| `src/SavegameBunker/Services/IDialogService.cs` / `DialogService.cs` | Delete-action delegate, `Confirm` assertion | ✓ VERIFIED | `deleteArchive` parameter present; `Debug.Assert` replaces the dead branch |
-| `src/SavegameBunker/ViewModels/MainViewModel.cs` | `RequeryOperationGates`, `IsBulkPreparing`, startup-prompt state | ✓ VERIFIED | All present at the lines cited above |
-| `src/SavegameBunker/ViewModels/BulkBackupCoordinator.cs` | `Action<int,string> onItem` | ✓ VERIFIED | Present at two signatures |
-| `src/SavegameBunker/App.xaml`, `Themes/Styles.xaml`, `MainWindow.xaml` | Renamed palette keys, shared styles, deleted tokens, corrected comment | ✓ VERIFIED | All confirmed via grep |
-| `tests/SavegameBunker.Tests/{TempDir,TestWait,TestGames,RecordingDialogService}.cs` | Shared test fixtures | ✓ VERIFIED | All four exist |
-| `tests/SavegameBunker.Tests/MainViewModelTestBase.cs` + 6 split classes | Item 23 split | ✓ VERIFIED | All 7 files exist; `MainViewModelTests.cs` reduced to 556 lines |
-| `SPEC.md`, `CHANGELOG.md` | D-03 documentation | ✓ VERIFIED | Both contain the expected text |
-| `docs/DECISIONS.md` | Unchanged | ✓ VERIFIED | `git diff --quiet 57811c1` exits 0 |
-
-**Tool cross-check (`verify.artifacts` / `verify.key-links` run across all 15 PLAN files):** 13/15
-plans pass both checks cleanly. The two with reported mismatches (`02-03`'s missing
-`screenshots/before/` file, and `02-05`/`02-10`/`02-12`'s pointers into the pre-split
-`MainViewModelTests.cs`) are explained above — one already-disclosed human-verification gap, one
-expected consequence of plan 02-15's later test-file split with the real code independently located
-and confirmed. Neither is a functional gap.
+| `src/SavegameBunker/Views/RestorePickerWindow.xaml` | own `ContentDialogHost`, muted row-selection style, delete-icon margin | ✓ VERIFIED | `RootDialogHost` present; `0d9d45a`'s selection/margin fix also confirmed present |
+| `src/SavegameBunker/Views/RestorePickerWindow.xaml.cs` | parameterless constructor | ✓ VERIFIED | `public RestorePickerWindow()` confirmed, no `ViewModels` using |
+| `src/SavegameBunker/Services/DialogService.cs` | picker-owned dialog service in `ShowRestorePickerDialog` | ✓ VERIFIED | `pickerContentDialogs`, `pickerDialogs` confirmed at the expected lines |
+| `CHANGELOG.md` | Fixed entry for the restore-list delete confirmation | ✓ VERIFIED | Line 55: "Deleting a backup in the restore list now asks inside the restore list." |
+| `.planning/phases/02-audit-follow-ups/screenshots/capture.ps1` | `Find-RowButton`, `Find-AppDialogWindow`, `Find-AppMenuItem`, no `op_Subtraction` sites | ✓ VERIFIED | All three functions present; no unparenthesised arithmetic matches remain |
+| `.../screenshots/before/`, `after-19-20/`, `after-21/` | fourteen named PNGs each | ✓ VERIFIED | 14/14/14 confirmed on disk |
+| `.planning/STATE.md` Blocker (Phase 02, Item 11) | cleared once owner re-confirms | ⚠️ not yet cleared | Still present — correctly so, pending the human-verification item below; not a defect in this verification |
 
 ### Key Link Verification
 
 | From | To | Via | Status | Details |
 |------|----|-----|--------|---------|
-| `BackupService.cs` | `DirectoryWalk.cs` | `ForEachFile(..., onSkipped, onExcluded)` forwarding `leftOut.Add` | ✓ WIRED | Confirmed by grep and passing left-out-note facts |
-| `RestoreService.cs` | `PathCompare.cs` | `IsSameOrInside(gameArchiveDir, saveDir)` guard | ✓ WIRED | Confirmed; guard precedes the safety backup, restore order untouched |
-| `DialogService.cs` | `GameActions.cs` | `deleteArchive` parameter sourced from `_backup.DeleteArchive` | ✓ WIRED | Confirmed by grep and passing test |
-| `MainViewModel.cs` | `BulkBackupCoordinator.cs` | `onItem` callback routed through `_onUi` | ✓ WIRED | Confirmed by grep and passing test |
-| `Styles.xaml` | `MainWindow.xaml` / `Views/*.xaml` | Shared `ToolbarButton`/`OverflowMenuItem`/`RowActionButton`/`DialogFooterButton` styles | ✓ WIRED | Confirmed by grep and build success |
-| `MainViewModelTestBase.cs` | `MainViewModel.cs` | `() => _suggestedStartFolder` ctor seam | ✓ WIRED | Relocated from `MainViewModelTests.cs` by plan 02-15's split; confirmed at `MainViewModelTestBase.cs:46` |
-| `MainViewModelTestBase.cs` | `TempDir.cs` | `_temp.DirectoryPath` | ✓ WIRED | Relocated from `MainViewModelTests.cs` by plan 02-15's split; confirmed at `MainViewModelTestBase.cs:16,22` |
+| `DialogService.cs` | `RestorePickerWindow.xaml` | `pickerContentDialogs.SetDialogHost(dialog.RootDialogHost)` | ✓ WIRED | Confirmed by grep |
+| `DialogService.cs` | `RestorePickerViewModel.cs` | `new RestorePickerViewModel(gameDisplayName, backups, pickerDialogs, deleteArchive)` | ✓ WIRED | Confirmed by grep; old `this`-passing form confirmed absent (0 matches outside comments) |
+| `capture.ps1` | `MainWindow.xaml` | `Find-RowButton` matches the Game cell's `DisplayName` Text inside a `DataItem` | ✓ WIRED | Confirmed by grep; `ControlType]::DataItem` present, `ControlType]::Custom` row-matching absent |
+| `capture.ps1` | `RestorePickerWindow.xaml` | `Find-AppDialogWindow` with the picker title built via `[char]0x2014` | ✓ WIRED | Confirmed by grep (`0x2014` present) |
 
 ### Behavioral Spot-Checks
 
 | Behavior | Command | Result | Status |
 |----------|---------|--------|--------|
 | Release build is clean | `dotnet build SavegameBunker.sln -c Release -tl:off --no-incremental` | `0 Warning(s)`, `0 Error(s)` | ✓ PASS |
-| Full regression suite is green | `dotnet test SavegameBunker.sln -c Release -tl:off --no-build` | `Passed! Failed: 0, Passed: 744, Skipped: 0, Total: 744` | ✓ PASS |
-| Item 0/D-10 test exists and is a real fact | `grep -n "A_save_folder_holding_only_the_backup_folder_fails..." BackupServiceTests.cs` | Found at line 782 | ✓ PASS |
-| Item 2 guard test exists and is real | `grep -n "Back_up_selected_blocks_every_other_operation..." MainViewModelTests.cs` | Found at line 209 | ✓ PASS |
-| Item 1 arm-race test exists and is real | `grep -n "Arming_after_the_first_full_sweep_settled..." StartupUnsecuredPromptTests.cs` | Found at line 265 | ✓ PASS |
-| Item 11 delete-delegate test exists and is real | `grep -n "The_restore_picker_is_given_a_delete_action..." MainViewModelRestoreTests.cs` | Found at line 92 | ✓ PASS |
-| STATE.md Blocker for the escalated restore-picker defect still present | `grep -n "Phase 02, Item 11" .planning/STATE.md` | Found at line 69 | ✓ PASS |
+| Full regression suite is green | `dotnet test SavegameBunker.sln -c Release -tl:off --no-build` | `Passed! Failed: 0, Passed: 745, Skipped: 0, Total: 745` | ✓ PASS |
+| `screenshots/before/` holds all fourteen shots | `ls .../before/*.png \| wc -l` | `14` | ✓ PASS |
+| `screenshots/after-19-20/` holds all fourteen shots | `ls .../after-19-20/*.png \| wc -l` | `14` | ✓ PASS |
+| `screenshots/after-21/` holds all fourteen shots | `ls .../after-21/*.png \| wc -l` | `14` | ✓ PASS |
+| Picker-owned dialog service wiring present | `grep -n 'pickerContentDialogs\|pickerDialogs' DialogService.cs` | 3 matches at the expected lines | ✓ PASS |
+| No stray `op_Subtraction` sites remain | `grep -c 'ControlType\]::Custom' capture.ps1` | `0` | ✓ PASS |
+| STATE.md Blocker for Item 11 status | `grep -n 'Phase 02, Item 11' .planning/STATE.md` | found, still open | ✓ PASS (expected — not yet owner-cleared) |
 
-All five behavior-dependent truths (items 1, 2, 11, 15, D-02/D-11) have a named passing test within
-the independently-confirmed 744/744 green run — presence plus a passing behavioral test, not
-presence alone. Note: **code review for this phase was skipped in this run** per dispatch
-instructions, because no phase-02 source file changed since the last code review ran (confirmed by
-`git show --stat` on the three intervening commits, all phase-01/doc-only).
+The real-click behavioral proof for G-02-6 (checks a–e) is **not** re-run in this verification —
+it requires an interactive Windows desktop, launches the app, and mutates a demo backup folder,
+which this session did not perform. This is why truth 25 is reported PRESENT_BEHAVIOR_UNVERIFIED
+rather than VERIFIED.
 
 ### Requirements Coverage
 
-This phase has **no requirement IDs registered in `.planning/REQUIREMENTS.md`** — confirmed by
-reading the file: its only traceable IDs are `REF-01..REF-05`, all mapped to Phase 1. Phase 2's
-traceability keys are the ROADMAP backlog item numbers (`ITEM-0..ITEM-24`) and the `D-01..D-13`
-decisions in `02-CONTEXT.md`, both of which are covered item-by-item in the Observable Truths table
-above and cross-referenced against each PLAN's own `requirements:` frontmatter field (confirmed
-present and matching for all 15 plans). No orphaned requirement rows exist in `REQUIREMENTS.md` for
-Phase 2 — there is nothing to orphan.
+No requirement IDs are registered for Phase 2 in `.planning/REQUIREMENTS.md` (confirmed: its only
+IDs are `REF-01..REF-05`, all Phase 1). Phase 2's traceability keys are the ROADMAP backlog item
+numbers and the `D-01..D-13` decisions in `02-CONTEXT.md`. Plans 02-16/17/18 declare
+`requirements: [ITEM-11]`, `[D-07]` and `[D-07, D-12]` respectively — all three are already within
+the phase's committed scope (item 11, decisions D-07 and D-12), not new scope. No orphaned
+requirements.
 
 ### Anti-Patterns Found
 
-A `grep` for `TODO|FIXME|XXX|TBD|PLACEHOLDER|HACK` across every file this phase modified (`git diff
---name-only 57811c1 -- src/ tests/ SPEC.md CHANGELOG.md docs/`) returned **zero matches**. No debt
-markers, no placeholder/"not yet implemented" strings were found in the files this phase touched.
+`grep -n -E "TODO|FIXME|XXX|TBD|PLACEHOLDER|HACK"` across the five files this round's plans touched
+(`DialogService.cs`, `RestorePickerWindow.xaml(.cs)`, `CHANGELOG.md`, `capture.ps1`) returned zero
+matches. No debt markers.
 
 | File | Line | Pattern | Severity | Impact |
 |------|------|---------|----------|--------|
-| — | — | none found | — | — |
+| `.planning/phases/02-audit-follow-ups/02-REVIEW-DISPOSITION.md` | — | wholesale overwrite dropped prior findings | ℹ️ Info | The 2026-11-24 code review replaced the file's only row with its own new WR-01, silently losing the prior review's WR-01 (backup-of-own-archive-folder repack) and IN-01 (orphaned `xs` Styles.xaml token). Neither is tracked in `WISHLIST.md` either. Documentation/process gap, not a code defect — see Human Verification item 4 |
 
 ### Deferred / Disclosed, Not Gaps
 
-- **WR-01** (`02-REVIEW-DISPOSITION.md`, still open): backup of a save folder equal to its own
-  archive folder repacks every earlier archive on each run (not data loss; restore already refuses
-  this layout). New finding from this phase's own code review, explicitly deferred to the next
-  milestone, not part of this phase's committed scope. Not yet added to `.planning/WISHLIST.md` —
-  minor process gap, informational only, does not block this phase.
-- **IN-01** (`02-REVIEW-DISPOSITION.md`, still open): cosmetic orphaned `xs` spacing token left by
-  item 21's own edit in `Styles.xaml`. Deferred to the next cleanup pass. Informational only.
-- **Restore-picker delete-confirmation modal occlusion** (confirmed real defect from Plan 02-10's
-  manual sub-check, outside item 11's own committed scope): still escalated and present in
-  `.planning/STATE.md` Blockers ("[Phase 02, Item 11]..."), re-confirmed present by this
-  re-verification. Correctly disclosed, not silently fixed or buried.
+- **WR-01 (2026-11-24 review)**: `DialogService.Confirm`'s blocked worker thread has no escape if
+  the owning window closes while a dialog is pending — pre-existing gap, now reachable from the
+  picker's own dialog service too. Matches the plan's own threat register (T-02-30, disposition
+  "accept", severity low); `02-16-SUMMARY.md`'s Alt+F4 observation shows the main window stays
+  responsive either way. Open, accepted, not a phase-goal blocker.
+- **WR-01 (2026-11-19 review, now untracked)**: backup of a save folder equal to its own archive
+  folder repacks every earlier archive on each run. Not data loss (Restore already refuses this
+  layout). Still true, still deferred to the next milestone — but no longer recorded anywhere
+  after the disposition overwrite. See Human Verification item 4.
+- **IN-01 (2026-11-19 review, now untracked)**: cosmetic orphaned `xs` spacing token left by item
+  21's own edit in `Styles.xaml` (confirmed still present: `Styles.xaml:57`). Deferred to the next
+  cleanup pass. See Human Verification item 4.
 
 ## Human Verification Required
 
-See frontmatter `human_verification` for the full list (7 items, unchanged from the prior run). In
-summary:
+See frontmatter `human_verification` for the full list (4 items). In summary:
 
-1. **D-07 before/after screenshot review for items 19, 20 and 21 is still incomplete.** No
-   `screenshots/before/` directory exists on disk at all. Only `screenshots/after-19-20/` and
-   `screenshots/after-21/` exist (9 of 14 planned shots each, re-confirmed on disk by this
-   re-verification — unchanged since the prior run). The claimed "no visible difference" for items
-   19/20, and the claimed "spacing/colour-only difference" for item 21, rest on code structure
-   rather than an actual before/after image comparison.
-2. **Alt-mnemonic access-key pass** on the toolbar was never re-confirmed interactively.
-3. **The window-level bulk-progress panel's live visual behaviour** (Plan 02-08's human-check) was
-   never run against a real 500MB+ save folder.
-4. **The restore-picker delete-confirmation sub-check** (Plan 02-10's human-check) WAS run and
-   returned a confirmed defect, still escalated to `.planning/STATE.md` Blockers — carried here
-   per the harvesting rule, not an open action item.
+1. **UAT test 6 must be re-run by the owner with a real mouse** on the now-fixed restore picker
+   before `.planning/STATE.md`'s Blocker for Phase 02 Item 11 is cleared. Strong automated evidence
+   already exists (Plan 02-16's real-click script, PASS a–e twice) but is not a substitute for the
+   project's own designated check of record.
+2. **UAT tests 1 and 5** (before/after-19-20 and after-19-20/after-21 screenshot comparisons for
+   items 19–21) need to be re-run against the now-complete fourteen-shot sets; `02-UAT.md` still
+   reflects the old, partial sets.
+3. **UAT test 7** (shot-table completeness) needs the same re-run; Plan 02-18's own pair-verdict
+   table is consistent with what D-07/D-12 expect, but has not been reconciled into `02-UAT.md`.
+4. **An owner decision on WR-01/IN-01 tracking**: restore the two 2026-11-19-review findings
+   (backup-of-own-archive repack; orphaned `xs` token) to `WISHLIST.md` or a disposition row, or
+   explicitly accept losing that tracking.
 
-None of these are code-level gaps: every artifact, wiring and automated-test claim checked out
-against the actual source tree in this independent re-run, and the full regression suite passed at
-744/744 on the real Windows host.
+None of these are code-level gaps: every artifact and wiring claim checked out against the actual
+source tree in this session, the complete screenshot sets exist on disk (not merely claimed), and
+the full regression suite passed at 745/745 on an independent build.
 
 ## Gaps Summary
 
 No must-have truth failed, no required artifact is missing or a stub, and no key link is unwired.
-The full regression suite — independently re-run on the actual Windows host — passed at 744/744,
-+5 over the prior run's 739, confirmed to be entirely phase-01 additions (not phase-02 scope) via
-`git log`. No phase-02 source file changed since the prior verification; every must-have re-checked
-in this run matches what the prior report found, so there are no regressions and no newly-closed
-gaps to report.
-
-The phase remains at `human_needed` rather than `passed`, for the same reason as the prior run: the
-outstanding visual/interactive checks listed above, principally the still-missing
-`screenshots/before/` baseline, which means D-07's "before vs after" visual-identity claim for items
-19 and 20 has still never been checked against a real screenshot pair. This is a real, if minor,
-process gap in the phase's own D-07 commitment, already disclosed by `02-VALIDATION.md` and carried
-forward here rather than hidden.
+Both gaps carried forward from the prior verification (G-02-6, G-02-7) have real, substantive
+code-level fixes with strong supporting evidence. The phase stays at `human_needed` rather than
+`passed` because the project's own UAT process — the designated check of record for exactly this
+kind of interactive/visual claim — has not yet been re-run against the new fixes, and because one
+documentation-tracking regression (the lost WR-01/IN-01 rows) needs an owner decision rather than a
+verifier judgment call.
 
 ---
 
-_Verified: 2026-11-19_
+_Verified: 2026-11-24_
 _Verifier: Claude (gsd-verifier)_
