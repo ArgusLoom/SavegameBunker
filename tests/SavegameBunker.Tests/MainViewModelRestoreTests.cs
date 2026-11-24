@@ -394,7 +394,7 @@ public sealed class MainViewModelRestoreTests : MainViewModelTestBase
         Assert.Empty(dialog.RestorePickerCalls);
         Assert.Equal(0, dialog.PickFolderCalls);
         Assert.Contains("no backup folder is set yet", vm.StatusMessage);
-        Assert.Contains("Use Change backup folder", vm.StatusMessage);
+        Assert.Contains("Use Backup folder", vm.StatusMessage);
         Assert.NotEmpty(dialog.ErrorMessages);
     }
 

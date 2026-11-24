@@ -26,10 +26,10 @@
     <sys:String x:Key="str_toolbar_findGames">Scan</sys:String>
     <sys:String x:Key="str_toolbar_refresh">Refresh</sys:String>
     <sys:String x:Key="str_toolbar_openGamesList">Open the games list</sys:String>
-    <sys:String x:Key="str_toolbar_changeBackupFolder">Change backup folder</sys:String>
+    <sys:String x:Key="str_toolbar_changeBackupFolder">Backup folder</sys:String>
     <sys:String x:Key="str_toolbar_backUpAllChanged">Back up all changed</sys:String>
-    <sys:String x:Key="str_toolbar_backUpSelected">Back up selected</sys:String>
-    <sys:String x:Key="str_toolbar_restoreSelected">Restore selected</sys:String>
+    <sys:String x:Key="str_toolbar_backUpSelected">Back up</sys:String>
+    <sys:String x:Key="str_toolbar_restoreSelected">Restore</sys:String>
     <sys:String x:Key="str_toolbar_toggleTheme">Switch theme</sys:String>
     <sys:String x:Key="str_toolbar_about">About</sys:String>
 
@@ -43,9 +43,9 @@
     <sys:String x:Key="str_toolbar_findGames_access">_Scan</sys:String>
     <sys:String x:Key="str_toolbar_refresh_access">_Refresh</sys:String>
     <sys:String x:Key="str_toolbar_openGamesList_access">_Open the games list</sys:String>
-    <sys:String x:Key="str_toolbar_changeBackupFolder_access">_Change backup folder</sys:String>
-    <sys:String x:Key="str_toolbar_backUpSelected_access">_Back up selected</sys:String>
-    <sys:String x:Key="str_toolbar_restoreSelected_access">Res_tore selected</sys:String>
+    <sys:String x:Key="str_toolbar_changeBackupFolder_access">Backup _folder</sys:String>
+    <sys:String x:Key="str_toolbar_backUpSelected_access">_Back up</sys:String>
+    <sys:String x:Key="str_toolbar_restoreSelected_access">Res_tore</sys:String>
     <sys:String x:Key="str_toolbar_about_access">A_bout</sys:String>
 
     <!--
@@ -214,7 +214,7 @@
     <sys:String x:Key="str_bulkRestoreSelected_allSucceeded">Restored all {0} selected games.</sys:String>
     <sys:String x:Key="str_bulkRestoreSelected_partialFailure">Restored {0} of {1} selected. Failed: {2}.</sys:String>
     <sys:String x:Key="str_bulkRestoreSelected_partialSkipped">Restored {0} of {1} selected. Skipped: {2}.</sys:String>
-    <sys:String x:Key="str_restoreSelected_noBackupFolder">Can't restore — no backup folder is set yet. Use Change backup folder to point SavegameBunker at one.</sys:String>
+    <sys:String x:Key="str_restoreSelected_noBackupFolder">Can't restore — no backup folder is set yet. Use Backup folder to point SavegameBunker at one.</sys:String>
     <sys:String x:Key="str_restore_noOrdinaryBackup">No restorable backup for {0} — only a safety copy, or none at all.</sys:String>
 
     <!--
@@ -277,10 +277,10 @@
     <sys:String x:Key="str_restore_inProgress">Restoring {0}…</sys:String>
 
     <!--  Restore pre-flight refusals and the restore confirmation (GameActions)  -->
-    <sys:String x:Key="str_restore_noBackupFolder">Can't restore {0} — no backup folder is set yet. Use Change backup folder to point SavegameBunker at one.</sys:String>
+    <sys:String x:Key="str_restore_noBackupFolder">Can't restore {0} — no backup folder is set yet. Use Backup folder to point SavegameBunker at one.</sys:String>
     <sys:String x:Key="str_restore_folderUnreachable">Can't restore {0} — the backup folder isn't available right now ({1}).</sys:String>
     <sys:String x:Key="str_restore_noBackups">No backups found for {0}. Back it up before you can restore.</sys:String>
-    <sys:String x:Key="str_restore_backupFolderInsideSaveFolder">Can't restore {0} — the backup folder is inside this game's save folder, and restoring replaces that whole folder. Move the backup folder somewhere else first (Change backup folder).</sys:String>
+    <sys:String x:Key="str_restore_backupFolderInsideSaveFolder">Can't restore {0} — the backup folder is inside this game's save folder, and restoring replaces that whole folder. Move the backup folder somewhere else first (Backup folder).</sys:String>
     <sys:String x:Key="str_restore_archiveTooLarge">Can't restore {0} — this backup is too large to extract safely.</sys:String>
     <sys:String x:Key="str_open_notFound">That path doesn't exist.</sys:String>
     <sys:String x:Key="str_open_opened">Opened {0}.</sys:String>
