@@ -1283,7 +1283,11 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     [RelayCommand]
     private async Task ChangeSaveFolderAsync(GameRowViewModel? row)
     {
-        if (row is null || row.IsBusy)
+        // IsBulkPreparing: a bulk run has already captured its targets but not yet marked them
+        // busy (it is still resolving the backup folder), so replacing this row now would let the
+        // run back up the old Game with its old save path. The overflow menu calls Execute
+        // directly, which skips CanExecute, so the guard lives here.
+        if (row is null || row.IsBusy || IsBulkPreparing)
             return;
 
         var newTemplate = _dialog.ShowChangeSaveFolderDialog(row.DisplayName, row.Game.SaveDirTemplate);
@@ -1338,7 +1342,9 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     [RelayCommand]
     private async Task RemoveGameAsync(GameRowViewModel? row)
     {
-        if (row is null || row.IsBusy)
+        // IsBulkPreparing: same window as ChangeSaveFolderAsync — the bulk run's targets are
+        // captured but not yet busy, so a removal now would still be backed up afterwards.
+        if (row is null || row.IsBusy || IsBulkPreparing)
             return;
 
         var confirmed = await Task.Run(() =>

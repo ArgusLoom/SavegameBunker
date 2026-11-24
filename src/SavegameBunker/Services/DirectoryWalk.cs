@@ -42,15 +42,19 @@ internal static class DirectoryWalk
     /// Optional: called with the walk-root-relative path of each subfolder the walk steps over
     /// because of <paramref name="excludedDirs"/> — a deliberate rule, reported apart from
     /// <paramref name="onSkipped"/> so it is never counted as unreadable. Only the outermost
-    /// pruned folder is reported, because the walk never descends into it. Reparse points are
-    /// still stepped over silently. Null excludes silently.
+    /// pruned folder is reported, because the walk never descends into it. The flag is true when
+    /// the folder IS one of <paramref name="excludedDirs"/> (a backup folder), and false when it is
+    /// pruned only because the walk root itself is a backup folder — such a folder may hold real
+    /// save data, so callers must not call it a backup folder. Reparse points are still stepped
+    /// over silently. Null excludes silently.
     /// </param>
     public static void ForEachFile(
         string rootDir, Action<FileInfo> onFile, IReadOnlyCollection<string>? excludedDirs = null,
-        Action<string>? onSkipped = null, Action<string>? onExcluded = null)
+        Action<string>? onSkipped = null, Action<string, bool>? onExcluded = null)
     {
         void Skip(string path) => onSkipped?.Invoke(Path.GetRelativePath(rootDir, path));
-        void Exclude(string path) => onExcluded?.Invoke(Path.GetRelativePath(rootDir, path));
+        void Exclude(string path, bool isBackupFolder) =>
+            onExcluded?.Invoke(Path.GetRelativePath(rootDir, path), isBackupFolder);
 
         // Excluded folders that are the walk root itself or lie inside it. Only these can ever
         // justify pruning a subfolder for lying *inside* an exclusion: a save folder that merely
@@ -121,19 +125,29 @@ internal static class DirectoryWalk
                     continue;
 
                 // The three layouts this prune decides between:
-                // - backup root inside the save folder: prune the subfolder that is or contains it
-                //   (IsSameOrInside(excluded, sub));
+                // - backup root inside the save folder: prune exactly the subfolder that IS it. A
+                //   subfolder that merely contains it is walked, so save files sitting beside the
+                //   backup folder are archived; the recursion prunes at the backup folder itself;
                 // - backup root or archive folder EQUAL to the save folder: every subfolder is
                 //   pruned, because other games' archive folders cannot be told apart from save
-                //   data there (the excludedWithinRoot arm);
+                //   data there (the excludedWithinRoot arm) — reported as not-a-backup-folder,
+                //   since it may well be save data;
                 // - save folder inside the backup root or inside its own archive folder: prune
                 //   nothing — no archive of this app lives below it, so its subfolders are archived.
-                if (excludedDirs is not null
-                    && (excludedDirs.Any(excluded => PathCompare.IsSameOrInside(excluded, sub))
-                        || excludedWithinRoot.Any(excluded => PathCompare.IsSameOrInside(sub, excluded))))
+                if (excludedDirs is not null)
                 {
-                    Exclude(sub);
-                    continue;
+                    if (excludedDirs.Any(excluded => PathCompare.IsSameOrInside(excluded, sub)
+                                                     && PathCompare.IsSameOrInside(sub, excluded)))
+                    {
+                        Exclude(sub, true);
+                        continue;
+                    }
+
+                    if (excludedWithinRoot.Any(excluded => PathCompare.IsSameOrInside(sub, excluded)))
+                    {
+                        Exclude(sub, false);
+                        continue;
+                    }
                 }
 
                 Walk(sub);

@@ -61,6 +61,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Deleting a backup in the restore list now asks inside the restore list.** The confirmation
   used to open in the main window behind the restore list, where it could not be seen or clicked
   while the list was open.
+- **Save files next to a backup folder inside the save folder are backed up again.** With the
+  backup folder at, say, `data\Backups` inside a save folder, every file in `data` was left out of
+  the backup without a word. Only the backup folder itself is left out now.
+- **A save folder that is also the backup folder now warns about the subfolders it skips.** Those
+  subfolders were named as "backup folder" in the backup message even when they held save data;
+  they are now listed in a warning as not backed up.
+- **An error opening the user guide from the About window now shows inside the About window.**
+  It used to open in the main window behind it, where it could not be seen or clicked.
+- **Removing a game or changing its save folder now waits while "Back up" is still choosing its
+  backup folder**, so the backup can no longer run on a removed game or an old save folder.
 - **Find Games says "1 file" instead of "1 files".**
 - **The "safety backup" tag in the restore list stays readable when its row is selected.**
 

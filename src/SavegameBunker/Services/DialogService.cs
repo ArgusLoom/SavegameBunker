@@ -128,8 +128,11 @@ public sealed class DialogService : IDialogService
         // Blocking the UI thread itself here (e.g. via Dispatcher.Invoke running the wait inline)
         // would deadlock: the dialog needs that thread's own message pump to resolve, and a
         // synchronous wait on it stops that pump from running.
-        Debug.Assert(!_owner.Dispatcher.CheckAccess(),
-            "Confirm blocks its caller until the user answers; call it off the UI thread (Task.Run), never on it.");
+        // A real check, not a Debug.Assert: in a Release build an assert is compiled out and the
+        // mistake would freeze the app with no error at all.
+        if (_owner.Dispatcher.CheckAccess())
+            throw new InvalidOperationException(
+                "Confirm blocks its caller until the user answers; call it off the UI thread (Task.Run), never on it.");
 
         var task = _owner.Dispatcher.InvokeAsync(() => ShowQueuedAsync(options)).Task.Unwrap();
         return task.GetAwaiter().GetResult() == ContentDialogResult.Primary;
@@ -204,8 +207,16 @@ public sealed class DialogService : IDialogService
     public void ShowAboutDialog() =>
         OnUiThread(() =>
         {
-            var vm = new AboutDialogViewModel(this);
-            var dialog = new AboutDialog(vm) { Owner = _owner };
+            // Same reason as the restore picker (G-02-6): About is modal over the main window, so
+            // a help-link error drawn in the main window's host would sit under it, out of reach.
+            // A DialogService owned by About draws into About's own host; the snackbar stays the
+            // main window's.
+            var dialog = new AboutDialog { Owner = _owner };
+            var aboutContentDialogs = new ContentDialogService();
+            aboutContentDialogs.SetDialogHost(dialog.RootDialogHost);
+            var aboutDialogs = new DialogService(dialog, aboutContentDialogs, _snackbarService);
+
+            dialog.DataContext = new AboutDialogViewModel(aboutDialogs);
             dialog.ShowDialog();
             return true;
         });

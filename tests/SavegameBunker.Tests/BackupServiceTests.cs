@@ -1313,8 +1313,47 @@ public sealed class BackupServiceTests : IDisposable
         var second = _service.Backup(gameB, backupRoot);
         Assert.True(second.Success, second.Message);
 
-        Assert.Contains("game-a", second.Message, StringComparison.Ordinal);
-        Assert.Contains("game-b", second.Message, StringComparison.Ordinal);
-        Assert.Contains("(backup folders).", second.Message, StringComparison.Ordinal);
+        // game-b is this game's own archive folder: a backup folder. game-a cannot be told apart
+        // from save data in a shared folder, so it is named in a warning, not called a backup folder.
+        Assert.Contains("Left out: game-b (backup folder).", second.Message, StringComparison.Ordinal);
+        Assert.Contains("1 subfolder(s) are NOT in this backup: game-a", second.Message, StringComparison.Ordinal);
+    }
+
+    // A save subfolder pruned only because the save folder IS the backup folder may hold real save
+    // data. It must be named as missing from the backup, never as a "backup folder".
+    [Fact]
+    public void A_backup_root_equal_to_the_save_folder_warns_about_save_subfolders_instead_of_calling_them_backup_folders()
+    {
+        var saveDir = Path.Combine(_dir, "eq");
+        Directory.CreateDirectory(Path.Combine(saveDir, "profiles"));
+        File.WriteAllText(Path.Combine(saveDir, "top.dat"), "payload");
+        File.WriteAllText(Path.Combine(saveDir, "profiles", "slot1.sav"), "payload");
+        var game = new Game { Id = "eq-game", DisplayName = "Eq Game", SaveDirTemplate = saveDir.Replace('\\', '/') };
+
+        var result = _service.Backup(game, saveDir);
+
+        Assert.True(result.Success, result.Message);
+        Assert.Contains("NOT in this backup: profiles", result.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("profiles (backup folder", result.Message, StringComparison.Ordinal);
+    }
+
+    // A save subfolder that merely CONTAINS the backup folder is walked, not pruned whole: save
+    // files beside the backup folder must be archived, or a later restore would delete them.
+    [Fact]
+    public void Save_files_beside_a_nested_backup_folder_are_archived()
+    {
+        var saveDir = Path.Combine(_dir, "nest");
+        var backupRoot = Path.Combine(saveDir, "data", "Backups");
+        Directory.CreateDirectory(backupRoot);
+        File.WriteAllText(Path.Combine(saveDir, "data", "slot.sav"), "payload");
+        var game = new Game { Id = "nest-game", DisplayName = "Nest Game", SaveDirTemplate = saveDir.Replace('\\', '/') };
+
+        Assert.True(_service.Backup(game, backupRoot).Success);
+        var second = _service.Backup(game, backupRoot, "-second", out var secondPath);
+
+        Assert.True(second.Success, second.Message);
+        using var zip = ZipFile.OpenRead(secondPath!);
+        Assert.Equal("data/slot.sav", Assert.Single(zip.Entries).FullName);
+        Assert.Contains($"Left out: {Path.Combine("data", "Backups")} (backup folder).", second.Message, StringComparison.Ordinal);
     }
 }

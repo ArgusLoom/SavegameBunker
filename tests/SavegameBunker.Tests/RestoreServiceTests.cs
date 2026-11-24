@@ -218,7 +218,7 @@ public sealed class RestoreServiceTests : IDisposable
 
         Assert.False(result.Success);
         Assert.False(result.Cancelled);
-        Assert.Contains("inside", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(Strings.Format("str_restore_backupFolderInsideSaveFolder", game.DisplayName), result.Message);
         Assert.Equal(0, confirmCalls);
         Assert.True(File.Exists(archive));
         Assert.Single(Directory.GetFiles(BackupDirFor(backupRoot, game), "*.zip"));
@@ -806,7 +806,7 @@ public sealed class RestoreServiceTests : IDisposable
 
         Assert.False(result.Success);
         Assert.False(result.Cancelled);
-        Assert.Contains("inside", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(Strings.Format("str_restore_backupFolderInsideSaveFolder", game.DisplayName), result.Message);
         Assert.Equal(0, confirmCalls);
         Assert.Single(Directory.GetFiles(BackupDirFor(backupRoot, game), "*.zip"));
         Assert.Equal("payload", File.ReadAllText(Path.Combine(saveDir, "save.dat")));
@@ -836,7 +836,7 @@ public sealed class RestoreServiceTests : IDisposable
 
         Assert.False(result.Success);
         Assert.False(result.Cancelled);
-        Assert.Contains("inside", result.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(Strings.Format("str_restore_backupFolderInsideSaveFolder", game.DisplayName), result.Message);
         Assert.Equal(0, confirmCalls);
         Assert.Single(Directory.GetFiles(BackupDirFor(backupRoot, game), "*.zip"));
         Assert.Equal("payload", File.ReadAllText(Path.Combine(saveDir, "a.dat")));

@@ -247,6 +247,41 @@ public sealed class MainViewModelTests : MainViewModelTestBase
         Assert.True(vm.RefreshCommand.CanExecute(null));
     }
 
+    /// <summary>
+    /// The bulk run captures its targets before it resolves the backup folder, and no row is busy
+    /// yet in that window. Removing a game or replacing its save folder there would let the run
+    /// back up a removed game, or a replaced row's old save path. The overflow menu calls Execute
+    /// directly (no CanExecute), so both commands must refuse on their own while preparing.
+    /// </summary>
+    [Fact]
+    public async Task Remove_and_change_save_folder_do_nothing_while_a_bulk_run_is_preparing()
+    {
+        var (vm, dialog, _) = CreateViewModel(backupRoot: "");
+        dialog.FolderToReturn = null; // the user cancels the picker
+        dialog.ConfirmToReturn = true;
+        dialog.ChangeSaveFolderToReturn = "C:/elsewhere";
+
+        await WaitForAsync(() => vm.Games.All(row => row.ComparisonKind != BackupComparisonKind.Checking));
+
+        var row = vm.Games[0];
+        row.IsSelected = true;
+        await WaitForAsync(() => vm.BackupSelectedCommand.CanExecute(null));
+
+        dialog.OnPickFolder = () =>
+        {
+            vm.RemoveGameCommand.Execute(row);
+            vm.ChangeSaveFolderCommand.Execute(row);
+        };
+
+        vm.BackupSelectedCommand.Execute(null);
+
+        await WaitForAsync(() => vm.StatusMessage.StartsWith("Backup cancelled") && !vm.IsAnyOperationRunning);
+
+        Assert.Contains(row, vm.Games);
+        Assert.Empty(dialog.ConfirmMessages);
+        Assert.Empty(dialog.ChangeSaveFolderCalls);
+    }
+
     [Fact]
     public async Task A_whitespace_backup_root_opens_the_picker_like_an_absent_one()
     {

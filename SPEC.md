@@ -219,16 +219,22 @@ and silently replacing a broken catalog would destroy the user's own configurati
 - After writing, the archive is reopened and its entries checked against the source before success
   is reported. An archive nobody can read is not a backup.
 - A `backupRoot` inside the game's own save directory, or equal to it, is honoured for Backup —
-  the archive walk leaves out exactly the folders that hold backups: a subfolder that is or
-  contains `backupRoot`, and, when the save directory is itself `backupRoot` or the game's archive
-  folder `<backupRoot>\<id>`, every subfolder of it, because other games' archive folders cannot be
-  told apart from save data there. Nothing else is left out, so a save directory that merely sits
-  inside `backupRoot` (backup folder `Documents`, save folder `Documents\My Games\X`) or inside its
-  own archive folder (`<backupRoot>\<id>\saves`) is archived with all its subfolders, since no
-  archive of this app lives below it. The success message names each left-out folder in a plain
-  note (example: "Left out: backups (backup folder).") which describes what the archive holds and
-  is not a warning about the destination, so the *Backup destination* rule still holds; left-out
-  folders are not unreadable paths and never raise the "NOT in this backup" warning.
+  the archive walk leaves out exactly the folders that hold backups: the subfolder that is
+  `backupRoot` or the game's archive folder `<backupRoot>\<id>`, and, when the save directory is
+  itself `backupRoot` or `<backupRoot>\<id>`, every subfolder of it, because other games' archive
+  folders cannot be told apart from save data there. A subfolder that merely contains `backupRoot`
+  (save folder `S`, backup folder `S\data\Backups`) is walked, so save files beside the backup
+  folder (`S\data\slot.sav`) are archived — pruning the whole `data` folder would leave them out
+  of every archive while verification still passed. Nothing else is left out, so a save
+  directory that merely sits inside `backupRoot` (backup folder `Documents`, save folder
+  `Documents\My Games\X`) or inside its own archive folder (`<backupRoot>\<id>\saves`) is archived
+  with all its subfolders, since no archive of this app lives below it. The success message names
+  each left-out backup folder in a plain note (example: "Left out: backups (backup folder).") which
+  describes what the archive holds and is not a warning about the destination, so the *Backup
+  destination* rule still holds; left-out backup folders are not unreadable paths and never raise
+  the "NOT in this backup" warning. Subfolders left out only because the save directory is itself
+  the backup folder are different: they may be real save data, so they are named in a warning
+  ("… subfolder(s) are NOT in this backup: …") and never called backup folders.
 - Restore is refused for a game whose archive folder `<backupRoot>\<id>` lies inside, or is, its
   save directory — this covers every `backupRoot` inside or equal to the save directory — because
   restore renames the save directory aside and deletes it, which would delete the archives with

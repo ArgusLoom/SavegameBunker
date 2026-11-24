@@ -28,13 +28,13 @@ public sealed class AboutDialogViewModelTests
     [Fact]
     public async Task Help_link_reports_a_failure_as_an_error()
     {
-        var dialog = new RecordingDialogService { HelpGuideResultToReturn = OperationResult.Fail(Strings.Get("str_help_missing")) };
+        var dialog = new RecordingDialogService { HelpGuideResultToReturn = OperationResult.Fail(Strings.Format("str_help_failed", "no browser")) };
         var vm = new AboutDialogViewModel(dialog);
 
         await vm.OpenHelpCommand.ExecuteAsync(null);
 
         var error = Assert.Single(dialog.ErrorMessages);
-        Assert.Equal(Strings.Get("str_help_missing"), error);
+        Assert.Equal(Strings.Format("str_help_failed", "no browser"), error);
         Assert.Empty(dialog.InfoMessages);
     }
 

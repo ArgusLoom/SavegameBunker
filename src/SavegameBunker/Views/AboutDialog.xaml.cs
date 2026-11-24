@@ -3,11 +3,10 @@ using Wpf.Ui.Controls;
 
 namespace SavegameBunker.Views;
 
-public partial class AboutDialog : FluentWindow
+public sealed partial class AboutDialog : FluentWindow
 {
-    public AboutDialog(AboutDialogViewModel vm)
+    public AboutDialog()
     {
         InitializeComponent();
-        DataContext = vm;
     }
 }

@@ -67,7 +67,6 @@
     <sys:String x:Key="str_help_opened">Opened the user guide.</sys:String>
     <sys:String x:Key="str_help_opened_online">Opened the online user guide — no offline copy was found next to the SavegameBunker executable.</sys:String>
     <sys:String x:Key="str_help_failed">Could not open the user guide: {0}</sys:String>
-    <sys:String x:Key="str_help_missing">The offline user guide was not found next to the SavegameBunker executable.</sys:String>
 
     <!--  About window  -->
     <sys:String x:Key="str_about_title">About SavegameBunker</sys:String>
@@ -280,7 +279,7 @@
     <sys:String x:Key="str_restore_noBackupFolder">Can't restore {0} — no backup folder is set yet. Use Backup folder to point SavegameBunker at one.</sys:String>
     <sys:String x:Key="str_restore_folderUnreachable">Can't restore {0} — the backup folder isn't available right now ({1}).</sys:String>
     <sys:String x:Key="str_restore_noBackups">No backups found for {0}. Back it up before you can restore.</sys:String>
-    <sys:String x:Key="str_restore_backupFolderInsideSaveFolder">Can't restore {0} — the backup folder is inside this game's save folder, and restoring replaces that whole folder. Move the backup folder somewhere else first (Backup folder).</sys:String>
+    <sys:String x:Key="str_restore_backupFolderInsideSaveFolder">Can't restore {0} — this game's backups are stored in its own save folder, and restoring replaces that whole folder. Move the backup folder somewhere else first (Backup folder).</sys:String>
     <sys:String x:Key="str_restore_archiveTooLarge">Can't restore {0} — this backup is too large to extract safely.</sys:String>
     <sys:String x:Key="str_open_notFound">That path doesn't exist.</sys:String>
     <sys:String x:Key="str_open_opened">Opened {0}.</sys:String>

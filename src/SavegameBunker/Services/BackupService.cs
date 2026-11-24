@@ -114,6 +114,11 @@ public sealed class BackupService
             // unreadable-path wording (D-01). Collected from the archive pass only.
             var leftOut = new List<string>();
 
+            // Subfolders pruned only because the save folder itself IS a backup folder: they may be
+            // other games' archive folders or real save data, and the walk cannot tell which — so
+            // they are named in a warning, never in the "backup folder" note.
+            var notBackedUp = new List<string>();
+
             // A backup folder the user placed inside this game's own save folder is honoured like
             // any other destination — but the walk must step over it, or every backup would pack
             // all earlier archives (and trip over its own half-written staging file). targetDir is
@@ -126,7 +131,8 @@ public sealed class BackupService
                 // Own walk, not ZipFile.CreateFromDirectory: that API follows directory junctions
                 // and would archive whatever they point at (Documents, SSH keys, …). The empty-check
                 // and the scanner already skip reparse points; the zip must skip them too.
-                entryHashes = ArchiveSaveDir(saveDir, tempPath, progress, excludedDirs, skippedPaths, leftOut);
+                entryHashes = ArchiveSaveDir(saveDir, tempPath, progress, excludedDirs, skippedPaths,
+                    (path, isBackupFolder) => (isBackupFolder ? leftOut : notBackedUp).Add(path));
             }
             catch (Exception ex)
             {
@@ -140,12 +146,15 @@ public sealed class BackupService
             // above excludes that same folder — leaving a zero-entry archive that would otherwise
             // verify (0 equals 0) and be reported as a backup. Gated on "and nothing was skipped"
             // so a locked-only save folder (zero entries, one skipped path) stays the
-            // warning-carrying success it already is — the empty-folder message above is untouched.
+            // warning-carrying success it already is. The backup-folder wording applies only when
+            // the walk actually left something out; a folder emptied between the empty check and
+            // the walk gets the plain empty-folder message.
             if (entryHashes.Count == 0 && skippedPaths.Count == 0)
             {
                 TryDelete(tempPath);
-                return OperationResult.Fail(
-                    $"Backup failed for {game.DisplayName}: {saveDir} holds nothing but the backup folder, so there is nothing to back up.");
+                return OperationResult.Fail(leftOut.Count + notBackedUp.Count > 0
+                    ? $"Backup failed for {game.DisplayName}: {saveDir} holds nothing but the backup folder, so there is nothing to back up."
+                    : $"Save folder is empty: {saveDir}");
             }
 
             // Success is reported only after the archive is reopened and its entries matched
@@ -182,6 +191,8 @@ public sealed class BackupService
             var createdMessage = Strings.Format("str_backup_created", game.DisplayName);
             if (skippedPaths.Count > 0)
                 createdMessage += DescribeSkippedPathsWarning(skippedPaths);
+            if (notBackedUp.Count > 0)
+                createdMessage += DescribeNotBackedUpWarning(notBackedUp);
             if (leftOut.Count > 0)
                 createdMessage += DescribeLeftOutNote(leftOut);
             var oversizedWarning = DescribeOversizedArchiveWarning(finalPath);
@@ -268,6 +279,16 @@ public sealed class BackupService
     /// </summary>
     private static string DescribeLeftOutNote(IReadOnlyCollection<string> leftOut) =>
         $" Left out: {DirectoryWalk.FormatSkippedList(leftOut)} ({(leftOut.Count == 1 ? "backup folder" : "backup folders")}).";
+
+    /// <summary>
+    /// The warning appended when the save folder is itself the backup folder (or this game's
+    /// archive folder): its subfolders are pruned because other games' archive folders cannot be
+    /// told apart from save data there. They may be real save data, so this is a warning naming
+    /// them as missing — never the "backup folder" note, which would tell the user they hold
+    /// archives.
+    /// </summary>
+    private static string DescribeNotBackedUpWarning(IReadOnlyCollection<string> notBackedUp) =>
+        $" Warning: the save folder is also the backup folder, so {notBackedUp.Count} subfolder(s) are NOT in this backup: {DirectoryWalk.FormatSkippedList(notBackedUp)}";
 
     /// <summary>
     /// Warns when the archive just written exceeds <see cref="RestoreService"/>'s own zip-bomb
@@ -643,8 +664,9 @@ public sealed class BackupService
     /// <param name="excludedDirs">
     /// Directories the walk steps over — the backup folder and the game's own archive folder,
     /// whenever the user placed the backup folder inside (or exactly at) the save folder being
-    /// walked. A subtree is stepped over when it is or contains an excluded directory, or — only
-    /// when an excluded directory is the walk root itself or lies inside it — when the subtree
+    /// walked. A subtree is stepped over when it is an excluded directory (one that merely
+    /// contains an excluded directory is walked, so save files beside the backup folder are
+    /// archived), or — only when an excluded directory is the walk root itself — when the subtree
     /// lies inside that exclusion: with <c>backupRoot</c> pointed at a save folder shared by
     /// several games, the other games' archive directories cannot be told apart from save data,
     /// so every subfolder is pruned. A save folder that merely SITS inside the backup root (or
@@ -656,14 +678,14 @@ public sealed class BackupService
     /// <see cref="DirectoryWalk.ForEachFile"/>'s own skip reporter — the archive path uses it to
     /// surface an incomplete walk instead of silently verifying a possibly-incomplete archive.
     /// </param>
-    /// <param name="leftOut">
-    /// Optional collector for the subfolders this walk leaves out BY RULE — the excluded backup
-    /// folders, forwarded to <see cref="DirectoryWalk.ForEachFile"/>'s exclusion reporter. Deliberate
-    /// exclusions, not unreadable paths; reported as a plain note, never as a warning.
+    /// <param name="onExcluded">
+    /// Optional reporter for the subfolders this walk leaves out BY RULE, forwarded to
+    /// <see cref="DirectoryWalk.ForEachFile"/>'s exclusion reporter with its is-a-backup-folder
+    /// flag. Deliberate exclusions, not unreadable paths.
     /// </param>
     private static Dictionary<string, long> EnumerateRelativeFiles(
         string rootDir, IReadOnlyCollection<string>? excludedDirs = null, ICollection<string>? skipped = null,
-        ICollection<string>? leftOut = null)
+        Action<string, bool>? onExcluded = null)
     {
         var result = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
 
@@ -671,7 +693,7 @@ public sealed class BackupService
         {
             var relative = Path.GetRelativePath(rootDir, info.FullName).Replace(Path.DirectorySeparatorChar, '/');
             result[relative] = info.Length;
-        }, excludedDirs, skipped is null ? null : skipped.Add, leftOut is null ? null : leftOut.Add);
+        }, excludedDirs, skipped is null ? null : skipped.Add, onExcluded);
 
         return result;
     }
@@ -702,10 +724,9 @@ public sealed class BackupService
     /// could not read, reported by the caller on the result so an incomplete archive is never
     /// mistaken for a complete one.
     /// </param>
-    /// <param name="leftOut">
-    /// Optional collector forwarded to <see cref="EnumerateRelativeFiles"/> — the subfolders the
-    /// walk leaves out on purpose because they hold backups, reported by the caller as a plain
-    /// note, never as a warning.
+    /// <param name="onExcluded">
+    /// Optional reporter forwarded to <see cref="EnumerateRelativeFiles"/> — the subfolders the
+    /// walk leaves out on purpose, with whether each is a backup folder.
     /// </param>
     /// <returns>
     /// SHA-256 of every entry's uncompressed content, keyed by entry name — recorded for
@@ -714,7 +735,7 @@ public sealed class BackupService
     /// </returns>
     private static Dictionary<string, string> ArchiveSaveDir(
         string saveDir, string tempPath, IProgress<long>? progress, IReadOnlyCollection<string>? excludedDirs = null,
-        ICollection<string>? skipped = null, ICollection<string>? leftOut = null)
+        ICollection<string>? skipped = null, Action<string, bool>? onExcluded = null)
     {
         var entryHashes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         using var zip = ZipFile.Open(tempPath, ZipArchiveMode.Create);
@@ -722,7 +743,7 @@ public sealed class BackupService
         long completed = 0;
         long lastReported = 0;
 
-        foreach (var (relative, length) in EnumerateRelativeFiles(saveDir, excludedDirs, skipped, leftOut))
+        foreach (var (relative, length) in EnumerateRelativeFiles(saveDir, excludedDirs, skipped, onExcluded))
         {
             var fullPath = Path.Combine(saveDir, relative.Replace('/', Path.DirectorySeparatorChar));
 

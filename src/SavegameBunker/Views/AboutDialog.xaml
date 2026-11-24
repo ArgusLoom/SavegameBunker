@@ -115,5 +115,15 @@
                     Style="{StaticResource DialogFooterButton}" />
             </Grid>
         </Grid>
+
+        <!--
+            A ContentDialog is drawn inside the window that hosts it. This window is modal over
+            MainWindow, so an error hosted by MainWindow's own RootDialogHost would paint underneath
+            it, out of reach (same as G-02-6 for the restore picker). Help-link errors render here.
+        -->
+        <ui:ContentDialogHost
+            x:Name="RootDialogHost"
+            Grid.Row="0"
+            Grid.RowSpan="2" />
     </Grid>
 </ui:FluentWindow>
