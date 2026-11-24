@@ -144,12 +144,13 @@ public sealed class StringsTests
     }
 
     [Fact]
-    public void The_seven_toolbar_mnemonics_are_all_different_letters()
+    public void The_eight_toolbar_mnemonics_are_all_different_letters()
     {
         // Two toolbar buttons sharing an access-key letter makes Alt+letter cycle focus between
         // the candidates instead of invoking either outright — the exact failure the letter
         // assignment exists to avoid, and the reason Restore selected takes a mid-word "T"
-        // instead of colliding with Refresh's "R".
+        // instead of colliding with Refresh's "R", and About takes "u" instead of colliding with
+        // Back up's "B".
         string[] accessKeys =
         [
             "str_toolbar_addGame_access",
@@ -159,6 +160,7 @@ public sealed class StringsTests
             "str_toolbar_changeBackupFolder_access",
             "str_toolbar_backUpSelected_access",
             "str_toolbar_restoreSelected_access",
+            "str_toolbar_about_access",
         ];
 
         var mnemonics = accessKeys

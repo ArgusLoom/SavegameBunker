@@ -11,7 +11,7 @@
 | **Alt, F** | **Backup folder** |
 | **Alt, B** | **Back up** |
 | **Alt, T** | **Restore** |
-| **Alt, H** | **Help** |
+| **Alt, U** | **About** |
 
 Drücken Sie zuerst **Alt**, dann den Buchstaben — jeder Buchstabe ist auch auf der Beschriftung
 der zugehörigen Schaltfläche unterstrichen. **Back up all changed** und **Switch theme**

@@ -11,7 +11,7 @@
 | **Alt, F** | **Backup folder** |
 | **Alt, B** | **Back up** |
 | **Alt, T** | **Restore** |
-| **Alt, H** | **Help** |
+| **Alt, U** | **About** |
 
 Press **Alt** first, then the letter — each letter is also underlined on its button's label.
 **Back up all changed** and **Switch theme** have no Alt mnemonic; use the mouse or Tab to reach

@@ -46,7 +46,7 @@
     <sys:String x:Key="str_toolbar_changeBackupFolder_access">Backup _folder</sys:String>
     <sys:String x:Key="str_toolbar_backUpSelected_access">_Back up</sys:String>
     <sys:String x:Key="str_toolbar_restoreSelected_access">Res_tore</sys:String>
-    <sys:String x:Key="str_toolbar_about_access">A_bout</sys:String>
+    <sys:String x:Key="str_toolbar_about_access">Abo_ut</sys:String>
 
     <!--
         Toolbar tooltips: one sentence each on what the button does, because a two-word label
