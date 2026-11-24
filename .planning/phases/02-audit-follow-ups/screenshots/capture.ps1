@@ -439,6 +439,12 @@ function Shot-07Statusbar {
     $win = Find-AppWindow
     # Crop the window's bottom strip (the status bar row) from the window shot.
     $proc = Get-Process -Name 'SavegameBunker' | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
+    # Same reason as Save-WindowShot/Save-ElementShot (T-02-31): raise the window before
+    # copying screen pixels, or another window can occlude the captured region on a shared
+    # desktop. Found while verifying this plan against an older build: without this, the
+    # cropped strip sometimes held desktop content instead of the status bar.
+    [Win32.Native]::SetForegroundWindow($proc.MainWindowHandle) | Out-Null
+    Start-Sleep -Milliseconds 200
     $rect = New-Object Win32.Native+RECT
     [Win32.Native]::GetWindowRect($proc.MainWindowHandle, [ref]$rect) | Out-Null
     $w = $rect.Right - $rect.Left
