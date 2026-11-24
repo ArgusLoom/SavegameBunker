@@ -96,6 +96,29 @@ public sealed class RestorePickerViewModelTests
     }
 
     [Fact]
+    public void A_collision_suffixed_pre_restore_archive_still_reports_it_is_a_safety_backup()
+    {
+        // BackupService's same-second rename ladder appends "-1", "-2", ... on a collision, so a
+        // second pre-restore safety backup taken in the same second is named "...-pre-restore-1".
+        var archive = Archive("2026-07-04-090500-pre-restore-1.zip", new DateTime(2026, 7, 4));
+        var vm = new RestorePickerViewModel("Test Game", [archive]);
+
+        Assert.True(Assert.Single(vm.Rows).IsSafetyBackup);
+    }
+
+    [Fact]
+    public void An_ordinary_collision_suffixed_archive_still_reports_it_is_not_a_safety_backup()
+    {
+        // The timestamp itself is dash-separated, so the suffix-stripping must not mistake the
+        // "-1" collision suffix check for stripping into the "yyyy-MM-dd" portion of a bare,
+        // collision-suffixed ordinary backup's name.
+        var archive = Archive("2026-07-04-090500-1.zip", new DateTime(2026, 7, 4));
+        var vm = new RestorePickerViewModel("Test Game", [archive]);
+
+        Assert.False(Assert.Single(vm.Rows).IsSafetyBackup);
+    }
+
+    [Fact]
     public void CanRestore_is_false_before_any_row_is_selected_and_true_after_one_is()
     {
         var archive = Archive("a.zip", new DateTime(2026, 1, 1));

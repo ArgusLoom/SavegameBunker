@@ -105,7 +105,7 @@ public sealed class BackupService
             // Collected from the archive walk: every path the walk could not read. A skipped path
             // is silently absent from the archive, and the verification walk skips it the same way
             // — so without this list an incomplete archive would verify clean. Reported on the
-            // Reported on the result below; a hard failure on any unreadable path would turn a locked junk file
+            // result below; a hard failure on any unreadable path would turn a locked junk file
             // into a refused backup, so incompleteness is surfaced as a warning instead.
             var skippedPaths = new List<string>();
 

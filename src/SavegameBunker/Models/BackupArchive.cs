@@ -20,9 +20,21 @@ public sealed record BackupArchive(string FilePath, DateTime TakenAt, long SizeB
 {
     /// <summary>
     /// True when this archive is one of restore's own safety backups (the <c>-pre-restore</c>
-    /// file-name suffix). Shared by the restore picker tag and bulk restore's newest-ordinary
-    /// pick so those two cannot disagree about what a safety archive is.
+    /// file-name suffix, optionally followed by <see cref="Services.BackupService"/>'s own
+    /// same-second collision suffix, e.g. <c>-pre-restore-1</c>). Shared by the restore picker tag
+    /// and bulk restore's newest-ordinary pick so those two cannot disagree about what a safety
+    /// archive is.
     /// </summary>
-    public bool IsSafetyBackup =>
-        Path.GetFileNameWithoutExtension(FilePath).EndsWith("-pre-restore", StringComparison.Ordinal);
+    public bool IsSafetyBackup
+    {
+        get
+        {
+            var name = Path.GetFileNameWithoutExtension(FilePath);
+            var lastDash = name.LastIndexOf('-');
+            if (lastDash >= 0 && int.TryParse(name[(lastDash + 1)..], out _))
+                name = name[..lastDash];
+
+            return name.EndsWith("-pre-restore", StringComparison.Ordinal);
+        }
+    }
 }

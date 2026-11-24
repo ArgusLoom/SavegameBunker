@@ -81,9 +81,14 @@ internal sealed class BulkBackupCoordinator
         // Reset to Checking up front: this is both the visible "in progress" state for the rows
         // this run touches and the re-entrancy guard — the view model's IsAnyRowChecking flips
         // true immediately, disabling the bulk commands until the closing re-scan settles
-        // everything again.
+        // everything again. Also bumps each row's ScanToken, the same invalidation
+        // StatusSweepCoordinator.Reset uses, so a sweep's WalkAsync callback still in flight for a
+        // target row can no longer match and overwrite this run's Checking display.
         foreach (var row in targets)
+        {
+            row.ScanToken++;
             row.ApplyBackupComparison(BackupComparison.Checking());
+        }
 
         onStarted(targets.Count, targets[0].DisplayName);
 
@@ -193,9 +198,13 @@ internal sealed class BulkBackupCoordinator
             return null;
 
         // The same Checking reset, counter raise (via onStarted) and IsBusy claim order as the
-        // backup path — the re-entrancy guard is one sequence shared by both bulk kinds.
+        // backup path — the re-entrancy guard is one sequence shared by both bulk kinds. Also
+        // bumps ScanToken for the same reason as BackupAsync's reset.
         foreach (var row in targets)
+        {
+            row.ScanToken++;
             row.ApplyBackupComparison(BackupComparison.Checking());
+        }
 
         onStarted(targets.Count, targets[0].DisplayName);
 

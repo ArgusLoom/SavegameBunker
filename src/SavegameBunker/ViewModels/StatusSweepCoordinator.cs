@@ -141,15 +141,21 @@ internal sealed class StatusSweepCoordinator
             if (hasRoot && _backup.TryGetAvailableFreeSpace(root, out var freeBytes))
                 free = Strings.Format("str_freeSpace_available", SizeFormat.Describe(freeBytes));
 
+            // Memoized per game: a game present in both lists (selected while also having unsaved
+            // changes, the common case) must have its save folder walked only once.
+            var sizeByGame = new Dictionary<Game, long>();
+            long SizeOf(Game game) =>
+                sizeByGame.TryGetValue(game, out var size) ? size : sizeByGame[game] = _backup.ComputeSaveDataSize(game);
+
             string? selected = selectedGames.Count == 0
                 ? null
                 : Strings.Format("str_freeSpace_selectedNeeds",
-                    SizeFormat.Describe(selectedGames.Sum(g => _backup.ComputeSaveDataSize(g))));
+                    SizeFormat.Describe(selectedGames.Sum(SizeOf)));
 
             string? changed = changedGames.Count == 0
                 ? null
                 : Strings.Format("str_freeSpace_changedNeeds",
-                    SizeFormat.Describe(changedGames.Sum(g => _backup.ComputeSaveDataSize(g))));
+                    SizeFormat.Describe(changedGames.Sum(SizeOf)));
 
             return (free, selected, changed);
         });

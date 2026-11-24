@@ -35,7 +35,13 @@ public sealed class RestoreService
 
     /// <param name="game">The catalog entry whose save directory is being restored into.</param>
     /// <param name="backupRoot">Absolute path of the configured backup folder.</param>
-    /// <param name="archivePath">The archive to restore, as picked in the restore picker.</param>
+    /// <param name="archivePath">
+    /// The archive to restore, as picked in the restore picker. Must resolve under
+    /// <c>Path.Combine(backupRoot, game.Id)</c> using the same <paramref name="backupRoot"/> value
+    /// <see cref="BackupService.ListBackups"/> was called with to produce it — a caller that
+    /// re-resolves a relative, catalog-level backupRoot differently between listing and restoring
+    /// gets every restore refused here with a generic "not a backup" message.
+    /// </param>
     /// <param name="confirm">
     /// Invoked exactly once, after the safety backup has been written (or determined unnecessary)
     /// and before anything about the live save directory changes. A false return cancels the
