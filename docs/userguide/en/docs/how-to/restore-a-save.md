@@ -37,7 +37,7 @@ The delete button is greyed out while a restore is running in that window.
 ## Restore several games at once
 
 1. Check the games you want to restore.
-2. Click **Restore selected**.
+2. Click **Restore**.
 
 SavegameBunker restores each checked game's newest backup, one at a time, and asks you to confirm
 each one individually. Approving one game's restore does not silently start the next — you stay

@@ -23,7 +23,7 @@ On the new PC:
 2. Copy the backup folder to the new PC (or to a drive the new PC can read).
 3. On the new PC, run SavegameBunker and use **Add game** to recreate each entry, pointing it at the
    save folder location on the new machine.
-4. Click **Change backup folder** and point it at the folder you copied over, then **Restore**
+4. Click **Backup folder** and point it at the folder you copied over, then **Restore**
    each game.
 
 ## Whether the game will accept the save

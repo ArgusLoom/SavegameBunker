@@ -10,7 +10,7 @@ to date are skipped.
 
 1. Check the box on each row you want, or use the header checkbox to select or clear every
    visible game at once.
-2. Click **Back up selected**.
+2. Click **Back up**.
 
 Only the checked games are backed up, regardless of their status.
 

@@ -21,7 +21,7 @@ speichern an ungewöhnlicher Stelle. Für diese Fälle nutzen Sie **Add game** (
 ## 3. Sichern
 
 Klicken Sie auf **Back up all changed**, oder markieren Sie die gewünschten Spiele und klicken Sie
-auf **Back up selected**.
+auf **Back up**.
 
 Falls Spiele seit ihrer letzten Sicherung verändert wurden, fragt SavegameBunker beim Start einmal:
 „N Spiele haben Änderungen, die noch nicht gesichert sind — jetzt sichern?" Mit „Ja" wird dieselbe Sicherung wie

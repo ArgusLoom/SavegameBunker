@@ -20,7 +20,7 @@ zweite interne Platte oder eine Netzwerkfreigabe.
 
 ## Den Sicherungsordner später ändern
 
-Klicken Sie in der Symbolleiste auf **Change backup folder**. Es öffnet sich ein Ordnerauswahl-
+Klicken Sie in der Symbolleiste auf **Backup folder**. Es öffnet sich ein Ordnerauswahl-
 Dialog mit dem Titel **Select the folder SavegameBunker writes backups to**. Vorhandene Sicherungen
 bleiben, wo sie sind; nur neue Sicherungen landen am neuen Ort.
 

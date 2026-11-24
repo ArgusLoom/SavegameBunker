@@ -40,7 +40,7 @@ Die Lösch-Schaltfläche ist deaktiviert, solange in diesem Fenster eine Wiederh
 ## Mehrere Spiele auf einmal wiederherstellen
 
 1. Markieren Sie die gewünschten Spiele.
-2. Klicken Sie auf **Restore selected**.
+2. Klicken Sie auf **Restore**.
 
 SavegameBunker stellt für jedes markierte Spiel die jeweils neueste Sicherung wieder her, eine nach
 der anderen, und fragt für jede einzeln um Bestätigung. Das Bestätigen eines Spiels startet nicht

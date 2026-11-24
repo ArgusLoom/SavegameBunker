@@ -8,9 +8,9 @@
 | **Alt, S** | **Scan** |
 | **Alt, R** | **Refresh** |
 | **Alt, O** | **Open the games list** |
-| **Alt, C** | **Change backup folder** |
-| **Alt, B** | **Back up selected** |
-| **Alt, T** | **Restore selected** |
+| **Alt, F** | **Backup folder** |
+| **Alt, B** | **Back up** |
+| **Alt, T** | **Restore** |
 | **Alt, H** | **Help** |
 
 Press **Alt** first, then the letter — each letter is also underlined on its button's label.

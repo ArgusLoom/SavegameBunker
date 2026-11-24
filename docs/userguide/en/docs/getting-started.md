@@ -18,7 +18,7 @@ somewhere unusual. For those, use **Add game** (see
 
 ## 3. Back up
 
-Click **Back up all changed**, or check the games you care about and click **Back up selected**.
+Click **Back up all changed**, or check the games you care about and click **Back up**.
 
 If you haven't set a backup folder yet, SavegameBunker asks where to put backups — a USB stick, an
 external drive, a network share, or even the same disk. It remembers your choice. See

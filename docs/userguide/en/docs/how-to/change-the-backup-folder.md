@@ -18,7 +18,7 @@ drive, a second internal disk, or a network share.
 
 ## Changing it later
 
-Click **Change backup folder** in the toolbar. This opens a folder picker titled **Select the
+Click **Backup folder** in the toolbar. This opens a folder picker titled **Select the
 folder SavegameBunker writes backups to**. Existing backups stay where they are; only new backups go
 to the new location.
 

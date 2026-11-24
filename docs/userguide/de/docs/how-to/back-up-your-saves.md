@@ -10,7 +10,7 @@ jedes Spiel, das noch nie gesichert wurde. Bereits aktuelle Spiele werden übers
 
 1. Markieren Sie die Kontrollkästchen der gewünschten Zeilen, oder nutzen Sie das Kontrollkästchen
    in der Kopfzeile, um alle sichtbaren Spiele auf einmal zu markieren oder zu entmarkieren.
-2. Klicken Sie auf **Back up selected**.
+2. Klicken Sie auf **Back up**.
 
 Nur die markierten Spiele werden gesichert, unabhängig von ihrem Status.
 

@@ -70,7 +70,7 @@ Hover over any button to see what it does.
 
 - **One game:** click the **Back up** arrow on its row.
 - **Everything that changed:** click **Back up all changed**.
-- **Just the ones you pick:** tick their boxes and click **Back up selected** — the button shows
+- **Just the ones you pick:** tick their boxes and click **Back up** — the button shows
   how many are ticked.
 
 Have a long list? Type in the search box to narrow it down. Your ticks stay put while you search.
@@ -89,7 +89,7 @@ with its date and time. Then SavegameBunker:
 
 If you choose **Cancel**, nothing changes at all.
 
-Restoring several games? Tick them and click **Restore selected**. Each game gets its newest
+Restoring several games? Tick them and click **Restore**. Each game gets its newest
 backup, and SavegameBunker asks about every game separately, so nothing is replaced without your OK.
 
 **Moving to a new PC?** Bring `SavegameBunker.exe`, its `games.json` and your backup folder along,

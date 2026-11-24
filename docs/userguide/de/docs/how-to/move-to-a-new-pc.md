@@ -28,7 +28,7 @@ Auf dem neuen PC:
    lesen kann).
 3. Starten Sie SavegameBunker auf dem neuen PC und nutzen Sie **Add game**, um jeden Eintrag neu
    anzulegen, mit dem Spielstand-Pfad auf dem neuen Rechner.
-4. Klicken Sie auf **Change backup folder**, zeigen Sie auf den kopierten Ordner, und stellen Sie
+4. Klicken Sie auf **Backup folder**, zeigen Sie auf den kopierten Ordner, und stellen Sie
    dann jedes Spiel mit **Restore** wieder her.
 
 ## Ob das Spiel den Spielstand akzeptiert

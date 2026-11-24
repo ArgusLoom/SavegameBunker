@@ -13,6 +13,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Help). Shows the app icon, version and build date, and carries the user guide link Help used to
   be — the offline copy, falling back to the online one.
 
+### Changed
+
+- **Shorter toolbar labels.** "Change backup folder" is now "Backup folder", "Back up selected" is
+  now "Back up", and "Restore selected" is now "Restore" — the selection count already shown on
+  the last two buttons made "selected" redundant.
+
 ### Fixed
 
 - **Each row's overflow ("more actions") button no longer renders cut off at the window's right
