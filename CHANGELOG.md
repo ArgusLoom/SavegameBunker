@@ -77,7 +77,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   folder, and two catalog saves no longer race.
 - **A save folder that is the game's own backup folder no longer packs earlier backups.** Each
   backup used to include every earlier one and warn about a file it could not read; its
-  subfolders are now backed up too.
+  subfolders are now backed up too. Restore also refuses a save folder that holds another game's
+  backups, instead of deleting them with it.
 - **The startup reminder no longer gets lost when you click Refresh right after starting.** With a
   slow backup folder it could count zero unsecured games while the list was still being checked.
 - **Find Games says "1 file" instead of "1 files".**

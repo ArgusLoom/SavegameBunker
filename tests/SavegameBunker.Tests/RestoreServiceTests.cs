@@ -842,6 +842,32 @@ public sealed class RestoreServiceTests : IDisposable
         Assert.Equal("payload", File.ReadAllText(Path.Combine(saveDir, "a.dat")));
     }
 
+    // A save folder that is ANOTHER game's archive folder (<backupRoot>/<otherId>) holds that
+    // game's archives; restore would delete them with the folder, so it is refused too.
+    [Fact]
+    public void Restore_is_refused_when_the_save_folder_is_another_games_archive_folder()
+    {
+        var backupRoot = Path.Combine(_dir, "b5");
+        var otherArchiveDir = Path.Combine(backupRoot, "other");
+        Directory.CreateDirectory(otherArchiveDir);
+        var otherArchive = Path.Combine(otherArchiveDir, "2026-01-01_120000.zip");
+        File.WriteAllText(otherArchive, "not a real archive");
+        File.WriteAllText(Path.Combine(otherArchiveDir, "a.dat"), "payload");
+        var game = new Game { Id = "mine", DisplayName = "Mine", SaveDirTemplate = otherArchiveDir.Replace('\\', '/') };
+
+        var backupResult = _backupService.Backup(game, backupRoot);
+        Assert.True(backupResult.Success, backupResult.Message);
+        var archive = Assert.Single(Directory.GetFiles(BackupDirFor(backupRoot, game), "*.zip"));
+
+        var confirmCalls = 0;
+        var result = _service.Restore(game, backupRoot, archive, _ => { confirmCalls++; return true; });
+
+        Assert.False(result.Success);
+        Assert.Equal(Strings.Format("str_restore_backupFolderInsideSaveFolder", game.DisplayName), result.Message);
+        Assert.Equal(0, confirmCalls);
+        Assert.True(File.Exists(otherArchive));
+    }
+
     // The two layouts item 0 opened up round-trip: every subfolder file comes back through restore.
 
     [Fact]

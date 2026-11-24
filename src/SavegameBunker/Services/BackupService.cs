@@ -169,9 +169,11 @@ public sealed class BackupService
                 return OperationResult.Fail(
                     notBackedUp.Count > 0
                         ? $"Backup failed for {game.DisplayName}: {saveDir} is also the backup folder, so its subfolders cannot be told apart from other games' backups and were left out: {DirectoryWalk.FormatSkippedList(notBackedUp)}. Choose a backup folder outside the save folder."
-                        : leftOut.Count > 0 || skipRootArchives
+                        : leftOut.Count > 0
                             ? $"Backup failed for {game.DisplayName}: {saveDir} holds nothing but the backup folder, so there is nothing to back up."
-                            : $"Save folder is empty: {saveDir}");
+                            : skipRootArchives
+                                ? $"Backup failed for {game.DisplayName}: {saveDir} holds nothing but earlier backups of this game, so there is nothing to back up."
+                                : $"Save folder is empty: {saveDir}");
             }
 
             // Success is reported only after the archive is reopened and its entries matched
@@ -520,7 +522,10 @@ public sealed class BackupService
         List<string> stale;
         try
         {
-            stale = [.. Directory.EnumerateFiles(targetDir, "*.zip.tmp")];
+            // Only this app's own staging/probe names: when the save folder is the
+            // archive folder, a game's own *.zip.tmp file there is save data, not a leftover.
+            stale = [.. Directory.EnumerateFiles(targetDir, "*.zip.tmp")
+                .Where(path => IsOwnTempFileName(Path.GetFileName(path)))];
         }
         catch
         {
@@ -705,9 +710,10 @@ public sealed class BackupService
     /// flag. Deliberate exclusions, not unreadable paths.
     /// </param>
     /// <param name="skipRootArchives">
-    /// True when <paramref name="rootDir"/> is this game's own archive folder: the app's
-    /// <c>*.zip</c> archives and <c>*.zip.tmp</c> staging/probe files directly in it are this app's
-    /// own files, not save data, so they are stepped over.
+    /// True when <paramref name="rootDir"/> is this game's own archive folder: the archives and
+    /// staging/probe files this app writes directly in it (<see cref="IsOwnArchiveFileName"/>) are
+    /// not save data, so they are stepped over. Any other file there — a game's own
+    /// <c>slot1.zip</c>, say — is archived like any save file.
     /// </param>
     private static Dictionary<string, long> EnumerateRelativeFiles(
         string rootDir, IReadOnlyCollection<string>? excludedDirs = null, ICollection<string>? skipped = null,
@@ -718,9 +724,7 @@ public sealed class BackupService
         DirectoryWalk.ForEachFile(rootDir, info =>
         {
             var relative = Path.GetRelativePath(rootDir, info.FullName).Replace(Path.DirectorySeparatorChar, '/');
-            if (skipRootArchives && !relative.Contains('/')
-                && (relative.EndsWith(".zip", StringComparison.OrdinalIgnoreCase)
-                    || relative.EndsWith(".zip.tmp", StringComparison.OrdinalIgnoreCase)))
+            if (skipRootArchives && !relative.Contains('/') && IsOwnArchiveFileName(relative))
                 return;
             result[relative] = info.Length;
         }, excludedDirs, skipped is null ? null : skipped.Add, onExcluded);
@@ -899,6 +903,31 @@ public sealed class BackupService
             return false;
         }
     }
+
+    /// <summary>
+    /// Whether <paramref name="fileName"/> is a name this app writes into a game's archive folder:
+    /// an archive (<c>yyyy-MM-dd_HHmmss</c>, then any suffix such as <c>-pre-restore</c> or
+    /// <c>-1</c>, then <c>.zip</c>) or a staging or probe file (<see cref="IsOwnTempFileName"/>).
+    /// Only these, so a save folder that is also the archive folder never loses a game's own
+    /// <c>.zip</c> save to the archive filter or to <see cref="CleanStaleTempFiles"/>.
+    /// </summary>
+    internal static bool IsOwnArchiveFileName(string fileName) =>
+        IsOwnTempFileName(fileName)
+        || (fileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) && HasTimestampPrefix(fileName));
+
+    /// <summary>
+    /// The <c>.zip.tmp</c> names this app writes: dot-prefixed <c>.{guid}.zip.tmp</c> staging and
+    /// <c>.probe-{guid}.zip.tmp</c> probe files, plus the <c>yyyy-MM-dd_HHmmss….zip.tmp</c> staging
+    /// name earlier versions used, so their leftovers are still swept.
+    /// </summary>
+    private static bool IsOwnTempFileName(string fileName) =>
+        fileName.EndsWith(".zip.tmp", StringComparison.OrdinalIgnoreCase)
+        && (fileName.StartsWith('.') || HasTimestampPrefix(fileName));
+
+    private static bool HasTimestampPrefix(string fileName) =>
+        fileName.Length >= 17
+        && DateTime.TryParseExact(fileName[..17], "yyyy-MM-dd_HHmmss", CultureInfo.InvariantCulture,
+            DateTimeStyles.None, out _);
 
     /// <summary>Best-effort cleanup — a failed delete must never replace the original error.</summary>
     private static void TryDelete(string path)

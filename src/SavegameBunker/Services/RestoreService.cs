@@ -78,6 +78,19 @@ public sealed class RestoreService
             if (PathCompare.IsSameOrInside(gameArchiveDir, saveDir))
                 return OperationResult.Fail(Strings.Format("str_restore_backupFolderInsideSaveFolder", game.DisplayName));
 
+            // The same loss through another game's archive folder: a save folder that is
+            // <backupRoot>/<otherId> holds that game's archives, which restore would delete with
+            // it. A save folder that merely sits inside the backup root (backup folder Documents,
+            // save folder Documents/MyGame) stays restorable, so this refuses only when the folder
+            // directly under the backup root actually holds archives this app wrote.
+            var saveParent = Path.GetDirectoryName(PathCompare.Normalize(saveDir));
+            if (saveParent is not null
+                && PathCompare.IsSameOrInside(saveParent, backupRoot)
+                && PathCompare.IsSameOrInside(backupRoot, saveParent)
+                && Directory.Exists(saveDir)
+                && Directory.EnumerateFiles(saveDir).Any(f => BackupService.IsOwnArchiveFileName(Path.GetFileName(f))))
+                return OperationResult.Fail(Strings.Format("str_restore_backupFolderInsideSaveFolder", game.DisplayName));
+
             // The archive must live in this game's own backup folder (<backupRoot>/<game.Id>) —
             // the same containment logic the backup walk uses for exclusions, pointed at the
             // single archive. ListBackups already enforces that layout; this guard keeps any

@@ -1379,6 +1379,43 @@ public sealed class BackupServiceTests : IDisposable
         Assert.Equal(["save.dat", "profile/slot.sav"], zip.Entries.Select(e => e.FullName).ToList());
     }
 
+    // Only names this app writes are skipped in an archive-folder save folder: a game's own
+    // slot1.zip (or a stray *.zip.tmp) is save data, archived and never swept as a leftover.
+    [Fact]
+    public void A_games_own_zip_save_in_its_archive_folder_is_backed_up_and_not_deleted()
+    {
+        var backupRoot = Path.Combine(_dir, "bunker2");
+        var saveDir = Path.Combine(backupRoot, "zipper");
+        Directory.CreateDirectory(saveDir);
+        File.WriteAllText(Path.Combine(saveDir, "slot1.zip"), "game data");
+        File.WriteAllText(Path.Combine(saveDir, "cache.zip.tmp"), "game data");
+        var game = new Game { Id = "zipper", DisplayName = "Zipper", SaveDirTemplate = saveDir.Replace('\\', '/') };
+
+        var result = _service.Backup(game, backupRoot, "", out var archivePath);
+
+        Assert.True(result.Success, result.Message);
+        using var zip = ZipFile.OpenRead(archivePath!);
+        Assert.Equal(["cache.zip.tmp", "slot1.zip"], zip.Entries.Select(e => e.FullName).Order().ToList());
+        Assert.True(File.Exists(Path.Combine(saveDir, "cache.zip.tmp")));
+    }
+
+    // An archive-folder save folder holding only earlier backups: the refusal names that, not a
+    // backup subfolder that does not exist.
+    [Fact]
+    public void An_archive_folder_save_folder_with_only_earlier_backups_says_so()
+    {
+        var backupRoot = Path.Combine(_dir, "bunker3");
+        var saveDir = Path.Combine(backupRoot, "only");
+        Directory.CreateDirectory(saveDir);
+        File.WriteAllText(Path.Combine(saveDir, "2026-01-01_120000.zip"), "old");
+        var game = new Game { Id = "only", DisplayName = "Only", SaveDirTemplate = saveDir.Replace('\\', '/') };
+
+        var result = _service.Backup(game, backupRoot);
+
+        Assert.False(result.Success);
+        Assert.Contains("nothing but earlier backups of this game", result.Message, StringComparison.Ordinal);
+    }
+
     // A save subfolder that merely CONTAINS the backup folder is walked, not pruned whole: save
     // files beside the backup folder must be archived, or a later restore would delete them.
     [Fact]

@@ -179,6 +179,18 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
             _ = RecomputeSpaceAdvisoryAsync();
         };
 
+        // IsCatalogCommandRunning is part of IsAnyOperationRunning, so the gates reading it must
+        // be re-queried when one of those commands starts or finishes.
+        foreach (var command in new IAsyncRelayCommand[]
+                 { RefreshCommand, AddGameCommand, ChangeSaveFolderCommand, RemoveGameCommand })
+        {
+            command.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(IAsyncRelayCommand.IsRunning))
+                    RequeryOperationGates();
+            };
+        }
+
         StartStatusScan();
     }
 
@@ -331,12 +343,25 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
 
     /// <summary>
     /// Whether anything that writes to disk is in flight: a row's own action (preflight
-    /// included), a single backup or restore, a bulk run, or the bulk run's preparation (folder
-    /// probe, picker, catalog write — <see cref="IsBulkPreparing"/>). The one gate for closing the
-    /// window, refreshing, changing the backup folder and starting another bulk run.
+    /// included), a single backup or restore, a bulk run, the bulk run's preparation (folder
+    /// probe, picker, catalog write — <see cref="IsBulkPreparing"/>), or a command that reloads
+    /// or rewrites the catalog (<see cref="IsCatalogCommandRunning"/>). The one gate for closing
+    /// the window, refreshing, changing the backup folder and starting another bulk run.
     /// </summary>
     public bool IsAnyOperationRunning =>
-        IsAnyRowBusy || IsBackupRunning || IsRestoreRunning || IsBulkBackupRunning || IsBulkPreparing;
+        IsAnyRowBusy || IsBackupRunning || IsRestoreRunning || IsBulkBackupRunning || IsBulkPreparing
+        || IsCatalogCommandRunning;
+
+    /// <summary>
+    /// Refresh, Add Game, Change save folder or Remove game still in flight. Each rebuilds or
+    /// replaces rows after an await; a bulk run started meanwhile would claim rows that are about
+    /// to be dropped or replaced, and back up an old save path or a removed game. Find Games is
+    /// left out on purpose: its scan can run long and only adds rows, so Refresh and backups stay
+    /// available while it runs.
+    /// </summary>
+    private bool IsCatalogCommandRunning =>
+        RefreshCommand.IsRunning || AddGameCommand.IsRunning
+        || ChangeSaveFolderCommand.IsRunning || RemoveGameCommand.IsRunning;
 
     /// <summary>How many rows are currently checked — the durable count the bulk actions gate on.</summary>
     public int SelectedCount => Games.Count(row => row.IsSelected);
@@ -950,7 +975,10 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     {
         // The drop-a-folder route reaches here without CanExecute; same gate as CanEditCatalog.
         if (IsBulkPreparing)
+        {
+            StatusMessage = Strings.Get("str_addGame_busy");
             return;
+        }
 
         var existingIds = _session.Games.Select(g => g.Id).ToList();
         var result = _dialog.ShowAddGameDialog(existingIds, initialSaveFolder);

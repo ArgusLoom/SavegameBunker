@@ -236,14 +236,18 @@ and silently replacing a broken catalog would destroy the user's own configurati
   the backup folder are different: they may be real save data, so they are named in a warning
   ("… subfolder(s) are NOT in this backup: …") and never called backup folders; when they are all
   the save directory holds, the backup fails and names them. When the save directory is the game's
-  own archive folder `<backupRoot>\<id>`, the `*.zip` archives and `*.zip.tmp` staging files
-  directly in it are this app's own files and are never packed, so a backup never contains the
-  earlier ones; its subfolders are all archived, since this app never writes subfolders there.
+  own archive folder `<backupRoot>\<id>`, the archives and staging files this app writes directly
+  in it (timestamp-named `.zip` files, `.zip.tmp` files) are never packed, so a backup never
+  contains the earlier ones, while any other file there — a game's own `slot1.zip` — is save data
+  and is archived; its subfolders are all archived, since this app never writes subfolders there.
 - Restore is refused for a game whose archive folder `<backupRoot>\<id>` lies inside, or is, its
   save directory — this covers every `backupRoot` inside or equal to the save directory — because
   restore renames the save directory aside and deletes it, which would delete the archives with
-  it, including the safety backup taken a moment earlier. Backing up in such a layout stays
-  supported; the error names the cause and the fix (move the backup folder).
+  it, including the safety backup taken a moment earlier. The same refusal applies when the save
+  directory sits directly in `backupRoot` and holds archives this app wrote — another game's
+  archive folder — so restoring one game never deletes another game's backups; a save directory
+  that merely sits inside `backupRoot` and holds no archives stays restorable. Backing up in such a
+  layout stays supported; the error names the cause and the fix (move the backup folder).
 - **Startup reminder.** Once per start, after the first status scan, if any game has saves changed
   since its last backup or has never been backed up, one confirmation asks whether to back those
   games up now. Yes runs the same bulk backup as *Back up all changed*; No does nothing and is not
