@@ -18,7 +18,9 @@
 # in MainWindow.xaml), row actions by AutomationProperties.Name ("Back up", "Restore",
 # "More actions") found inside the row's own ControlType.DataItem via its nested display-name
 # Text descendant (Find-RowButton), never a position guess, dialogs by their button text
-# ("Back up now", "Cancel", "OK").
+# ("Back up now", "Cancel", "OK"). Dialogs, the restore picker and the overflow menu are owned
+# windows or a separate popup root, so they are found by scanning the SavegameBunker process's
+# own top-level elements (Find-AppDialogWindow, Find-AppMenuItem) rather than $win's descendants.
 # Where UI Automation cannot reach a control, the session's own desktop-control or
 # screenshot tooling may stand in — record which shots were taken that way in the SUMMARY.
 
@@ -41,6 +43,12 @@ public static extern bool SetCursorPos(int x, int y);
 public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint dwData, System.IntPtr dwExtraInfo);
 [System.Runtime.InteropServices.DllImport("user32.dll")]
 public static extern void keybd_event(byte bVk, byte bScan, uint dwFlags, System.IntPtr dwExtraInfo);
+[System.Runtime.InteropServices.DllImport("user32.dll")]
+public static extern bool SetForegroundWindow(System.IntPtr hWnd);
+[System.Runtime.InteropServices.DllImport("user32.dll")]
+public static extern System.IntPtr GetForegroundWindow();
+[System.Runtime.InteropServices.DllImport("user32.dll")]
+public static extern bool PostMessage(System.IntPtr hWnd, uint msg, System.IntPtr wParam, System.IntPtr lParam);
 public struct RECT { public int Left, Top, Right, Bottom; }
 "@
 
@@ -114,6 +122,74 @@ function Find-RowButton {
     return $null
 }
 
+function Find-AppDialogWindow {
+    # Dialogs and the restore picker are owned top-level windows, and the overflow menu is a
+    # separate popup root, so none of them can be relied on to sit inside the main window's own
+    # subtree. Searches the SavegameBunker process's own elements instead: the RootElement
+    # children whose ProcessIdProperty matches the process that has a main window, checking each
+    # such element itself and its ControlType.Window descendants (UI Automation may present an
+    # owned window under its owner — 02-16-SUMMARY.md) for a Name starting with $TitlePrefix.
+    param([string]$TitlePrefix)
+    $proc = Get-Process -Name 'SavegameBunker' -ErrorAction SilentlyContinue |
+        Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
+    if (-not $proc) { return $null }
+    $pidCondition = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::ProcessIdProperty, $proc.Id)
+    $tops = [System.Windows.Automation.AutomationElement]::RootElement.FindAll(
+        [System.Windows.Automation.TreeScope]::Children, $pidCondition)
+    foreach ($top in $tops) {
+        if ($top.Current.Name -and $top.Current.Name.StartsWith($TitlePrefix, [System.StringComparison]::Ordinal)) {
+            return $top
+        }
+        $windowCondition = New-Object System.Windows.Automation.AndCondition(
+            $pidCondition,
+            (New-Object System.Windows.Automation.PropertyCondition(
+                [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                [System.Windows.Automation.ControlType]::Window)))
+        $owned = $top.FindAll([System.Windows.Automation.TreeScope]::Descendants, $windowCondition)
+        foreach ($win in $owned) {
+            if ($win.Current.Name -and $win.Current.Name.StartsWith($TitlePrefix, [System.StringComparison]::Ordinal)) {
+                return $win
+            }
+        }
+    }
+    return $null
+}
+
+function Find-AppMenuItem {
+    # The overflow menu (ui:DropDownButton.Flyout) renders in its own popup root, outside $win's
+    # subtree entirely (MainWindow.xaml's comment above the ContextMenu) — found the same
+    # process-scoped way as Find-AppDialogWindow. A MenuItem's Header is a plain string at HEAD;
+    # before item 19's HeaderTemplate (57811c1) it was a panel holding a TextBlock, so a
+    # MenuItem's own Name can be empty while a nested Text child carries it instead.
+    param([string]$Text)
+    $proc = Get-Process -Name 'SavegameBunker' -ErrorAction SilentlyContinue |
+        Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
+    if (-not $proc) { return $null }
+    $pidCondition = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::ProcessIdProperty, $proc.Id)
+    $tops = [System.Windows.Automation.AutomationElement]::RootElement.FindAll(
+        [System.Windows.Automation.TreeScope]::Children, $pidCondition)
+    $menuItemCondition = New-Object System.Windows.Automation.PropertyCondition(
+        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+        [System.Windows.Automation.ControlType]::MenuItem)
+    foreach ($top in $tops) {
+        $items = $top.FindAll([System.Windows.Automation.TreeScope]::Descendants, $menuItemCondition)
+        foreach ($item in $items) {
+            if ($item.Current.Name -eq $Text) { return $item }
+            $nested = $item.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+                (New-Object System.Windows.Automation.AndCondition(
+                    (New-Object System.Windows.Automation.PropertyCondition(
+                        [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                        [System.Windows.Automation.ControlType]::Text)),
+                    (New-Object System.Windows.Automation.PropertyCondition(
+                        [System.Windows.Automation.AutomationElement]::NameProperty, $Text)))))
+            if ($nested) { return $item }
+        }
+    }
+    return $null
+}
+
 function Invoke-Element {
     param($Element)
     if (-not $Element) { return $false }
@@ -135,12 +211,36 @@ function Invoke-Element {
     return $true
 }
 
+function Invoke-RealClick {
+    # The overflow DropDownButton exposes InvokePattern, but invoking it does not open its
+    # Flyout in this environment (found while verifying this plan's full fourteen-shot run:
+    # shot 04's image showed no overflow menu at all) - only a real mouse click does, and only
+    # when mouse-down and mouse-up are separated by a short delay; an immediate down+up does not
+    # register as a click with WPF's popup-opening logic. Used for "More actions" instead of
+    # Invoke-Element, which would always take the InvokePattern branch first.
+    param($Element)
+    if (-not $Element) { return $false }
+    $r = $Element.Current.BoundingRectangle
+    if ($r -eq [System.Windows.Rect]::Empty) { return $false }
+    [Win32.Native]::SetCursorPos([int]($r.Left + $r.Width / 2), [int]($r.Top + $r.Height / 2)) | Out-Null
+    [Win32.Native]::mouse_event(2, 0, 0, 0, [System.IntPtr]::Zero)   # left down
+    Start-Sleep -Milliseconds 100
+    [Win32.Native]::mouse_event(4, 0, 0, 0, [System.IntPtr]::Zero)   # left up
+    return $true
+}
+
 function Save-WindowShot {
     # Copy only the app window's rectangle from the screen — never the whole desktop.
     param([string]$Path)
     $proc = Get-Process -Name 'SavegameBunker' -ErrorAction SilentlyContinue |
         Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
     if (-not $proc) { throw 'SavegameBunker window not found' }
+    # CopyFromScreen copies whatever is topmost on screen, not the app's own rendered content —
+    # on a shared desktop another window can occlude it between shots, especially across a long
+    # wait (T-02-31; hit once during this plan's own verification, after the restore safety
+    # backup's ~20s wait). Raising the app window first makes that the topmost content again.
+    [Win32.Native]::SetForegroundWindow($proc.MainWindowHandle) | Out-Null
+    Start-Sleep -Milliseconds 200
     $rect = New-Object Win32.Native+RECT
     [Win32.Native]::GetWindowRect($proc.MainWindowHandle, [ref]$rect) | Out-Null
     $w = $rect.Right - $rect.Left; $h = $rect.Bottom - $rect.Top
@@ -158,6 +258,9 @@ function Save-ElementShot {
     param($Element, [string]$Path)
     $proc = Get-Process -Name 'SavegameBunker' -ErrorAction SilentlyContinue |
         Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
+    # Same reason as Save-WindowShot: raise the window before copying screen pixels (T-02-31).
+    [Win32.Native]::SetForegroundWindow($proc.MainWindowHandle) | Out-Null
+    Start-Sleep -Milliseconds 200
     $wrect = New-Object Win32.Native+RECT
     [Win32.Native]::GetWindowRect($proc.MainWindowHandle, [ref]$wrect) | Out-Null
     $er = $Element.Current.BoundingRectangle
@@ -257,9 +360,23 @@ function Shot-02MainOtherTheme {
     param([string]$Path)
     $win = Find-AppWindow
     $btn = Find-ElementById $win 'ThemeToggleButton'
-    if (-not $btn -or -not (Invoke-Element $btn)) { throw 'ThemeToggleButton not found' }
-    Wait-Seconds 1
-    Save-WindowShot $Path
+    if (-not $btn) { throw 'ThemeToggleButton not found' }
+    # Found while verifying this plan's full fourteen-shot run: InvokePattern.Invoke() does not
+    # reliably trigger this button's Click handler in this environment (same symptom as "More
+    # actions" - see Invoke-RealClick). A real click is itself occasionally missed on this host
+    # even with the delay Invoke-RealClick adds, so compare the window's pixels before/after and
+    # retry the click (never the opposite direction - a second successful click would toggle the
+    # theme straight back) until something visibly changed.
+    $beforePath = [System.IO.Path]::GetTempFileName()
+    Save-WindowShot $beforePath
+    $beforeHash = (Get-FileHash $beforePath -Algorithm MD5).Hash
+    Remove-Item $beforePath -Force -ErrorAction SilentlyContinue
+    for ($attempt = 0; $attempt -lt 3; $attempt++) {
+        [void](Invoke-RealClick $btn)
+        Wait-Seconds 1
+        Save-WindowShot $Path
+        if ((Get-FileHash $Path -Algorithm MD5).Hash -ne $beforeHash) { break }
+    }
 }
 
 function Shot-03ToolbarAlt {
@@ -272,8 +389,20 @@ function Shot-04OverflowMenu {
     $win = Find-AppWindow
     $more = Find-ButtonByName $win 'More actions'
     if (-not $more) { throw 'a row More actions button not found' }
-    [void](Invoke-Element $more)
-    Wait-Seconds 1
+    # The real click Invoke-RealClick sends is itself occasionally missed on this host - confirm
+    # the flyout actually opened (its own menu item is findable) before screenshotting. Each
+    # retry gets its own poll window before the NEXT click: the DropDownButton toggles, so a
+    # second click sent while the first one's flyout is just slow to register would close it
+    # again instead of giving the lookup more time to find it.
+    $item = $null
+    for ($attempt = 0; $attempt -lt 3 -and -not $item; $attempt++) {
+        [void](Invoke-RealClick $more)
+        for ($i = 0; $i -lt 6 -and -not $item; $i++) {
+            Start-Sleep -Milliseconds 300
+            $item = Find-AppMenuItem 'Change save folder'
+        }
+    }
+    if (-not $item) { throw 'overflow menu did not open' }
     Save-WindowShot $Path
     [System.Windows.Forms.SendKeys]::SendWait('{ESC}')
     Wait-Seconds 1
@@ -330,10 +459,50 @@ function Shot-08RestoreSteps {
     $restore = Find-RowButton $win 'Large Save Game' 'Restore'
     if (-not $restore) { throw 'Large Save Game row Restore button not found' }
     [void](Invoke-Element $restore)
-    Wait-Seconds 1
-    # Restore asks per-game confirmation first — accept it with the confirm button.
-    $confirm = Find-ButtonByName (Find-AppWindow) 'Restore'
-    if ($confirm) { [void](Invoke-Element $confirm) }
+    # A row's Restore always opens the restore picker first; its own Restore stays disabled
+    # until a row is selected. The per-game confirmation comes after the picker closes, in the
+    # main window's dialog host, and its primary button is also named "Restore".
+    $picker = $null
+    for ($i = 0; $i -lt 20; $i++) {
+        Start-Sleep -Milliseconds 500
+        $picker = Find-AppDialogWindow ('Restore ' + [char]0x2014 + ' Large Save Game')
+        if ($picker) { break }
+    }
+    if (-not $picker) { throw 'no restore picker window appeared for Large Save Game' }
+    $item = $picker.FindFirst([System.Windows.Automation.TreeScope]::Descendants,
+        (New-Object System.Windows.Automation.PropertyCondition(
+            [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+            [System.Windows.Automation.ControlType]::ListItem)))
+    if (-not $item) { throw 'no archive listed in the restore picker for Large Save Game' }
+    $item.GetCurrentPattern([System.Windows.Automation.SelectionItemPattern]::Pattern).Select()
+    $pickerRestore = Find-ButtonByName $picker 'Restore'
+    if (-not $pickerRestore) { throw 'restore picker Restore button not found' }
+    [void](Invoke-Element $pickerRestore)
+    # Wait for the per-game confirmation (only an open content dialog gives the main window a
+    # Cancel button), then accept it: the LAST Button named "Restore" among the main window's
+    # descendants — RootDialogHost is the root Grid's last child, so a dialog's buttons follow
+    # every row button in tree order, and every row's own Restore button shares this same Name.
+    # A safety backup of the save folder is taken before the confirmation shows (restore order,
+    # MainWindow.xaml.cs comment), so for the 1 GiB archive this can take upwards of 20s - the
+    # poll window below is sized for that, not just for the confirmation to render.
+    $confirmed = $false
+    for ($i = 0; $i -lt 120; $i++) {
+        Start-Sleep -Milliseconds 500
+        $mainWin = Find-AppWindow
+        if (-not (Find-ButtonByName $mainWin 'Cancel')) { continue }
+        $restores = $mainWin.FindAll([System.Windows.Automation.TreeScope]::Descendants,
+            (New-Object System.Windows.Automation.AndCondition(
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::NameProperty, 'Restore')),
+                (New-Object System.Windows.Automation.PropertyCondition(
+                    [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
+                    [System.Windows.Automation.ControlType]::Button)))))
+        if ($restores.Count -eq 0) { continue }
+        [void](Invoke-Element $restores[$restores.Count - 1])
+        $confirmed = $true
+        break
+    }
+    if (-not $confirmed) { throw 'restore confirmation dialog did not appear' }
     # The three-step bar and step text run for seconds on the 1 GiB archive — shoot mid-flight.
     Wait-Seconds 2
     Save-WindowShot $Path
@@ -358,6 +527,13 @@ function Shot-09EmptyState {
     if (-not (Start-App (Join-Path $Root 'games.json'))) { throw 'the app window did not appear after relaunching with games.json' }
     Wait-Seconds 2
     Dismiss-StartupPrompt
+    # The demo reset above emptied backups/, so without repeating the run prologue's backup
+    # here, Small Save Game would have no archive and Shot 13 would have nothing to restore.
+    if (-not (Backup-SmallGameRow)) {
+        Write-Host "WARNING: Small Save Game row Back up button not found - shot 13 will have no backup to restore"
+    }
+    Wait-Seconds 5
+    Dismiss-StartupPrompt
 }
 
 function Shot-10AddGameFooter {
@@ -379,15 +555,36 @@ function Shot-11ChangeSaveFolderFooter {
     $win = Find-AppWindow
     $more = Find-ButtonByName $win 'More actions'
     if (-not $more) { throw 'a row More actions button not found' }
-    [void](Invoke-Element $more)
-    Wait-Seconds 1
-    $item = Find-ButtonByName $win 'Change save folder'
+    # "Change save folder" lives in the DropDownButton's own flyout, a separate popup root
+    # (MainWindow.xaml's comment above the ContextMenu) — found by Find-AppMenuItem, not a
+    # Button search scoped to $win. The real click Invoke-RealClick sends is itself occasionally
+    # missed on this host; each retry gets its own poll window before the next click, same
+    # reason as Shot-04 (the DropDownButton toggles, so clicking again too soon closes it).
+    $item = $null
+    for ($attempt = 0; $attempt -lt 3 -and -not $item; $attempt++) {
+        [void](Invoke-RealClick $more)
+        for ($i = 0; $i -lt 6 -and -not $item; $i++) {
+            Start-Sleep -Milliseconds 300
+            $item = Find-AppMenuItem 'Change save folder'
+        }
+    }
     if (-not $item) { throw 'Change save folder menu item not found' }
     [void](Invoke-Element $item)
-    Wait-Seconds 2
+    $dialog = $null
+    for ($i = 0; $i -lt 20; $i++) {
+        Start-Sleep -Milliseconds 500
+        $dialog = Find-AppDialogWindow 'Change Save Folder'
+        if ($dialog) { break }
+    }
+    if (-not $dialog) { throw 'Change Save Folder dialog did not appear' }
     Save-WindowShot $Path
-    [void](Confirm-Dialog 'Cancel')
-    Wait-Seconds 1
+    $cancel = Find-ButtonByName $dialog 'Cancel'
+    if ($cancel) { [void](Invoke-Element $cancel) }
+    for ($i = 0; $i -lt 20; $i++) {
+        Start-Sleep -Milliseconds 500
+        if (-not (Find-AppDialogWindow 'Change Save Folder')) { return }
+    }
+    throw 'Change Save Folder dialog did not close'
 }
 
 function Shot-12ScanFooter {
@@ -398,24 +595,37 @@ function Shot-12ScanFooter {
     Wait-Seconds 3
     # The scan runs first; its window appears when it finishes. On a machine where no known
     # game is found the window may never show — the shot is then MISSING with that reason.
+    # Found while verifying this plan's full fourteen-shot run: matching "the first top-level
+    # window whose Name differs from the main window's" picked up an unrelated window on a
+    # shared desktop instead of the real Scan window — the screenshot still looked right (it
+    # always captures the main app window's rect, which the real Scan window renders over
+    # regardless of which element this code thought it was), but every later attempt to close
+    # "the scan window" acted on that wrong element and did nothing, leaking the real dialog into
+    # shots 13 and 14. Find-AppDialogWindow scopes the search to this process's own windows by
+    # title instead, the same way every other dialog shot already finds its window.
     $scan = $null
     for ($i = 0; $i -lt 60; $i++) {
         Start-Sleep -Milliseconds 500
-        $proc = Get-Process -Name 'SavegameBunker' -ErrorAction SilentlyContinue |
-            Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
-        if (-not $proc) { continue }
-        $all = [System.Windows.Automation.AutomationElement]::RootElement.FindAll(
-            [System.Windows.Automation.TreeScope]::Children,
-            [System.Windows.Automation.Condition]::TrueCondition)
-        foreach ($top in $all) {
-            if ($top.Current.Name -and $top.Current.Name -ne $win.Current.Name) { $scan = $top; break }
-        }
+        $scan = Find-AppDialogWindow 'Scan'
         if ($scan) { break }
     }
     if (-not $scan) { throw 'no scan window appeared (no known game found on this machine)' }
+    $scanName = $scan.Current.Name
+    $scanHandle = [System.IntPtr]$scan.Current.NativeWindowHandle
     Save-WindowShot $Path
-    [System.Windows.Forms.SendKeys]::SendWait('{ESC}')
-    Wait-Seconds 1
+    # Clicking the scan window's own Cancel button via UI Automation's Invoke pattern, and
+    # SendKeys {ESC}, both left this window open (SendKeys needs this window to hold input focus,
+    # which an automated run on a shared desktop cannot guarantee). Closing the real HWND with
+    # WM_CLOSE does not depend on focus or on the Cancel button's automation peer.
+    if ($scanHandle -ne [System.IntPtr]::Zero) {
+        [void][Win32.Native]::PostMessage($scanHandle, 0x0010, [System.IntPtr]::Zero, [System.IntPtr]::Zero) # WM_CLOSE
+    }
+    $closed = $false
+    for ($i = 0; $i -lt 20; $i++) {
+        Start-Sleep -Milliseconds 300
+        if (-not (Find-AppDialogWindow $scanName)) { $closed = $true; break }
+    }
+    if (-not $closed) { throw 'Scan window did not close' }
 }
 
 function Shot-13RestorePickerFooter {
@@ -425,22 +635,23 @@ function Shot-13RestorePickerFooter {
     $restore = Find-RowButton $win 'Small Save Game' 'Restore'
     if (-not $restore) { throw 'Small Save Game row Restore button not found' }
     [void](Invoke-Element $restore)
-    Wait-Seconds 2
-    # If a picker window opened, shoot it; if restore went straight to the confirm dialog,
-    # this environment shows no picker and the shot is MISSING.
-    $proc = Get-Process -Name 'SavegameBunker' -ErrorAction SilentlyContinue |
-        Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
+    # Found by Find-AppDialogWindow, not "any other named top-level window" — that test accepted
+    # any unrelated window on the desktop.
     $picker = $null
-    $all = [System.Windows.Automation.AutomationElement]::RootElement.FindAll(
-        [System.Windows.Automation.TreeScope]::Children,
-        [System.Windows.Automation.Condition]::TrueCondition)
-    foreach ($top in $all) {
-        if ($top.Current.Name -and $top.Current.Name -ne $win.Current.Name) { $picker = $top; break }
+    for ($i = 0; $i -lt 20; $i++) {
+        Start-Sleep -Milliseconds 500
+        $picker = Find-AppDialogWindow ('Restore ' + [char]0x2014 + ' Small Save Game')
+        if ($picker) { break }
     }
-    if ($picker) { Save-WindowShot $Path } else { throw 'no restore picker window appeared' }
-    [void](Confirm-Dialog 'Cancel')
-    Wait-Seconds 1
-    [void](Confirm-Dialog 'Cancel')
+    if (-not $picker) { throw 'no restore picker window appeared' }
+    Save-WindowShot $Path
+    $cancel = Find-ButtonByName $picker 'Cancel'
+    if ($cancel) { [void](Invoke-Element $cancel) }
+    for ($i = 0; $i -lt 20; $i++) {
+        Start-Sleep -Milliseconds 500
+        if (-not (Find-AppDialogWindow ('Restore ' + [char]0x2014 + ' Small Save Game'))) { return }
+    }
+    throw 'restore picker window did not close'
 }
 
 function Shot-14CloseHover {
