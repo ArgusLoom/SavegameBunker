@@ -1,6 +1,6 @@
 # SavegameBunker – Specification
 
-**Revised 2026-11-17.**
+**Revised 2026-11-25.**
 
 ## Purpose
 Windows 11 application that keeps a list of PC games in one window and does two things with each of
