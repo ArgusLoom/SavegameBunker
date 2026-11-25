@@ -7,122 +7,46 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [1.0.2] - 2026-11-25
 
+A reliability and polish release. No new way of using SavegameBunker — mainly fixes to backup
+messages, a few folder-handling edge cases, and some UI rough edges.
+
 ### Added
 
 - **An About window**, opened from a new About button at the far right of the toolbar (replacing
-  Help). Shows the app icon, version and build date, and carries the user guide link Help used to
-  be — the offline copy, falling back to the online one.
+  Help). Shows the app icon, version and build date, and the user guide link.
 
 ### Changed
 
-- **Shorter toolbar labels.** "Change backup folder" is now "Backup folder", "Back up selected" is
-  now "Back up", and "Restore selected" is now "Restore" — the selection count already shown on
-  the last two buttons made "selected" redundant.
+- **Shorter toolbar labels** — "Backup folder", "Back up", "Restore" — now that the button
+  already shows how many games are ticked.
+- A row's backup/restore progress now shows in its Status cell instead of its Actions cell, and
+  the empty-state illustration moved into the About window.
 
 ### Fixed
 
-- **A backup's warnings no longer run into each other.** When a backup both left files out and
-  noted a left-out backup folder (or an archive too large to restore), the last listed path read as
-  the start of the next sentence; each warning now ends with a full stop.
-- **A bulk backup no longer hides that a game's backup is incomplete.** "Back up all changed",
-  "Back up selected" and the startup reminder's "Yes" reported "Backed up all N games" even when a
-  game's locked files were left out or its archive is too large to restore; the closing message now
-  lists each such game's warning, as a single backup always did.
-- **An unexpected failure during "Restore" on several games no longer leaves rows stuck.** Rows
-  stayed on "Checking" with the toolbar buttons disabled until Refresh, and the game that failed kept
-  a frozen restore bar; the rows are now re-checked and the bar cleared whatever happens.
-- **A folder that fails partway through being listed is now skipped on its own.** If a network
-  share dropped or a drive was pulled while a save folder was being read, the whole backup, scan or
-  size check failed; now only that folder is left out and named in the warning, like any other
-  unreadable folder.
-- **Each row's overflow ("more actions") button no longer renders cut off at the window's right
-  edge.** The Actions column was 104px — just enough for the three 32px icon buttons in theory, but
-  too tight at the window's minimum width once real padding was accounted for. It is now 128px,
-  with a 1px gap between the icon buttons.
-- **Help now opens the online user guide if the offline copy isn't there.** A stripped install or
-  a deleted `help` folder used to make the Help button report that the guide was missing; it now
-  opens the same guide at https://argusloom.github.io/SavegameBunker/ instead.
-- **The startup reminder about unsecured games no longer turns up mid-session.** With a backup
-  folder set, the reminder could miss its moment at startup and appear later, after a Refresh; it
-  now appears at startup or not at all, and an empty games list no longer saves it up for later.
-- **"Back up selected" can no longer overlap a row's own backup.** While it was still looking for
-  a starting folder or waiting in the folder dialog, a row's Back up button, Refresh and Change
-  backup folder stayed clickable, so a row backup could run on the same game at the same time;
-  they now wait.
-- **Choosing a backup folder no longer stalls on a disconnected network drive.** The first backup
-  asks for a folder and suggests a start location; with a mapped network drive that was offline,
-  finding that suggestion could hold the folder dialog back for a long time. Network and optical
-  drives are no longer asked whether they are ready.
-- **Backups of a save folder inside your backup folder now include its subfolders.** With a backup
-  folder such as Documents and a game that saves under Documents\My Games, backups held only the
-  files at the top of the save folder; every subfolder was skipped without a word, and restoring
-  such a backup removed those subfolders. Backups now include them. When a backup leaves a folder
-  out on purpose because it holds backups, the backup message now names it. Restore also refuses a
-  save folder that holds the game's own backups instead of deleting them with it.
-- **Backups now show the right date with Thai, Persian or Arabic regional formats.** With one of
-  those Windows formats, backups were named in that calendar's year (for example 2569 instead of
-  2026). A Thai-format PC then showed every game as "up to date" even after its saves had
-  changed, so "Back up all changed" skipped it. Backups made from now on use the usual date.
-  Older archives keep their names.
-- **Drive roots now work as save and backup folders.** Picking the root of a drive such as E:\
-  as a save folder stored it as "E:", which Windows reads as the current folder on that drive;
-  and a backup folder at a drive root was not recognised as holding anything, so the rules that
-  keep backups out of backups did not apply to it.
-- **A save folder that holds nothing but your backup folder is no longer "backed up" as an empty archive.**
-  The backup now fails and says why.
-- **Deleting a backup in the restore list and then cancelling now updates the game's row.**
-  Before, the row kept showing the deleted backup until you clicked Refresh.
-- **Deleting a backup in the restore list now asks inside the restore list.** The confirmation
-  used to open in the main window behind the restore list, where it could not be seen or clicked
-  while the list was open.
-- **Save files next to a backup folder inside the save folder are backed up again.** With the
-  backup folder at, say, `data\Backups` inside a save folder, every file in `data` was left out of
-  the backup without a word. Only the backup folder itself is left out now.
-- **A save folder that is also the backup folder now warns about the subfolders it skips.** Those
-  subfolders were named as "backup folder" in the backup message even when they held save data;
-  they are now listed in a warning as not backed up.
-- **Opening the user guide from the About window now reports inside the About window.** An error
-  used to open in the main window behind it, where it could not be seen or clicked, and the note
-  that only the online guide was found showed behind it too.
-- **The restore list can no longer be closed while its delete confirmation is open**, which left
-  the confirmation unanswerable.
-- **Removing, adding or finding games and changing a save folder now wait while "Back up" is still
-  choosing its backup folder**, so the backup can no longer run on a removed game or an old save
-  folder, and two catalog saves no longer race.
-- **A save folder that is the game's own backup folder no longer packs earlier backups.** Each
-  backup used to include every earlier one and warn about a file it could not read; its
-  subfolders are now backed up too. Restore also refuses a save folder that holds another game's
-  backups, instead of deleting them with it.
-- **The startup reminder no longer gets lost when you click Refresh right after starting.** With a
-  slow backup folder it could count zero unsecured games while the list was still being checked.
-- **A game whose backup folder sits inside its save folder no longer always reads "saves changed
-  since backup".** The status check counted the backups themselves as save files.
-- **Restore no longer deletes files its safety backup could not read.** When a file in the save
-  folder was locked or unreadable, the safety backup left it out with a warning, and the restore
-  then deleted it. Restore now stops and says why, and the save folder stays as it was.
-- **Saves in OneDrive cloud folders are backed up.** Folders that OneDrive keeps online-only were
-  skipped without a word, so they were in no backup, and a restore then replaced them.
-- **A backup that could not read every file is marked as partial.** Its name ends in "-partial";
-  it no longer makes a game read "up to date" (the row says "Last backup is missing some files"),
-  and "Restore selected" never picks it on its own.
-  A backup that could read no file at all now fails instead of saving an empty archive.
-- **After choosing the first backup folder, every game is checked again.** The other rows used to
-  keep showing "no backup folder" until you clicked Refresh.
-- **A restore that stops because the save folder is in use no longer leaves its unpacked copy
-  behind** next to the save folder.
-- **Find Games says "1 file" instead of "1 files".**
-- **The "safety backup" tag in the restore list stays readable when its row is selected.**
-
-### Changed
-
-- **Dialog buttons are one width, and the title bar's close button turns the standard Windows red
-  on hover again.** The app's own error text and icons keep their contrast-corrected red; a few
-  gaps in the status bar, the progress panel and the empty list are tidier.
-- **A row's backup/restore progress (spinner, bar, restore steps) now shows in the Status column
-  instead of Actions.** It is a status fact about that row, not something to click; the Actions
-  column keeps just the Back up, Restore and overflow buttons.
-- **The empty-state illustration moved to the new About window.** The "no games yet" and
-  "no matches" screens now show only their text and buttons.
+- **Clearer backup messages.** Warnings no longer run into each other, and a bulk backup no
+  longer says "Backed up all N games" when one of them was only partly backed up — it now says
+  which, and why.
+- **More reliable folder handling.** A folder that fails partway through being read (a dropped
+  network share, a pulled drive) is skipped on its own instead of failing the whole backup or
+  scan. Drive roots (`E:\`) now work correctly as save or backup folders. OneDrive-only folders
+  are backed up. Save folders that sit next to, inside, or around your backup folder are now
+  backed up completely and restored safely, instead of silently losing subfolders or — in one
+  case — deleting another game's backups.
+- **Correct dates on Thai, Persian and Arabic Windows.** Backups were named using the wrong
+  calendar year, which could make "Back up all changed" think a game was already up to date when
+  it wasn't.
+- **More reliable restore.** A failed restore across several games no longer leaves rows stuck;
+  restore never deletes a file its own safety backup couldn't read; an interrupted restore no
+  longer leaves a stray temporary copy behind.
+- **Fixed a few race conditions** where backing up could overlap removing a game, closing a
+  dialog, or another catalog save — all now wait their turn.
+- **UI fixes** — the row's overflow button no longer gets clipped at the window edge; the user
+  guide link falls back to the online copy if the offline one is missing; the startup reminder no
+  longer shows up late or gets skipped; restore-list dialogs now appear where you can see and
+  click them.
+- **Small fixes:** "Find Games" now says "1 file" correctly; the restore list's "safety backup"
+  tag stays readable when selected; deleting a backup updates its row right away.
 
 ## [1.0.1] - 2026-11-18
 
