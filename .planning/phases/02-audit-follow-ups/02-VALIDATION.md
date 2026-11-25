@@ -2,10 +2,10 @@
 phase: "02"
 slug: "audit-follow-ups"
 status: validated
-nyquist_compliant: false
+nyquist_compliant: true
 wave_0_complete: true
 created: "2026-11-18"
-validated: "2026-11-19"
+validated: "2026-11-25"
 ---
 
 # Phase 02 — Validation Report
@@ -51,54 +51,39 @@ whole rather than re-deriving each fact. Items with a genuine residual gap are m
 | 02-12, 02-13 | 22 | (none registered) | full suite, Total/test-name list unchanged | COVERED |
 | 02-14 | 24 | ITEM-24 | full suite ×5 | COVERED |
 | 02-15 | 23 | ITEM-23, D-08 | full suite ×5, Total/test-name list unchanged | COVERED |
+| 02-16 | 11 (G-02-6) | ITEM-11 | build gate + full suite (745/745) + real-click evidence script (`.temp/02-16-picker-delete-check.ps1`, gitignored, checks a-e) + owner UAT test 6/8 | COVERED — resolves the ESCALATED blocker below; confirmed with a real mouse click by the owner on 2026-11-24 (`.planning/STATE.md` Blockers) |
+| 02-17 | D-07 tooling (G-02-7) | D-07 | build gate + full suite + `capture.ps1` self-check (5 clean runs) | COVERED (tooling fix only — enables the five previously-uncapturable shots) |
+| 02-18 | 19, 20, 21, D-12 | ITEM-19, ITEM-20, D-12 | `capture.ps1` full 14-shot run against `before`/`after-19-20`/`after-21`, re-verified via git-worktree builds at the UAT reference commits | COVERED — all 14 D-07 shots now present in all three sets (closes the Manual-Only screenshot gap below) |
 
-**Independent verification performed in this audit:** re-ran `dotnet test SavegameBunker.sln -c Release -tl:off` fresh — 739/739 passed. No stale "it passed when we wrote it" claims were taken at face value for the suite-wide count.
+**Independent verification performed in this audit:** re-ran `dotnet test SavegameBunker.sln -c Release -tl:off` fresh — 739/739 passed (745/745 after 02-16's two added task commits land; both counts independently reconciled against the respective SUMMARYs). No stale "it passed when we wrote it" claims were taken at face value for the suite-wide count. Confirmed via `ls` that all 14 shots exist in `before/`, `after-19-20/` and `after-21/`.
 
 ---
 
 ## Gap Analysis Outcome
 
-No automated-test gaps required filling. Every ROADMAP item 0–24 carries at least one automated
-`<verify>` filter that was executed during the plan that implemented it, the full suite was
-re-run green independently in this audit, and no plan's `coverage[]` block shows an untested
-behavioral claim for a testable (non-UI, non-visual) surface. This phase's own self-checks
-(plan-level `<acceptance_criteria>` greps, five consecutive full-suite runs for the flake-prone
-items 3/22-24) are more thorough than a typical retroactive audit would independently reconstruct,
-so no new test files were created.
-
-One item resolves to **ESCALATED**, not COVERED or SKIP — see below.
+No automated-test gaps remain. Every ROADMAP item 0–24 carries at least one automated `<verify>`
+filter that was executed during the plan that implemented it, the full suite was re-run green
+independently in this audit, and no plan's `coverage[]` block shows an untested behavioral claim
+for a testable (non-UI, non-visual) surface. The two residual items this audit previously carried
+open — the ESCALATED ITEM-11 defect and the 5-of-14 missing screenshots — were both closed by
+plans 02-16 through 02-18, added to this phase after the 2026-11-19 pass. See below.
 
 ---
 
-## ESCALATED — Blocker not yet surfaced to STATE.md
+## RESOLVED — former ESCALATED blocker (ITEM-11)
 
-**Item:** 11 (`DialogService` / restore picker delete confirmation)
-**Finding (confirmed by 02-10-SUMMARY.md, Task 2, with screenshots and a real simulated mouse
-click — not a UI-Automation-only false positive):** the restore picker's per-row delete
-confirmation dialog renders into `MainWindow.RootDialogHost`, but `RestorePickerWindow` is a
-modal child window centered over `MainWindow` and fully covers the confirmation on screen. A real
-user cannot see or click the confirmation while the picker is open — `WindowFromPoint` at the
-confirmation's own button coordinates resolves to the picker's HWND, not `MainWindow`'s, and a
-real `SetCursorPos`/`mouse_event` click there does not delete the archive (count unchanged, 2→2),
-while the same click against the picker's own buttons works. Only `InvokePattern.Invoke()` (which
-bypasses the OS input path) can answer it — confirming the defect is real, not a measurement
-artifact.
+**Original finding (2026-11-19 pass):** the restore picker's per-row delete confirmation rendered
+into `MainWindow`'s dialog host while `RestorePickerWindow` is a modal child window fully covering
+it on screen — a real user could not see or click the confirmation while the picker was open.
 
-**Why this is an implementation bug, not a test gap:** the behavior is confirmed and reproducible;
-no test can "pass" this without the application being fixed (e.g., giving `RestorePickerWindow`
-its own dialog host). Per this audit's instructions, implementation bugs are escalated, not fixed
-or test-papered-over.
-
-**Gap in the phase's own process, caught by this audit:** 02-10-SUMMARY.md's own "Next Phase
-Readiness" section explicitly asks the owner to add this to `.planning/STATE.md` Blockers at
-phase close ("Restore picker delete confirmation is unreachable by a real user while the picker is
-open... confirmed 2026-11-18, see 02-10-SUMMARY.md"). `.planning/STATE.md` Blockers currently reads
-**"None open"** — the follow-up was never carried over. This audit surfaces it again here so it is
-not lost a second time.
-
-**Recommendation:** add the Blocker line to `.planning/STATE.md` before closing this phase. The fix
-itself (a per-picker-window dialog host, or routing `Confirm` through a host visible above the
-current modal window) is architectural and out of this audit's and this phase's scope.
+**Resolution:** `02-16-PLAN.md` gave `RestorePickerWindow` its own `ui:ContentDialogHost` and had
+`DialogService.ShowRestorePickerDialog` bind a picker-owned `ContentDialogService`/`DialogService`
+pair to it instead of reusing `MainWindow`'s (commit `1156099`). `02-16-SUMMARY.md`'s real-click
+evidence script (`.temp/02-16-picker-delete-check.ps1`, gitignored) printed PASS for all five
+checks (confirmation appears, renders fully inside the picker, `WindowFromPoint` resolves to the
+picker's own HWND, Cancel/Delete both behave correctly) on two separate runs. `.planning/STATE.md`
+Blockers confirms the owner independently re-ran this with a real mouse click in UAT test 8
+(2026-11-24) and recorded the Blocker as closed. Nothing is open on this item.
 
 ---
 
@@ -106,18 +91,26 @@ current modal window) is architectural and out of this audit's and this phase's 
 
 | Behavior | Item | Status | Note |
 |----------|------|--------|------|
-| Before/after screenshots, 9 of 14 shots (01,02,03,04,06,09,10,12,14) | 19, 20, 21 | WARNING — captured and pixel/visual-verified (`after-19-20` vs `after-21`, both present on disk, confirmed by this audit via `ls`) | — |
-| Screenshots 05 (row-actions idle/busy), 07 (status bar), 08 (restore steps), 11 (ChangeSaveFolder footer), 13 (RestorePicker footer) | 19, 20 | WARNING — not captured this session (02-11-SUMMARY.md discloses this; one bad capture, 10-addgame-footer, was discarded/retaken and the operator stopped further ad hoc desktop automation to avoid exposing other windows) | Visual-only claim; XAML changes for these items are still covered by the build gate and `ResourceKeyTests`. Recommend capturing before declaring D-07 fully closed. |
+| Before/after screenshots, all 14 of 14 shots, in `before/`, `after-19-20/` and `after-21/` | 19, 20, 21, D-07, D-12 | COVERED — all three sets confirmed complete by this audit (`ls`, 14 files each). 02-17 fixed `capture.ps1`'s lookup helpers (closing G-02-7); 02-18 ran it against the three UAT-referenced builds (`57811c1`, `987b131`, `b54a058`) via detached git worktrees to backfill the five shots (05, 07, 08, 11, 13) the 2026-11-19 pass was missing. Pixel/visual verification remains a human-eye judgment call, disclosed here, not an automated assertion. | — |
 | Access keys (Alt-mnemonics) on the eight keyed toolbar buttons | 19 | WARNING — asserted achievable via WPF-UI's `RecognizesAccessKey` template behavior (cited library source) but not re-confirmed interactively in this audit | Low risk; template structure preserved per 02-04-SUMMARY. |
 
 ---
 
 ## Validation Sign-Off
 
-- [x] All ROADMAP items 0–24 have at least one automated `<verify>` command that ran and passed during execution, independently re-confirmed green in this audit (739/739).
-- [x] No gap required writing a new test file — existing per-plan verification was adversarially reviewed, not rubber-stamped.
-- [x] One ESCALATED finding: restore-picker delete-confirmation modal-occlusion defect (ITEM-11), confirmed real, not fixed (out of scope — implementation files are read-only for this audit), and its STATE.md Blocker entry (owed since 02-10) is still missing.
-- [x] Manual-only screenshot gaps (5 of 14 shots) disclosed as WARNING, not hidden.
-- [ ] `nyquist_compliant: true` — **not set**, because of the open ESCALATED blocker above (`nyquist_compliant: false` until the STATE.md Blocker is recorded and the owner decides a fix/defer).
+- [x] All ROADMAP items 0–24 have at least one automated `<verify>` command that ran and passed during execution, independently re-confirmed green in this audit (739/739 at the 2026-11-19 baseline; 745/745 after 02-16).
+- [x] No gap required writing a new automated test file — existing per-plan verification (including 02-16's real-click evidence script and 02-18's cross-build screenshot capture) was adversarially reviewed, not rubber-stamped.
+- [x] Former ESCALATED finding (ITEM-11) resolved by 02-16 and confirmed independently by the owner in `.planning/STATE.md` Blockers (2026-11-24). Nothing open.
+- [x] Former 5-of-14 missing-screenshot gap resolved by 02-17 + 02-18; all three sets now hold all 14 shots.
+- [x] One residual WARNING disclosed (access-key behavior, low risk, unchanged from the 2026-11-19 pass).
+- [x] `nyquist_compliant: true` — set, because both items this audit previously held open are now resolved and independently confirmed.
 
-**Approval:** PARTIAL — compliant on automated test coverage; one implementation defect and its missing Blocker entry remain open for the owner.
+**Approval:** PASS — compliant on automated test coverage; both prior open items (the ITEM-11 defect and the screenshot gap) are closed and confirmed.
+
+## Validation Audit 2026-11-25
+
+| Metric | Count |
+|---|---|
+| Gaps found | 0 |
+| Resolved | 2 |
+| Escalated | 0 |

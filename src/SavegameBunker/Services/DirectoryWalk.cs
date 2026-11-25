@@ -131,7 +131,10 @@ internal static class DirectoryWalk
             }
             catch (Exception ex) when (FileSystemFault.Is(ex))
             {
-                Skip(current);
+                // Route through ListingFaulted(), not a direct Skip(current): the files listing
+                // above may already have faulted mid-iteration and reported this same folder once
+                // (WR-01). The dedup flag is what ListingFaulted() guards.
+                ListingFaulted();
                 return;
             }
 

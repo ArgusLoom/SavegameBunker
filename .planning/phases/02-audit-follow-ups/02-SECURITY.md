@@ -71,6 +71,13 @@ created: "2026-11-19"
 | T-02-27 | Tampering | demo-data.ps1 reset deleting outside its own folder | high | mitigate | Script refuses any root not named SavegameBunkerDemo or inside the repo | closed |
 | T-02-28 | Tampering | demo session for after-19-20 shots + access-key pass | medium | mitigate | App launched only on demo catalogs; restore confirmations declined | closed |
 | T-02-SC | Tampering | NuGet installs | high | mitigate | Zero packages added; shipping csproj stays at 2, test csproj at 3 — confirmed by grep | closed |
+| T-02-29 | Tampering | picker delete confirmation → BackupService.DeleteArchive | high | mitigate | Confirmation now drawn in the picker's own host where the user can see it; real-click evidence script checks (d)/(e) show Cancel removes none and Delete removes exactly one archive | closed |
+| T-02-30 | Denial of Service | Confirm worker when picker closed (Alt+F4) while confirmation open | low | accept | Worker may stay blocked on a dialog whose host is gone; nothing deleted, UI thread not blocked (Confirm's off-UI-thread assert); observed directly in 02-16's evidence run | closed |
+| T-02-31 | Information Disclosure | Save-WindowShot / Save-ElementShot on a shared desktop | medium | mitigate | Captures stay cropped to the app window rect; a stray window (Brave/YouTube, shot 13) was discarded and retaken, never committed; outputs stayed in gitignored `.temp/` | closed |
+| T-02-32 | Tampering | demo reset deleting files | low | mitigate | capture.ps1 adds no deletion of its own; resets still route only through demo-data.ps1's existing guard | closed |
+| T-02-33 | Information Disclosure | captures on a shared desktop (02-18 cross-build run) | medium | mitigate | Same discard-and-retake discipline as T-02-31; one occurrence (shot 13, before/ first attempt), retaken, never committed | closed |
+| T-02-34 | Tampering | before/, after-19-20/, after-21/ evidence sets | medium | mitigate | No-clobber copy of exactly 5 names per set; sha256sum of the 9 pre-existing images recorded before and checked after — confirmed unchanged | closed |
+| T-02-35 | Tampering | git worktrees of 57811c1, 987b131, b54a058 | low | mitigate | Detached worktrees under gitignored `.temp/`, never committed from, removed after use; `git worktree list` confirmed back to one entry each time | closed |
 
 *Status: open · closed · open — below high threshold (non-blocking)*
 *Severity: critical > high > medium > low — only open threats at or above workflow.security_block_on (high) count toward threats_open*
@@ -106,3 +113,11 @@ created: "2026-11-19"
 - [x] `status: verified` set in frontmatter
 
 **Approval:** verified 2026-11-19
+
+## Security Audit 2026-11-25
+
+| Metric | Count |
+|---|---|
+| Threats found | 7 |
+| Closed | 7 |
+| Open | 0 |

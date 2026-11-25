@@ -223,8 +223,11 @@ public sealed partial class GameRowViewModel : CommunityToolkitObservableObject
         else if (status.Kind is (SaveStatusKind.NoSaves or SaveStatusKind.Found) && status.LeftOutPaths.Count > 0)
         {
             GameSeverity = RowSeverity.Warning;
-            StatusText = Strings.Format(
+            var leftOutText = Strings.Format(
                 "str_game_leftOutSubfolders", status.LeftOutPaths.Count, DirectoryWalk.FormatSkippedList(status.LeftOutPaths));
+            // WR-02: an oversized row's warning text (set above) must not be silently replaced —
+            // both facts are true of the same row and both are worth keeping.
+            StatusText = string.IsNullOrEmpty(StatusText) ? leftOutText : $"{StatusText} {leftOutText}";
         }
     }
 

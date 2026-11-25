@@ -130,6 +130,7 @@ public sealed class StringsTests
         ["str_toolbar_changeBackupFolder", "str_toolbar_changeBackupFolder_access"],
         ["str_toolbar_backUpSelected", "str_toolbar_backUpSelected_access"],
         ["str_toolbar_restoreSelected", "str_toolbar_restoreSelected_access"],
+        ["str_toolbar_about", "str_toolbar_about_access"],
     ];
 
     [Theory]

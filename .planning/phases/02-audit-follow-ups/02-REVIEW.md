@@ -1,125 +1,215 @@
 ---
 phase: 02-audit-follow-ups
-reviewed: 2026-11-24T00:00:00Z
+reviewed: 2026-11-25T00:00:00Z
 depth: standard
-files_reviewed: 17
+files_reviewed: 52
 files_reviewed_list:
+  - .github/workflows/release.yml
   - CHANGELOG.md
-  - README.md
-  - docs/screenshot.png
-  - docs/userguide/de/docs/getting-started.md
-  - docs/userguide/de/docs/how-to/back-up-your-saves.md
-  - docs/userguide/de/docs/how-to/change-the-backup-folder.md
-  - docs/userguide/de/docs/how-to/move-to-a-new-pc.md
-  - docs/userguide/de/docs/how-to/restore-a-save.md
+  - SPEC.md
   - docs/userguide/de/docs/reference/keyboard-shortcuts.md
-  - docs/userguide/en/docs/getting-started.md
-  - docs/userguide/en/docs/how-to/back-up-your-saves.md
-  - docs/userguide/en/docs/how-to/change-the-backup-folder.md
-  - docs/userguide/en/docs/how-to/move-to-a-new-pc.md
-  - docs/userguide/en/docs/how-to/restore-a-save.md
   - docs/userguide/en/docs/reference/keyboard-shortcuts.md
+  - src/SavegameBunker/MainWindow.xaml
+  - src/SavegameBunker/MainWindow.xaml.cs
+  - src/SavegameBunker/Models/BackupArchive.cs
+  - src/SavegameBunker/Models/BackupComparison.cs
+  - src/SavegameBunker/Models/OperationResult.cs
+  - src/SavegameBunker/Models/SaveStatus.cs
+  - src/SavegameBunker/SavegameBunker.csproj
+  - src/SavegameBunker/Services/BackupComparer.cs
+  - src/SavegameBunker/Services/BackupService.cs
+  - src/SavegameBunker/Services/DialogService.cs
+  - src/SavegameBunker/Services/DirectoryWalk.cs
+  - src/SavegameBunker/Services/FileSystemFault.cs
+  - src/SavegameBunker/Services/PathCompare.cs
+  - src/SavegameBunker/Services/ReparseFile.cs
+  - src/SavegameBunker/Services/RestoreService.cs
+  - src/SavegameBunker/Services/SaveFolderPreview.cs
+  - src/SavegameBunker/Services/SaveStatusScanner.cs
   - src/SavegameBunker/Themes/Strings.en.xaml
-  - tests/SavegameBunker.Tests/MainViewModelRestoreTests.cs
+  - src/SavegameBunker/Themes/Styles.xaml
+  - src/SavegameBunker/ViewModels/AboutDialogViewModel.cs
+  - src/SavegameBunker/ViewModels/BulkBackupCoordinator.cs
+  - src/SavegameBunker/ViewModels/BulkRunRules.cs
+  - src/SavegameBunker/ViewModels/CatalogSession.cs
+  - src/SavegameBunker/ViewModels/GameActions.cs
+  - src/SavegameBunker/ViewModels/GameRowViewModel.cs
+  - src/SavegameBunker/ViewModels/MainViewModel.cs
+  - src/SavegameBunker/ViewModels/RowActionsCoordinator.cs
+  - src/SavegameBunker/ViewModels/StatusSweepCoordinator.cs
+  - src/SavegameBunker/Views/AboutDialog.xaml
+  - src/SavegameBunker/Views/AboutDialog.xaml.cs
+  - src/SavegameBunker/Views/RestorePickerWindow.xaml
+  - src/SavegameBunker/Views/RestorePickerWindow.xaml.cs
+  - tests/SavegameBunker.Tests/AboutDialogViewModelTests.cs
+  - tests/SavegameBunker.Tests/BackupComparerTests.cs
+  - tests/SavegameBunker.Tests/BackupServiceTests.cs
+  - tests/SavegameBunker.Tests/BulkBackupCoordinatorTests.cs
+  - tests/SavegameBunker.Tests/CatalogSessionTests.cs
+  - tests/SavegameBunker.Tests/DirectoryWalkTests.cs
+  - tests/SavegameBunker.Tests/MainViewModelBulkTests.cs
+  - tests/SavegameBunker.Tests/MainViewModelTestBase.cs
+  - tests/SavegameBunker.Tests/MainViewModelTests.cs
+  - tests/SavegameBunker.Tests/PathCompareTests.cs
+  - tests/SavegameBunker.Tests/ResourceKeyTests.cs
+  - tests/SavegameBunker.Tests/RestorePickerViewModelTests.cs
+  - tests/SavegameBunker.Tests/RestoreServiceTests.cs
+  - tests/SavegameBunker.Tests/ServiceContractTests.cs
+  - tests/SavegameBunker.Tests/StartupUnsecuredPromptTests.cs
+  - tests/SavegameBunker.Tests/StatusSweepCoordinatorTests.cs
+  - tests/SavegameBunker.Tests/StringsTests.cs
+  - tests/SavegameBunker.Tests/TempDir.cs
+  - tests/SavegameBunker.Tests/TestGames.cs
 findings:
   critical: 0
   warning: 3
-  info: 0
-  total: 3
+  info: 1
+  total: 4
   necessity: 0
 status: issues_found
 ---
 
 # Phase 02-audit-follow-ups: Code Review Report
 
-**Reviewed:** 2026-11-24T00:00:00Z
+**Reviewed:** 2026-11-25
 **Depth:** standard
-**Files Reviewed:** 17
+**Files Reviewed:** 52
 **Status:** issues_found
 
 ## Summary
 
-Reviewed the toolbar-label-shortening change: three `Strings.en.xaml` labels and their Alt
-mnemonics, two restore pre-flight error strings, one test assertion, and README/CHANGELOG/EN+DE
-user-guide prose plus the re-captured screenshot.
+This phase's diff (`e9cf897..HEAD`, 26 commits) touches almost every file in the required-reading
+list: the directory-walk fault handling (WR-02 "skip a folder whose listing fails midway"), the
+bulk-backup warning/rescan plumbing (WR-03/WR-04), the new About window, the catalog write lock, the
+restore layout-refusal sharing between pre-flight and the actual restore, and the partial-archive
+(`-partial`, `LastBackupPartial`) model additions. The code is unusually well exercised — 16+ prior
+review passes are visible in the git log, and the new behavior in this diff is backed by specific,
+targeted xUnit facts (`DirectoryWalkTests`, `BackupComparerTests`, `StartupUnsecuredPromptTests`,
+etc.) that pin exactly the edge cases the CHANGELOG claims were fixed.
 
-The three renamed keys themselves are correct: each `_access` variant is still its clean sibling
-plus exactly one inserted underscore (`Backup _folder`, `_Back up`, `Res_tore`), matching the
-invariant `StringsTests.cs` enforces, and none of the three new mnemonics (`F`, `B`, `T`) collides
-with `A`/`S`/`R`/`O` or with each other. The two restore-pre-flight strings and the one test
-assertion that quoted the old "Change backup folder" button name were updated consistently, and
-every EN/DE user-guide page and the README were updated to the same three new names with no
-leftover "Back up selected" / "Restore selected" / "Change backup folder" text in rendered
-copy — `grep` across the whole repo confirms the only surviving instances of the old names are
-internal code comments and feature/class names (`BackupSelectedCommand`,
-`BulkBackupCoordinator`, `"Back up selected"` as a section label in test files), which name the
-*feature*, not the button text, and were correctly left alone.
-
-Three issues surfaced, none introduced by this diff but all squarely inside the explicit checks
-this review was asked to make (mnemonic collisions, stale quoted names) and all inside the files
-reviewed (two of the three) or directly caused by this diff's scope without being carried through
-to a document CLAUDE.md names as authoritative (the third). `necessity-review.md` was read; none
-of the changes in this file set are guard/defensive code, so no necessity findings apply.
+No security vulnerability, crash, or data-loss defect was found. The findings below are two real
+correctness/quality gaps in the newly changed code (a double-reporting edge case in the directory
+walk's new fault-tolerance logic, and a message-precedence collision in the row status text), one
+behavior change whose safety depends on a file outside this phase's scope (`GameCatalog.cs`, not
+in the required-reading list), and one test-coverage gap for the new About button. The
+necessity-review reference (`necessity-review.md`) was loaded; no finding in this diff met its bar
+for an impossible-state/already-defended/cargo-culted/phantom-requirement/generality-without-
+instantiation classification, so `necessity: 0`.
 
 ## Warnings
 
-### WR-01: Keyboard-shortcuts reference still documents "Alt, H → Help" for the renamed About button
+### WR-01: `DirectoryWalk.ForEachFile` can double-report one directory as unreadable
 
-**File:** `docs/userguide/en/docs/reference/keyboard-shortcuts.md:14`
-**File:** `docs/userguide/de/docs/reference/keyboard-shortcuts.md:14`
-**Issue:** Both the English and German keyboard-shortcuts pages list `Alt, H` → `Help`. The toolbar
-button that row describes no longer exists under that name or that letter: `MainWindow.xaml:46-54`
-binds it to `AboutCommand` with `Content="{DynamicResource str_toolbar_about_access}"`, and
-`Strings.en.xaml:49` defines `str_toolbar_about_access` as `A_bout` — mnemonic `B`, not `H`. This
-predates the current diff (the About-for-Help swap shipped earlier, per the `[Unreleased]`
-CHANGELOG entry), but both files are in this phase's explicit review scope and the task asked
-specifically to check for stale quoted button names, so it is reported here. A reader following
-this reference will press Alt+H expecting the user-guide link and get nothing.
-**Fix:** Change the row in both files to `**Alt, B** | **About**` (or drop the row's claim about a
-`Help` action entirely), matching `str_toolbar_about_access`.
+**File:** `src/SavegameBunker/Services/DirectoryWalk.cs:86-93` and `128-136`
+**Issue:** The new `listingFaulted` guard (added in this phase, see `git log` commit
+"skip a folder whose listing fails midway instead of aborting the walk") is meant to report a
+directory as skipped **at most once**, "whichever of the two listings (files, subfolders) hit it"
+(the comment at line 84-85). That guard is shared correctly between the two `GuardListing` calls
+(line 95 and line 138) via the local `ListingFaulted()` function — but the **subdirectory listing's
+own open-call catch block** (lines 128-136) calls `Skip(current)` directly instead of going through
+`ListingFaulted()`:
+```csharp
+IEnumerable<string> subdirs;
+try
+{
+    subdirs = Directory.EnumerateDirectories(current);
+}
+catch (Exception ex) when (FileSystemFault.Is(ex))
+{
+    Skip(current);   // <-- bypasses listingFaulted
+    return;
+}
+```
+If the **files** listing already faulted mid-iteration (`GuardListing(files, ListingFaulted)` at
+line 95 already called `ListingFaulted()`, setting `listingFaulted = true` and calling `Skip(current)`
+once), and the share/volume is now fully gone by the time the walk tries to **open** the
+subdirectories enumerator, that open call throws immediately and this second catch block calls
+`Skip(current)` a second time for the identical path — exactly the "a network share dropped… while
+a save folder was being read" scenario this phase's fix targets (CHANGELOG, "A folder that fails
+partway through being listed is now skipped on its own"). The duplicate entry propagates into
+`skippedPathsFound`/`skipped` (a plain `List<string>`, not deduplicated) and from there into
+`BackupService.DescribeSkippedPathsWarning`'s `{count}` and `DirectoryWalk.FormatSkippedList`'s
+"first five, comma-joined" output — a backup or status row can report one more unreadable path than
+actually exists, and the duplicate can crowd a genuinely different path out of the "and N more"
+window. `DirectoryWalkTests` only exercises `GuardListing` in isolation, and
+`BackupServiceTests`/`SaveStatusScanner` tests only exercise a single fault per directory, so this
+combination is untested.
+**Fix:** Route the subdirectory-listing open-call catch through the same guard, e.g.:
+```csharp
+catch (Exception ex) when (FileSystemFault.Is(ex))
+{
+    ListingFaulted();
+    return;
+}
+```
 
-### WR-02: Alt+B mnemonic collision between "Back up" and "About" (same AccessKeyManager scope)
+### WR-02: A row that is both oversized and has skipped/left-out subfolders silently loses the "unusually large" warning
 
-**File:** `src/SavegameBunker/Themes/Strings.en.xaml:47` (`str_toolbar_backUpSelected_access` = `_Back up`)
-**File:** `src/SavegameBunker/Themes/Strings.en.xaml:49` (`str_toolbar_about_access` = `A_bout`)
-**Issue:** WPF access keys are case-insensitive, so `_Back up` (mnemonic `B`) and `A_bout`
-(mnemonic `b`) are the same access key. `MainWindow.xaml` has no `AccessKeyScope` boundary between
-the two buttons — `AboutButton` (line 46), `BackupSelectedButton` (line 134) and every other
-toolbar button sit in the same outer `DockPanel`/`WrapPanel`, which share one
-window-level `AccessKeyManager` scope. With a selection active (so `BackupSelectedButton` is
-visible per `HasAnySelected`), Alt+B cannot reliably invoke either button — WPF's duplicate-access-key
-handling cycles focus between matches rather than invoking one outright, the exact failure
-`StringsTests.The_seven_toolbar_mnemonics_are_all_different_letters` exists to catch for the other
-seven buttons. That test's own `accessKeys` array (`StringsTests.cs:153-162`) deliberately omits
-`str_toolbar_about_access`, so this pair is untested. This is not a regression from this diff — the
-previous labels (`_Back up selected` / `A_bout`) collided on the same two letters — but it is a
-live collision inside the exact check this review was asked to make, newly adjacent to the three
-renamed keys reviewed here.
-**Fix:** Either add `str_toolbar_about_access` to the uniqueness test's array (so the real letter
-set is enforced) and pick a different mnemonic for one of the two buttons — e.g. `Ab_out` (`O` is
-already taken by Open the games list, so `u` or another free letter) — or, if the collision is
-judged acceptable because the two buttons are never both focal targets of the same gesture in
-practice, say so in a comment next to both string keys so the omission in `StringsTests.cs` reads
-as a deliberate decision rather than an oversight.
+**File:** `src/SavegameBunker/ViewModels/GameRowViewModel.cs:196-202` and `217-228`
+**Issue:** `ApplyStatus`'s `Found` branch sets `StatusText` to the oversized warning
+(`str_game_oversized`) when `status.Oversized` is true (line 196-202). Immediately after the
+`switch`, two `if`/`else if` blocks unconditionally overwrite `StatusText` — first for
+`SkippedPaths.Count > 0` (pre-existing), and now also for the phase's new `LeftOutPaths.Count > 0`
+case (lines 223-228, added by this diff). Neither branch checks whether `status.Oversized` is also
+true, so a save folder that is simultaneously unusually large *and* partially unreadable, or
+unusually large *and* also the backup folder (pruned subfolders), shows only the
+unreadable-paths/left-out-subfolders sentence — the SPEC's oversized-folder safety signal ("make
+sure it's the right one") disappears from the row for as long as the other condition holds, with no
+way for the user to learn the folder is also outsized short of opening it in Explorer.
+`GameSeverity` stays `Warning` either way, so the icon doesn't reveal the loss — only the text does.
+**Fix:** Compose the sentences instead of overwriting, e.g. append rather than replace:
+```csharp
+if (status.Kind is (SaveStatusKind.NoSaves or SaveStatusKind.Found) && status.SkippedPaths.Count > 0)
+{
+    GameSeverity = RowSeverity.Warning;
+    StatusText = JoinNonEmpty(StatusText, Strings.Format("str_game_unreadablePaths", ...));
+}
+```
+or, at minimum, document that oversized is deliberately the lowest-priority warning and accept the
+loss (currently undocumented).
 
-### WR-03: SPEC.md still names the three pre-rename toolbar labels
+### WR-03: The window-close guard no longer blocks while a catalog file write is in flight
 
-**File:** `SPEC.md:295-296`
-**Issue:** `SPEC.md` — which `CLAUDE.md`'s hard constraints call "the public specification" that
-"scope changes revise... carrying the reasoning inline" — still reads: `Window actions: Add game,
-Scan, Refresh, Open the games list, Change backup folder, Back up all changed, Back up selected,
-Restore selected, Switch theme...`. This phase renamed all three of those to "Backup folder",
-"Back up" and "Restore" everywhere else touched (Strings.en.xaml, CHANGELOG.md, README.md, both
-user guides), but `SPEC.md` was not part of this phase's file list and was left with the old
-names. `SPEC.md` is not among the files this review was scoped to, but the omission is a direct,
-provable consequence of this phase's change and falls squarely under the project's own
-documentation-consistency rule.
-**Fix:** Update `SPEC.md:295-296` to the current labels ("Backup folder, Back up all changed, Back
-up, Restore") in the same commit (or a fast-follow) that ships this rename, per CLAUDE.md's rule
-that scope/behavior changes revise `SPEC.md` inline.
+**File:** `src/SavegameBunker/MainWindow.xaml.cs:120` (uses the new
+`src/SavegameBunker/ViewModels/MainViewModel.cs:359-360` property)
+**Issue:** `MainWindow_Closing` was changed in this phase from guarding on
+`ViewModel.IsAnyOperationRunning` to the newly introduced, narrower
+`ViewModel.IsAnyBackupOrRestoreRunning`, which excludes `IsCatalogCommandRunning` (Refresh, Change
+backup folder, Add game, Change save folder, Remove game — `MainViewModel.cs:369-371`). The
+in-code rationale ("a catalog command may merely be waiting on its confirmation, and the catalog
+write itself is a single file save") only covers the *confirmation-wait* portion of these commands;
+it does not establish that the actual file write (`GameCatalog.SaveAsync`, not in this phase's
+reviewed file set) is atomic/crash-safe if the process exits mid-write. If the user closes the main
+window while, say, `RemoveGameAsync`'s `await _session.RemoveGameAsync(row.Game)` is genuinely still
+writing `games.json`, WPF's default `ShutdownMode` tears the process down once `Closing`/`Closed`
+return without `e.Cancel = true` — and nothing in the reviewed files proves the write survives that.
+CLAUDE.md's own rule ("Never overwrite a file the user may have hand-edited") and the project's
+demonstrated discipline elsewhere (backup archives are always written to a temp name and renamed
+only after verification) suggest `GameCatalog.SaveAsync` likely follows the same pattern, but that
+file is outside this phase's required-reading scope, so it could not be confirmed here, and no test
+in the reviewed suite exercises a window-close during a catalog write.
+**Fix:** Confirm `GameCatalog.SaveAsync` writes via a temp file + rename (matching
+`BackupService`'s own discipline) before relying on this gate change; if it does not, either make it
+do so or restore `IsAnyOperationRunning` (i.e., include `IsCatalogCommandRunning`) as the
+`MainWindow_Closing` gate.
+
+## Info
+
+### IN-01: The toolbar access-key pair test does not cover the new About button
+
+**File:** `tests/SavegameBunker.Tests/StringsTests.cs:124-144`
+**Issue:** This phase adds the About button and its `str_toolbar_about`/`str_toolbar_about_access`
+resource pair (CHANGELOG: "An About window, opened from a new About button"). The mnemonic-uniqueness
+fact (`The_eight_toolbar_mnemonics_are_all_different_letters`, line ~147) was updated to include
+`str_toolbar_about_access`, but the `ToolbarAccessKeyPairs`/`Every_toolbar_access_label_is_its_clean_
+label_plus_one_underscore` fact (lines 124-144) — the one that actually checks "access label = clean
+label + one underscore" for each pair — was not extended to the new pair. The values themselves are
+correct (`"About"` / `"Abo_ut"`), so nothing is currently broken, but the convention this phase relies
+on for every other toolbar button is unguarded for the one it just added.
+**Fix:** Add `["str_toolbar_about", "str_toolbar_about_access"]` to `ToolbarAccessKeyPairs`.
 
 ---
 
-_Reviewed: 2026-11-24T00:00:00Z_
+_Reviewed: 2026-11-25_
 _Reviewer: Claude (gsd-code-reviewer)_
 _Depth: standard_
