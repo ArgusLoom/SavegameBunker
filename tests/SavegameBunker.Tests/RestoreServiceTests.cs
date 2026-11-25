@@ -863,7 +863,7 @@ public sealed class RestoreServiceTests : IDisposable
         var result = _service.Restore(game, backupRoot, archive, _ => { confirmCalls++; return true; });
 
         Assert.False(result.Success);
-        Assert.Equal(Strings.Format("str_restore_backupFolderInsideSaveFolder", game.DisplayName), result.Message);
+        Assert.Equal(Strings.Format("str_restore_saveFolderHoldsOtherBackups", game.DisplayName), result.Message);
         Assert.Equal(0, confirmCalls);
         Assert.True(File.Exists(otherArchive));
     }

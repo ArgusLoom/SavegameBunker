@@ -64,9 +64,11 @@ public sealed class StatusSweepCoordinatorTests : IDisposable
     {
         var backup = new BackupService();
         var onUiCalls = 0;
+        // Interlocked: the walk runs rows in parallel, and this test host has no dispatcher, so
+        // onUi runs inline on several pool threads at once — a plain ++ can lose a count.
         var coordinator = new StatusSweepCoordinator(backup, action =>
         {
-            onUiCalls++;
+            Interlocked.Increment(ref onUiCalls);
             action();
         });
 

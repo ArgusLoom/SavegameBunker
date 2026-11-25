@@ -53,6 +53,13 @@ public static class SaveStatusScanner
 
             var skipOwnArchives = backupRoot is not null && BackupService.IsSaveFolderTheArchiveFolder(game, backupRoot);
 
+            // The same folder exclusions the backup walk applies, so a backup folder inside the save
+            // folder is never counted as save data (its fresh archives would otherwise read as
+            // "saves changed since backup" forever). None in the archive-folder layout, as there.
+            IReadOnlyCollection<string>? excludedDirs = backupRoot is null || skipOwnArchives
+                ? null
+                : [PathCompare.Normalize(backupRoot), PathCompare.Normalize(Path.Combine(backupRoot, game.Id))];
+
             DirectoryWalk.ForEachFile(dir, info =>
             {
                 if (skipOwnArchives
@@ -65,7 +72,7 @@ public static class SaveStatusScanner
                 totalBytes += info.Length;
                 if (newest is null || info.LastWriteTime > newest)
                     newest = info.LastWriteTime;
-            }, onSkipped: skipped.Add);
+            }, excludedDirs, onSkipped: skipped.Add);
 
             if (fileCount == 0)
                 return skipped.Count == 0 ? SaveStatus.NoSaves() : SaveStatus.NoSaves() with { SkippedPaths = skipped };

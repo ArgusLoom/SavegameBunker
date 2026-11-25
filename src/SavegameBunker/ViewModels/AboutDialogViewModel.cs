@@ -47,7 +47,7 @@ public sealed partial class AboutDialogViewModel : CommunityToolkitObservableObj
     public string MetaLine { get; }
 
     /// <summary>
-    /// Opens the user guide off the UI thread, same as <c>MainViewModel.HelpAsync</c> — resolving
+    /// Opens the user guide off the UI thread through <see cref="IDialogService.OpenHelpGuide"/> — resolving
     /// the offline path touches the filesystem. This window has no status line, so the outcome goes
     /// straight to the snackbar/error dialog instead of a StatusMessage.
     /// </summary>

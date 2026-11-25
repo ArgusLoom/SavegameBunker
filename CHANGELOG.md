@@ -81,6 +81,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   backups, instead of deleting them with it.
 - **The startup reminder no longer gets lost when you click Refresh right after starting.** With a
   slow backup folder it could count zero unsecured games while the list was still being checked.
+- **A game whose backup folder sits inside its save folder no longer always reads "saves changed
+  since backup".** The status check counted the backups themselves as save files.
 - **Find Games says "1 file" instead of "1 files".**
 - **The "safety backup" tag in the restore list stays readable when its row is selected.**
 

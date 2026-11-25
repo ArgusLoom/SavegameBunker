@@ -1428,6 +1428,40 @@ public sealed class BackupServiceTests : IDisposable
         Assert.Equal(2, status.FileCount);
     }
 
+    // A backup folder inside the save folder is not save data for the status scan either, exactly
+    // as the backup walk leaves it out.
+    [Fact]
+    public void The_status_scan_leaves_out_a_backup_folder_inside_the_save_folder()
+    {
+        var game = TestGames.WithSaveFile(_dir);
+        var backupRoot = Path.Combine(_dir, "saves", "backups");
+        Assert.True(_service.Backup(game, backupRoot).Success);
+
+        var status = SaveStatusScanner.Scan(game, backupRoot);
+
+        Assert.Equal(1, status.FileCount);
+    }
+
+    // A timestamp-prefixed .zip.tmp that is not the exact legacy staging shape is a game's own
+    // file in an archive-folder save folder: archived, never swept.
+    [Fact]
+    public void A_timestamp_prefixed_game_temp_file_in_an_archive_folder_save_folder_is_kept()
+    {
+        var backupRoot = Path.Combine(_dir, "bunker5");
+        var saveDir = Path.Combine(backupRoot, "tmpgame");
+        Directory.CreateDirectory(saveDir);
+        var gameFile = Path.Combine(saveDir, "2026-11-20_183000_autosave.zip.tmp");
+        File.WriteAllText(gameFile, "game data");
+        var game = new Game { Id = "tmpgame", DisplayName = "Tmp", SaveDirTemplate = saveDir.Replace('\\', '/') };
+
+        var result = _service.Backup(game, backupRoot, "", out var archivePath);
+
+        Assert.True(result.Success, result.Message);
+        Assert.True(File.Exists(gameFile));
+        using var zip = ZipFile.OpenRead(archivePath!);
+        Assert.Equal("2026-11-20_183000_autosave.zip.tmp", Assert.Single(zip.Entries).FullName);
+    }
+
     // An archive-folder save folder holding only earlier backups: the refusal names that, not a
     // backup subfolder that does not exist.
     [Fact]

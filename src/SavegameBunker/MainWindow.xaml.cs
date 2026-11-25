@@ -117,7 +117,7 @@ public partial class MainWindow : FluentWindow
     /// </summary>
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
     {
-        if (!ViewModel.IsAnyOperationRunning)
+        if (!ViewModel.IsAnyBackupOrRestoreRunning)
             return;
 
         e.Cancel = true;

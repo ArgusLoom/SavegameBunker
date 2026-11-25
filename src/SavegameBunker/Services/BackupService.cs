@@ -168,7 +168,7 @@ public sealed class BackupService
                 TryDelete(tempPath);
                 return OperationResult.Fail(
                     notBackedUp.Count > 0
-                        ? $"Backup failed for {game.DisplayName}: {saveDir} is also the backup folder, so its subfolders cannot be told apart from other games' backups and were left out: {DirectoryWalk.FormatSkippedList(notBackedUp)}. Choose a backup folder outside the save folder."
+                        ? $"Backup failed for {game.DisplayName}: {saveDir} is also the backup folder, so its subfolders cannot be told apart from other games' backups and were left out: {DirectoryWalk.FormatSkippedList(notBackedUp)}."
                         : leftOut.Count > 0
                             ? $"Backup failed for {game.DisplayName}: {saveDir} holds nothing but the backup folder, so there is nothing to back up."
                             : skipRootArchives
@@ -935,6 +935,11 @@ public sealed class BackupService
     /// timestamp, an optional <c>-pre-restore</c>, an optional <c>-N</c> collision suffix. A game's
     /// own <c>2026-11-20_183000_slot2.zip</c> does not match.
     /// </summary>
+    /// <summary>The staging name earlier versions wrote: the archive's own name plus <c>.tmp</c>.</summary>
+    private static readonly System.Text.RegularExpressions.Regex OwnLegacyTempName = new(
+        @"^\d{4}-\d{2}-\d{2}_\d{6}(-pre-restore)?\.zip\.tmp$",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
     private static readonly System.Text.RegularExpressions.Regex OwnArchiveName = new(
         @"^\d{4}-\d{2}-\d{2}_\d{6}(-pre-restore)?(-\d+)?\.zip$",
         System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
@@ -971,7 +976,7 @@ public sealed class BackupService
         const string suffix = ".zip.tmp";
         if (!fileName.EndsWith(suffix, StringComparison.OrdinalIgnoreCase))
             return false;
-        if (HasTimestampPrefix(fileName))
+        if (OwnLegacyTempName.IsMatch(fileName))
             return true;
 
         var stem = fileName[..^suffix.Length];

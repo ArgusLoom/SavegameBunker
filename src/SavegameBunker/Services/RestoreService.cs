@@ -89,7 +89,7 @@ public sealed class RestoreService
                 && PathCompare.IsSameOrInside(backupRoot, saveParent)
                 && Directory.Exists(saveDir)
                 && Directory.EnumerateFiles(saveDir).Any(f => BackupService.IsOwnArchiveFileName(Path.GetFileName(f))))
-                return OperationResult.Fail(Strings.Format("str_restore_backupFolderInsideSaveFolder", game.DisplayName));
+                return OperationResult.Fail(Strings.Format("str_restore_saveFolderHoldsOtherBackups", game.DisplayName));
 
             // The archive must live in this game's own backup folder (<backupRoot>/<game.Id>) —
             // the same containment logic the backup walk uses for exclusions, pointed at the

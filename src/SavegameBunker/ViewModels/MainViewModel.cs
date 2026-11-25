@@ -348,9 +348,16 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// or rewrites the catalog (<see cref="IsCatalogCommandRunning"/>). The one gate for closing
     /// the window, refreshing, changing the backup folder and starting another bulk run.
     /// </summary>
-    public bool IsAnyOperationRunning =>
-        IsAnyRowBusy || IsBackupRunning || IsRestoreRunning || IsBulkBackupRunning || IsBulkPreparing
-        || IsCatalogCommandRunning;
+    public bool IsAnyOperationRunning => IsAnyBackupOrRestoreRunning || IsCatalogCommandRunning;
+
+    /// <summary>
+    /// The backup/restore part of <see cref="IsAnyOperationRunning"/> — what closing the window
+    /// gates on. Closing is refused only for these, whose interruption can leave a save folder
+    /// half-swapped; a catalog command may merely be waiting on its confirmation, and the catalog
+    /// write itself is a single file save.
+    /// </summary>
+    public bool IsAnyBackupOrRestoreRunning =>
+        IsAnyRowBusy || IsBackupRunning || IsRestoreRunning || IsBulkBackupRunning || IsBulkPreparing;
 
     /// <summary>
     /// Refresh, Change backup folder, Add Game, Change save folder or Remove game still in flight.
@@ -972,8 +979,11 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// cancelled dialog writes nothing and is not a failure. A failed save removes the entry
     /// from memory again so it matches what is actually on disk.
     /// </summary>
-    [RelayCommand(CanExecute = nameof(CanEditCatalog))]
-    private Task AddGameAsync() => AddGameCoreAsync(initialSaveFolder: null);
+    [RelayCommand(CanExecute = nameof(CanAddGame))]
+    private Task AddGameAsync(string? initialSaveFolder) => AddGameCoreAsync(initialSaveFolder);
+
+    /// <summary>The toolbar passes no folder, the drop route passes the dropped one; same gate.</summary>
+    private bool CanAddGame(string? initialSaveFolder) => CanEditCatalog();
 
     /// <summary>
     /// Add Game and Find Games write the catalog; while another catalog write or reload is in
@@ -990,14 +1000,15 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// </summary>
     public Task AddGameFromDroppedFolderAsync(string folder)
     {
-        // The drop route skips AddGameCommand's CanExecute, so it applies the same gate itself.
-        if (!CanEditCatalog())
+        // Routed through AddGameCommand, so its IsRunning gates Refresh, backups and closing
+        // exactly as the toolbar route does.
+        if (!AddGameCommand.CanExecute(folder))
         {
-            StatusMessage = Strings.Get("str_addGame_busy");
+            StatusMessage = Strings.Get("str_catalog_busy");
             return Task.CompletedTask;
         }
 
-        return AddGameCoreAsync(folder);
+        return AddGameCommand.ExecuteAsync(folder);
     }
 
     private async Task AddGameCoreAsync(string? initialSaveFolder)
@@ -1073,6 +1084,14 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
             if (accepted.Count == 0)
             {
                 StatusMessage = Strings.Format("str_findGames_allRefused", string.Join(", ", refused));
+                return;
+            }
+
+            // The scan can run long and Find Games is deliberately not a gating command, so another
+            // catalog write may have started meanwhile; writing now would race it.
+            if (IsCatalogWriteInFlight)
+            {
+                StatusMessage = Strings.Get("str_catalog_busy");
                 return;
             }
 
@@ -1425,6 +1444,14 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         if (!confirmed)
         {
             StatusMessage = Strings.Get("str_removeGame_cancelled");
+            return;
+        }
+
+        // The row's own Backup/Restore stay usable while the confirmation is open; a row that went
+        // busy meanwhile must not be dropped under its running operation.
+        if (row.IsBusy || IsCatalogWriteInFlight)
+        {
+            StatusMessage = Strings.Get("str_catalog_busy");
             return;
         }
 
