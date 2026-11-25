@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A backup's warnings no longer run into each other.** When a backup both left files out and
+  noted a left-out backup folder (or an archive too large to restore), the last listed path read as
+  the start of the next sentence; each warning now ends with a full stop.
 - **A bulk backup no longer hides that a game's backup is incomplete.** "Back up all changed",
   "Back up selected" and the startup reminder's "Yes" reported "Backed up all N games" even when a
   game's locked files were left out or its archive is too large to restore; the closing message now

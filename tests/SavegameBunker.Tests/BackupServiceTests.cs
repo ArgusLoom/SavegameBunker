@@ -1327,6 +1327,28 @@ public sealed class BackupServiceTests : IDisposable
         Assert.Equal(["a.dat", "sub/b.dat"], names);
     }
 
+    // Each part of the success message ends in its own full stop, so the last path of a list never
+    // reads as the start of the next sentence.
+    [Fact]
+    public void A_skipped_path_warning_and_the_left_out_note_are_separate_sentences()
+    {
+        var game = TestGames.WithSaveFile(_dir);
+        var backupRoot = Path.Combine(_dir, "saves", "backups");
+        File.WriteAllText(Path.Combine(_dir, "saves", "other.dat"), "readable");
+
+        using (new FileStream(Path.Combine(_dir, "saves", "save.dat"), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            var result = _service.Backup(game, backupRoot);
+
+            Assert.True(result.Success, result.Message);
+            Assert.Equal(
+                Strings.Format("str_backup_created", game.DisplayName)
+                + " Warning: 1 path(s) could not be read and are NOT in this backup: save.dat."
+                + " Left out: backups (backup folder).",
+                result.Message);
+        }
+    }
+
     // A folder the walk leaves out on purpose (the backup folder inside the save folder) is
     // named once, in a plain note — never with the unreadable-path warning wording, which would
     // read as a fault in a layout the user chose on purpose.

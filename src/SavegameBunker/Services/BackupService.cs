@@ -333,10 +333,12 @@ public sealed class BackupService
     /// The warning appended to a backup's success message when its walk had to skip paths —
     /// unreadable subtrees, files whose attributes could not be stat'ed. Names up to five of the
     /// skipped paths so the user can act on them, and says plainly that they are absent from the
-    /// archive rather than leaving "created" to imply completeness it does not have.
+    /// archive rather than leaving "created" to imply completeness it does not have. Ends in its
+    /// own full stop (as does <see cref="DescribeNotBackedUpWarning"/>), so whatever is appended
+    /// after it never runs into the last listed path.
     /// </summary>
     private static string DescribeSkippedPathsWarning(IReadOnlyCollection<string> skippedPaths) =>
-        $" Warning: {skippedPaths.Count} path(s) could not be read and are NOT in this backup: {DirectoryWalk.FormatSkippedList(skippedPaths)}";
+        $" Warning: {skippedPaths.Count} path(s) could not be read and are NOT in this backup: {DirectoryWalk.FormatSkippedList(skippedPaths)}.";
 
     /// <summary>
     /// An informational note appended to a backup's success message, naming the folders the walk
@@ -356,7 +358,7 @@ public sealed class BackupService
     /// archives.
     /// </summary>
     private static string DescribeNotBackedUpWarning(IReadOnlyCollection<string> notBackedUp) =>
-        $" Warning: the save folder is also the backup folder, so {notBackedUp.Count} subfolder(s) are NOT in this backup: {DirectoryWalk.FormatSkippedList(notBackedUp)}";
+        $" Warning: the save folder is also the backup folder, so {notBackedUp.Count} subfolder(s) are NOT in this backup: {DirectoryWalk.FormatSkippedList(notBackedUp)}.";
 
     /// <summary>
     /// Warns when the archive just written exceeds <see cref="RestoreService"/>'s own zip-bomb
