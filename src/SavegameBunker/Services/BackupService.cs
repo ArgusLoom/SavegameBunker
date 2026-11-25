@@ -133,21 +133,7 @@ public sealed class BackupService
             // any other destination — but the walk must step over it, or every backup would pack
             // all earlier archives (and trip over its own half-written staging file). targetDir is
             // listed too for the case where the backup folder IS the save folder.
-            var excludedDirs = new[] { PathCompare.Normalize(backupRoot), PathCompare.Normalize(targetDir) };
-
-            // The save folder IS this game's archive folder: its earlier archives and this run's
-            // own staging file sit at the walk root, where the folder exclusions above never
-            // reach. Without skipping them every backup would pack all earlier ones, and the open
-            // staging file would land in the unreadable-path warning.
-            var skipRootArchives = PathCompare.IsSameOrInside(saveDir, targetDir)
-                                   && PathCompare.IsSameOrInside(targetDir, saveDir);
-
-            // In that layout no folder exclusion applies: this app never writes subfolders into a
-            // game's archive folder, and the backup root is its parent, so every subfolder is save
-            // data. Without this the prune-every-subfolder rule (meant for a save folder equal to
-            // the backup root, shared with other games' archive folders) would drop them all.
-            if (skipRootArchives)
-                excludedDirs = [];
+            var (excludedDirs, skipRootArchives) = ArchiveWalkRules(saveDir, backupRoot, targetDir);
 
             Dictionary<string, string> entryHashes;
             try
@@ -289,6 +275,30 @@ public sealed class BackupService
                     $"Backup failed for {gameDisplayName}: rename retry limit reached — {timestamp}{suffix}.zip and every numbered variant up to -{MaxRenameRetries} already exist in {targetDir}.");
             }
         }
+    }
+
+    /// <summary>
+    /// The exclusions the archive walk applies — shared with <see cref="ComputeSaveDataSize"/> so
+    /// the progress denominator and space advisory count exactly what gets archived.
+    /// </summary>
+    /// <remarks>
+    /// A backup folder the user placed inside this game's own save folder is honoured like any
+    /// other destination — but the walk must step over it, or every backup would pack all earlier
+    /// archives (and trip over its own half-written staging file). targetDir is listed too for the
+    /// case where the backup folder IS the save folder. When the save folder IS this game's archive
+    /// folder, its earlier archives and the open staging file sit at the walk root, where folder
+    /// exclusions never reach, so root-level own archive names are skipped instead
+    /// (<c>skipRootArchives</c>); no folder exclusion applies there, because this app never writes
+    /// subfolders into an archive folder and the prune-every-subfolder rule would drop real saves.
+    /// </remarks>
+    private static (string[] ExcludedDirs, bool SkipRootArchives) ArchiveWalkRules(
+        string saveDir, string backupRoot, string targetDir)
+    {
+        var skipRootArchives = PathCompare.IsSameOrInside(saveDir, targetDir)
+                               && PathCompare.IsSameOrInside(targetDir, saveDir);
+        return skipRootArchives
+            ? ([], true)
+            : ([PathCompare.Normalize(backupRoot), PathCompare.Normalize(targetDir)], false);
     }
 
     /// <summary>
@@ -878,13 +888,15 @@ public sealed class BackupService
     /// <summary>
     /// Sums <paramref name="game"/>'s save directory via the same <see cref="EnumerateRelativeFiles"/>
     /// walk <see cref="ArchiveSaveDir"/> archives from, so this number never disagrees with what
-    /// gets archived. Passes no excluded directories: as a display-only denominator it may
-    /// over-count when the backup folder sits inside the save folder, or when the save folder is
-    /// the game's own archive folder (its earlier archives are counted), which only makes the
-    /// archive smaller than this figure, never larger. Never throws across the service boundary, because its
+    /// gets archived, with the same exclusions when <c>backupRoot</c> is given. Never throws across the service boundary, because its
     /// only consumers are advisory displays where a failure must be an absent number, not an error.
     /// </summary>
-    public long ComputeSaveDataSize(Game game)
+    /// <param name="backupRoot">
+    /// The configured backup folder, when known: the size then follows the archive walk's own
+    /// exclusions (<see cref="ArchiveWalkRules"/>), so earlier archives inside the save folder are
+    /// not counted. Without it nothing is excluded, which can only over-count.
+    /// </param>
+    public long ComputeSaveDataSize(Game game, string? backupRoot = null)
     {
         try
         {
@@ -892,7 +904,11 @@ public sealed class BackupService
                 return 0;
             if (!Directory.Exists(saveDir))
                 return 0;
-            return EnumerateRelativeFiles(saveDir).Values.Sum();
+            if (string.IsNullOrWhiteSpace(backupRoot))
+                return EnumerateRelativeFiles(saveDir).Values.Sum();
+
+            var (excludedDirs, skipRootArchives) = ArchiveWalkRules(saveDir, backupRoot, Path.Combine(backupRoot, game.Id));
+            return EnumerateRelativeFiles(saveDir, excludedDirs, skipRootArchives: skipRootArchives).Values.Sum();
         }
         catch
         {

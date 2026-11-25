@@ -98,6 +98,11 @@ internal static class DirectoryWalk
                 {
                     onFile(info);
                 }
+                catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+                {
+                    // Deleted since it was listed: nothing is lost by leaving it out, so it is not
+                    // reported as unreadable (which would, for one, make restore refuse).
+                }
                 catch (Exception ex) when (FileSystemFault.Is(ex))
                 {
                     Skip(f);

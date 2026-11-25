@@ -145,7 +145,7 @@ internal sealed class StatusSweepCoordinator
             // changes, the common case) must have its save folder walked only once.
             var sizeByGame = new Dictionary<Game, long>();
             long SizeOf(Game game) =>
-                sizeByGame.TryGetValue(game, out var size) ? size : sizeByGame[game] = _backup.ComputeSaveDataSize(game);
+                sizeByGame.TryGetValue(game, out var size) ? size : sizeByGame[game] = _backup.ComputeSaveDataSize(game, hasRoot ? root : null);
 
             string? selected = selectedGames.Count == 0
                 ? null

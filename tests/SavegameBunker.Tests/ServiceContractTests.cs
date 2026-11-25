@@ -196,7 +196,7 @@ public sealed class ServiceContractTests : IDisposable
                     Assert.Null(archivePath);
                 },
             ],
-            ["BackupService.ComputeSaveDataSize(Game)"] =
+            ["BackupService.ComputeSaveDataSize(Game, String)"] =
             [
                 () => _ = _service.ComputeSaveDataSize(GameWithTemplate("%NOT_A_REAL_VARIABLE%/saves")),
             ],

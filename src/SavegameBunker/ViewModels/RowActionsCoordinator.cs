@@ -81,7 +81,7 @@ internal sealed class RowActionsCoordinator
                 // Set before the write starts so the determinate-vs-indeterminate decision
                 // is already made by the time ArchiveSaveDir writes its first byte. Run off the UI
                 // thread — it is a directory walk.
-                row.BackupBytesTotal = await Task.Run(() => _backup.ComputeSaveDataSize(row.Game));
+                row.BackupBytesTotal = await Task.Run(() => _backup.ComputeSaveDataSize(row.Game, root));
                 row.BackupBytesWritten = 0;
 
                 var result = await _gameActions.BackupAsync(row, root, progress);

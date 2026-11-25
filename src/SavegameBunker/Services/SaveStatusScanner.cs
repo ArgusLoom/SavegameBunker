@@ -76,7 +76,14 @@ public static class SaveStatusScanner
                 totalBytes += length;
                 if (newest is null || lastWrite > newest)
                     newest = lastWrite;
-            }, excludedDirs, onSkipped: skipped.Add);
+            }, excludedDirs, onSkipped: skipped.Add,
+                // A subfolder pruned only because the save folder IS the backup folder may hold
+                // real saves that no backup captures; it must surface, never vanish into "No saves".
+                onExcluded: (path, isBackupFolder) =>
+                {
+                    if (!isBackupFolder)
+                        skipped.Add(path);
+                });
 
             if (fileCount == 0)
                 return skipped.Count == 0 ? SaveStatus.NoSaves() : SaveStatus.NoSaves() with { SkippedPaths = skipped };

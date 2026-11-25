@@ -30,11 +30,14 @@ public sealed record BackupArchive(string FilePath, DateTime TakenAt, long SizeB
         get
         {
             var name = Path.GetFileNameWithoutExtension(FilePath);
-            var lastDash = name.LastIndexOf('-');
-            if (lastDash >= 0 && int.TryParse(name[(lastDash + 1)..], out _))
-                name = name[..lastDash];
-
-            return name.EndsWith("-pre-restore", StringComparison.Ordinal);
+            // The collision suffix is stripped only on the exact shape the app writes, so a
+            // hand-renamed "before-pre-restore-2024" stays an ordinary archive.
+            return name.EndsWith("-pre-restore", StringComparison.Ordinal)
+                || SafetyWithCollisionSuffix.IsMatch(name);
         }
     }
+
+    private static readonly System.Text.RegularExpressions.Regex SafetyWithCollisionSuffix = new(
+        @"^\d{4}-\d{2}-\d{2}_\d{6}-pre-restore-\d+$",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 }

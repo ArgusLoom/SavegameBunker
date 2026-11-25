@@ -1442,6 +1442,35 @@ public sealed class BackupServiceTests : IDisposable
         Assert.Equal(1, status.FileCount);
     }
 
+    // The size behind the progress bar and the space advisory follows the archive walk's own
+    // exclusions: earlier archives in a backup folder inside the save folder are not counted.
+    [Fact]
+    public void ComputeSaveDataSize_with_the_backup_root_counts_only_what_gets_archived()
+    {
+        var game = TestGames.WithSaveFile(_dir);
+        var backupRoot = Path.Combine(_dir, "saves", "backups");
+        var before = _service.ComputeSaveDataSize(game, backupRoot);
+        Assert.True(_service.Backup(game, backupRoot).Success);
+
+        Assert.Equal(before, _service.ComputeSaveDataSize(game, backupRoot));
+        Assert.True(_service.ComputeSaveDataSize(game) > before);
+    }
+
+    // A save folder that IS the backup folder with saves only in subfolders: the status scan must
+    // surface those subfolders (as skipped) rather than report "no saves" with nothing to act on.
+    [Fact]
+    public void The_status_scan_surfaces_subfolders_pruned_because_the_save_folder_is_the_backup_folder()
+    {
+        var saveDir = Path.Combine(_dir, "eq-scan");
+        Directory.CreateDirectory(Path.Combine(saveDir, "slot1"));
+        File.WriteAllText(Path.Combine(saveDir, "slot1", "a.sav"), "payload");
+        var game = new Game { Id = "eq-scan", DisplayName = "Eq Scan", SaveDirTemplate = saveDir.Replace('\\', '/') };
+
+        var status = SaveStatusScanner.Scan(game, saveDir);
+
+        Assert.Contains("slot1", status.SkippedPaths);
+    }
+
     // A timestamp-prefixed .zip.tmp that is not the exact legacy staging shape is a game's own
     // file in an archive-folder save folder: archived, never swept.
     [Fact]

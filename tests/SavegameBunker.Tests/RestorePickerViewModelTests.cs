@@ -80,7 +80,7 @@ public sealed class RestorePickerViewModelTests
     [Fact]
     public void An_ordinary_archives_file_name_reports_it_is_not_a_safety_backup()
     {
-        var archive = Archive("2026-07-04-090500.zip", new DateTime(2026, 7, 4));
+        var archive = Archive("2026-07-04_090500.zip", new DateTime(2026, 7, 4));
         var vm = new RestorePickerViewModel("Test Game", [archive]);
 
         Assert.False(Assert.Single(vm.Rows).IsSafetyBackup);
@@ -89,7 +89,7 @@ public sealed class RestorePickerViewModelTests
     [Fact]
     public void A_pre_restore_suffixed_archives_file_name_reports_it_is_a_safety_backup()
     {
-        var archive = Archive("2026-07-04-090500-pre-restore.zip", new DateTime(2026, 7, 4));
+        var archive = Archive("2026-07-04_090500-pre-restore.zip", new DateTime(2026, 7, 4));
         var vm = new RestorePickerViewModel("Test Game", [archive]);
 
         Assert.True(Assert.Single(vm.Rows).IsSafetyBackup);
@@ -100,10 +100,19 @@ public sealed class RestorePickerViewModelTests
     {
         // BackupService's same-second rename ladder appends "-1", "-2", ... on a collision, so a
         // second pre-restore safety backup taken in the same second is named "...-pre-restore-1".
-        var archive = Archive("2026-07-04-090500-pre-restore-1.zip", new DateTime(2026, 7, 4));
+        var archive = Archive("2026-07-04_090500-pre-restore-1.zip", new DateTime(2026, 7, 4));
         var vm = new RestorePickerViewModel("Test Game", [archive]);
 
         Assert.True(Assert.Single(vm.Rows).IsSafetyBackup);
+    }
+
+    [Fact]
+    public void A_hand_renamed_archive_ending_in_pre_restore_and_digits_is_not_a_safety_backup()
+    {
+        var archive = Archive("before-pre-restore-2024.zip", new DateTime(2026, 7, 4));
+        var vm = new RestorePickerViewModel("Test Game", [archive]);
+
+        Assert.False(Assert.Single(vm.Rows).IsSafetyBackup);
     }
 
     [Fact]
@@ -112,7 +121,7 @@ public sealed class RestorePickerViewModelTests
         // The timestamp itself is dash-separated, so the suffix-stripping must not mistake the
         // "-1" collision suffix check for stripping into the "yyyy-MM-dd" portion of a bare,
         // collision-suffixed ordinary backup's name.
-        var archive = Archive("2026-07-04-090500-1.zip", new DateTime(2026, 7, 4));
+        var archive = Archive("2026-07-04_090500-1.zip", new DateTime(2026, 7, 4));
         var vm = new RestorePickerViewModel("Test Game", [archive]);
 
         Assert.False(Assert.Single(vm.Rows).IsSafetyBackup);

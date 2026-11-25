@@ -114,7 +114,7 @@ internal sealed class BulkBackupCoordinator
 
                     // Set before this row's write starts, same as the per-row BackupAsync command —
                     // the determinate-vs-indeterminate decision is made before the first byte.
-                    var size = _backup.ComputeSaveDataSize(row.Game);
+                    var size = _backup.ComputeSaveDataSize(row.Game, backupRoot);
                     _onUi(() =>
                     {
                         row.BackupBytesTotal = size;
