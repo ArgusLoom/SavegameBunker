@@ -61,12 +61,15 @@ public static class SaveStatusScanner
             if (!string.IsNullOrWhiteSpace(backupRoot))
                 (excludedDirs, skipOwnArchives) = BackupService.ArchiveWalkRules(dir, backupRoot, Path.Combine(backupRoot, game.Id));
 
+            // Normalized once, not per file: this callback runs for every file in the tree.
+            var rootKey = Path.TrimEndingDirectorySeparator(Path.GetFullPath(dir));
+
             DirectoryWalk.ForEachFile(dir, info =>
             {
                 if (skipOwnArchives
-                    && PathCompare.IsSameOrInside(dir, info.DirectoryName ?? "")
-                    && PathCompare.IsSameOrInside(info.DirectoryName ?? "", dir)
-                    && BackupService.IsOwnArchiveFileName(info.Name))
+                    && BackupService.IsOwnArchiveFileName(info.Name)
+                    && string.Equals(Path.TrimEndingDirectorySeparator(info.DirectoryName ?? ""), rootKey,
+                        StringComparison.OrdinalIgnoreCase))
                     return;
 
                 // Read first: a file deleted since it was listed throws here and the walk leaves it

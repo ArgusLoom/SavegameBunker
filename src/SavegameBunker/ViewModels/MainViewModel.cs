@@ -1603,7 +1603,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         string? root;
         try
         {
-            root = await EnsureBackupRootAsync();
+            root = await EnsureBackupRootAsync(alsoSkip: targets);
         }
         finally
         {
@@ -1728,7 +1728,12 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// when the user cancelled, which sets a visible <see cref="StatusMessage"/>, or when
     /// <see cref="CatalogSession.SetBackupRootAsync"/> failed, which this method reports itself.
     /// </summary>
-    private async Task<string?> EnsureBackupRootAsync()
+    /// <param name="alsoSkip">
+    /// Rows the caller is about to back up itself (a bulk run's targets, not yet marked busy):
+    /// left out of the re-check that follows a newly chosen folder, since the backup's own
+    /// closing rescan settles them and a sweep now would only walk their folders twice.
+    /// </param>
+    private async Task<string?> EnsureBackupRootAsync(IReadOnlyCollection<GameRowViewModel>? alsoSkip = null)
     {
         if (_session.TryGetConfiguredBackupRoot(out var existing))
         {
@@ -1767,7 +1772,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         // write are left to that backup's own closing rescan; the sweep tokens keep an overlap
         // harmless anyway.
         ScheduleSpaceAdvisoryRecompute();
-        var others = Games.Where(row => !row.IsBusy).ToList();
+        var others = Games.Where(row => !row.IsBusy && alsoSkip?.Contains(row) != true).ToList();
         if (others.Count > 0)
             StartStatusScan(only: others);
 

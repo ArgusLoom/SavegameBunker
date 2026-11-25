@@ -33,6 +33,7 @@ public sealed record BackupArchive(string FilePath, DateTime TakenAt, long SizeB
             // The collision suffix is stripped only on the exact shape the app writes, so a
             // hand-renamed "before-pre-restore-2024" stays an ordinary archive.
             return name.EndsWith("-pre-restore", StringComparison.Ordinal)
+                || name.EndsWith("-pre-restore-partial", StringComparison.Ordinal)
                 || SafetyWithCollisionSuffix.IsMatch(name);
         }
     }
@@ -57,6 +58,6 @@ public sealed record BackupArchive(string FilePath, DateTime TakenAt, long SizeB
         System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
     private static readonly System.Text.RegularExpressions.Regex SafetyWithCollisionSuffix = new(
-        @"^\d{4}-\d{2}-\d{2}_\d{6}-pre-restore-\d+$",
+        @"^\d{4}-\d{2}-\d{2}_\d{6}-pre-restore(-partial)?-\d+$",
         System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 }

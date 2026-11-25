@@ -30,10 +30,8 @@ public static class BackupComparer
         if (!backupRootReachable)
             return BackupComparison.FolderNotAvailable();
 
-        // Only complete archives count: a -partial one is missing files, so it never makes a game
-        // "up to date". ListBackups already guarantees newest-first; the filter keeps that order,
-        // and reading the first complete one is the only ordering rule this method needs.
-        backups = backups.Where(archive => !archive.IsPartial).ToList();
+        // ListBackups already guarantees newest-first; reading position 0 is the only
+        // ordering rule this method needs — re-sorting here would be a second, drifting rule.
         var newestTakenAt = backups.Count > 0 ? backups[0].TakenAt : (DateTime?)null;
 
         if (saveStatus.Kind == SaveStatusKind.Checking)
@@ -55,9 +53,15 @@ public static class BackupComparer
         if (restoredArchiveTakenAt is { } restoredAt && restoredAt != newestTakenAt!.Value)
             return BackupComparison.SavesChangedSinceBackup(newestTakenAt.Value, newestTakenAt.Value - restoredAt);
 
-        // At-or-after counts as up to date.
-        return newestTakenAt!.Value >= lastModified
-            ? BackupComparison.UpToDate(newestTakenAt.Value)
-            : BackupComparison.SavesChangedSinceBackup(newestTakenAt.Value, lastModified - newestTakenAt.Value);
+        // At-or-after counts as up to date — but only for a complete archive: a -partial one is
+        // missing files, so it never makes a game "up to date". The row still names the newest
+        // archive of either kind, which is what the restore picker lists first.
+        var newestComplete = backups.FirstOrDefault(archive => !archive.IsPartial)?.TakenAt;
+        if (newestComplete is { } complete && complete >= lastModified)
+            return BackupComparison.UpToDate(complete);
+
+        var since = newestComplete ?? newestTakenAt!.Value;
+        var elapsed = lastModified - since;
+        return BackupComparison.SavesChangedSinceBackup(since, elapsed < TimeSpan.Zero ? TimeSpan.Zero : elapsed);
     }
 }

@@ -51,8 +51,29 @@ public sealed class BackupComparerTests
 
         Assert.Equal(BackupComparisonKind.SavesChangedSinceBackup,
             BackupComparer.Compare(saveStatus, true, [partial, older]).Kind);
-        Assert.Equal(BackupComparisonKind.NeverBackedUp,
-            BackupComparer.Compare(saveStatus, true, [partial]).Kind);
+
+        // Only partial archives: still "changed", never "never backed up", and the row names it.
+        var onlyPartial = BackupComparer.Compare(saveStatus, true, [partial]);
+        Assert.Equal(BackupComparisonKind.SavesChangedSinceBackup, onlyPartial.Kind);
+        Assert.Equal(partial.TakenAt, onlyPartial.NewestBackupTakenAt);
+    }
+
+    /// <summary>
+    /// Restoring a -partial archive newer than every complete one must not yield a negative
+    /// "changed since backup" duration.
+    /// </summary>
+    [Fact]
+    public void After_restoring_a_partial_archive_the_elapsed_time_is_never_negative()
+    {
+        var partialAt = new DateTime(2026, 11, 10);
+        var saveStatus = SaveStatus.Found(1, 10, partialAt.AddMinutes(-1), oversized: false);
+        var partial = Archive(partialAt, "2026-11-10_000000-partial.zip");
+        var complete = Archive(new DateTime(2026, 11, 1), "2026-11-01_000000.zip");
+
+        var comparison = BackupComparer.Compare(saveStatus, true, [partial, complete], restoredArchiveTakenAt: partialAt);
+
+        Assert.Equal(BackupComparisonKind.SavesChangedSinceBackup, comparison.Kind);
+        Assert.True(comparison.Elapsed >= TimeSpan.Zero);
     }
 
     [Fact]
