@@ -47,6 +47,14 @@ public sealed record SaveStatus(
     /// </summary>
     public IReadOnlyList<string> SkippedPaths { get; init; } = [];
 
+    /// <summary>
+    /// Subfolders left out on purpose because the save folder is itself the backup folder (where
+    /// other games' archive folders cannot be told apart from save data) — the same folders
+    /// BackupService names as "NOT in this backup". Kept apart from <see cref="SkippedPaths"/>
+    /// because nothing is unreadable about them.
+    /// </summary>
+    public IReadOnlyList<string> LeftOutPaths { get; init; } = [];
+
     public static SaveStatus Checking() =>
         new(SaveStatusKind.Checking, 0, 0, null, false, null);
 

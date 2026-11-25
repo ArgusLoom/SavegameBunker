@@ -52,9 +52,11 @@ internal static class DirectoryWalk
         string rootDir, Action<FileInfo> onFile, IReadOnlyCollection<string>? excludedDirs = null,
         Action<string>? onSkipped = null, Action<string, bool>? onExcluded = null)
     {
-        void Skip(string path) => onSkipped?.Invoke(Path.GetRelativePath(rootDir, path));
-        void Exclude(string path, bool isBackupFolder) =>
-            onExcluded?.Invoke(Path.GetRelativePath(rootDir, path), isBackupFolder);
+        // Forward slashes, the form archive entry names and BackupService's relative keys use, so a
+        // nested skipped path matches those keys (verification removes skipped subtrees by prefix).
+        string Relative(string path) => Path.GetRelativePath(rootDir, path).Replace(Path.DirectorySeparatorChar, '/');
+        void Skip(string path) => onSkipped?.Invoke(Relative(path));
+        void Exclude(string path, bool isBackupFolder) => onExcluded?.Invoke(Relative(path), isBackupFolder);
 
         // Excluded folders that are the walk root itself or lie inside it. Only these can ever
         // justify pruning a subfolder for lying *inside* an exclusion: a save folder that merely

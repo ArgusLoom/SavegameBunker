@@ -168,7 +168,7 @@ public sealed class BackupService
                         : leftOut.Count > 0
                             ? $"Backup failed for {game.DisplayName}: {saveDir} holds nothing but the backup folder, so there is nothing to back up."
                             : skipRootArchives
-                                ? $"Backup failed for {game.DisplayName}: {saveDir} holds nothing but earlier backups of this game, so there is nothing to back up."
+                                ? $"Backup failed for {game.DisplayName}: {saveDir} holds nothing but backups made by this app, so there is nothing to back up."
                                 : $"Save folder is empty: {saveDir}");
             }
 
@@ -291,14 +291,20 @@ public sealed class BackupService
     /// (<c>skipRootArchives</c>); no folder exclusion applies there, because this app never writes
     /// subfolders into an archive folder and the prune-every-subfolder rule would drop real saves.
     /// </remarks>
-    private static (string[] ExcludedDirs, bool SkipRootArchives) ArchiveWalkRules(
+    internal static (string[] ExcludedDirs, bool SkipRootArchives) ArchiveWalkRules(
         string saveDir, string backupRoot, string targetDir)
     {
-        var skipRootArchives = PathCompare.IsSameOrInside(saveDir, targetDir)
-                               && PathCompare.IsSameOrInside(targetDir, saveDir);
-        return skipRootArchives
-            ? ([], true)
-            : ([PathCompare.Normalize(backupRoot), PathCompare.Normalize(targetDir)], false);
+        if (PathCompare.IsSameOrInside(saveDir, targetDir) && PathCompare.IsSameOrInside(targetDir, saveDir))
+            return ([], true);
+
+        // A save folder directly in the backup root sits where some game's archive folder lives
+        // (<backupRoot>/<otherId>), so archives this app wrote may be at its root: they are not
+        // this game's save data either. Only the app's exact names are skipped.
+        var parent = Path.GetDirectoryName(PathCompare.Normalize(saveDir));
+        var inArchiveFolderSlot = parent is not null
+                                  && PathCompare.IsSameOrInside(parent, backupRoot)
+                                  && PathCompare.IsSameOrInside(backupRoot, parent);
+        return ([PathCompare.Normalize(backupRoot), PathCompare.Normalize(targetDir)], inArchiveFolderSlot);
     }
 
     /// <summary>
@@ -702,6 +708,12 @@ public sealed class BackupService
         {
             return $"the archive could not be read back ({ex.Message})";
         }
+        catch (Exception ex) when (FileSystemFault.Is(ex))
+        {
+            // Held open by another process (an antivirus scan, say): a detail string, never an
+            // exception — Restore relies on this to clean up its extracted temp copy.
+            return $"the archive could not be opened ({ex.Message})";
+        }
 
         if (archiveFiles.Count != sourceFiles.Count)
             return $"archive has {archiveFiles.Count} entries, the save folder has {sourceFiles.Count}";
@@ -827,6 +839,13 @@ public sealed class BackupService
             try
             {
                 source = File.OpenRead(fullPath);
+            }
+            catch (Exception ex) when (ex is FileNotFoundException or DirectoryNotFoundException)
+            {
+                // Deleted since the walk listed it: nothing is lost, so it is not reported as
+                // unreadable (that would, for one, make restore refuse its safety backup). The
+                // verification walk no longer sees it either.
+                continue;
             }
             catch (Exception ex) when (FileSystemFault.Is(ex))
             {

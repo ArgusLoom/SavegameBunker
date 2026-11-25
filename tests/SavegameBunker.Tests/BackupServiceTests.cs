@@ -1468,7 +1468,28 @@ public sealed class BackupServiceTests : IDisposable
 
         var status = SaveStatusScanner.Scan(game, saveDir);
 
-        Assert.Contains("slot1", status.SkippedPaths);
+        Assert.Contains("slot1", status.LeftOutPaths);
+        Assert.Empty(status.SkippedPaths);
+    }
+
+    // A save folder sitting where another game's archive folder lives (<backupRoot>/<otherId>):
+    // that game's archives are not this game's save data, so they are never packed or counted.
+    [Fact]
+    public void A_save_folder_that_is_another_games_archive_folder_never_packs_its_archives()
+    {
+        var backupRoot = Path.Combine(_dir, "bunker6");
+        var otherArchiveDir = Path.Combine(backupRoot, "other");
+        Directory.CreateDirectory(otherArchiveDir);
+        File.WriteAllText(Path.Combine(otherArchiveDir, "2026-01-01_120000.zip"), "other game's archive");
+        File.WriteAllText(Path.Combine(otherArchiveDir, "a.dat"), "payload");
+        var game = new Game { Id = "mine", DisplayName = "Mine", SaveDirTemplate = otherArchiveDir.Replace('\\', '/') };
+
+        var result = _service.Backup(game, backupRoot, "", out var archivePath);
+
+        Assert.True(result.Success, result.Message);
+        using var zip = ZipFile.OpenRead(archivePath!);
+        Assert.Equal("a.dat", Assert.Single(zip.Entries).FullName);
+        Assert.Equal(1, SaveStatusScanner.Scan(game, backupRoot).FileCount);
     }
 
     // A timestamp-prefixed .zip.tmp that is not the exact legacy staging shape is a game's own
@@ -1505,7 +1526,7 @@ public sealed class BackupServiceTests : IDisposable
         var result = _service.Backup(game, backupRoot);
 
         Assert.False(result.Success);
-        Assert.Contains("nothing but earlier backups of this game", result.Message, StringComparison.Ordinal);
+        Assert.Contains("nothing but backups made by this app", result.Message, StringComparison.Ordinal);
     }
 
     // A save subfolder that merely CONTAINS the backup folder is walked, not pruned whole: save
@@ -1525,6 +1546,6 @@ public sealed class BackupServiceTests : IDisposable
         Assert.True(second.Success, second.Message);
         using var zip = ZipFile.OpenRead(secondPath!);
         Assert.Equal("data/slot.sav", Assert.Single(zip.Entries).FullName);
-        Assert.Contains($"Left out: {Path.Combine("data", "Backups")} (backup folder).", second.Message, StringComparison.Ordinal);
+        Assert.Contains("Left out: data/Backups (backup folder).", second.Message, StringComparison.Ordinal);
     }
 }

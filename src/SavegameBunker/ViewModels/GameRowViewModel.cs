@@ -220,6 +220,12 @@ public sealed partial class GameRowViewModel : CommunityToolkitObservableObject
             StatusText = Strings.Format(
                 "str_game_unreadablePaths", status.SkippedPaths.Count, DirectoryWalk.FormatSkippedList(status.SkippedPaths));
         }
+        else if (status.Kind is (SaveStatusKind.NoSaves or SaveStatusKind.Found) && status.LeftOutPaths.Count > 0)
+        {
+            GameSeverity = RowSeverity.Warning;
+            StatusText = Strings.Format(
+                "str_game_leftOutSubfolders", status.LeftOutPaths.Count, DirectoryWalk.FormatSkippedList(status.LeftOutPaths));
+        }
     }
 
     /// <summary>

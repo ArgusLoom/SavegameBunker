@@ -28,10 +28,10 @@ public static class SaveStatusScanner
         files > OversizedFiles || bytes > OversizedBytes;
 
     /// <param name="backupRoot">
-    /// The configured backup folder, when known. When the save folder IS the game's archive folder
-    /// (<see cref="BackupService.IsSaveFolderTheArchiveFolder"/>), the archives this app writes at
-    /// its root are not save data and are left out — otherwise every fresh archive would read as
-    /// "saves changed since backup", exactly as the backup walk leaves them out.
+    /// The configured backup folder, when known: the scan then applies the backup walk's own
+    /// exclusions (<see cref="BackupService.ArchiveWalkRules"/>), so archives this app wrote are
+    /// never counted as save data — otherwise every fresh archive would read as "saves changed
+    /// since backup".
     /// </param>
     public static SaveStatus Scan(Game game, string? backupRoot = null)
     {
@@ -51,14 +51,15 @@ public static class SaveStatusScanner
             // complete while a path it could not read is missing from it.
             var skipped = new List<string>();
 
-            var skipOwnArchives = backupRoot is not null && BackupService.IsSaveFolderTheArchiveFolder(game, backupRoot);
+            var leftOut = new List<string>();
 
-            // The same folder exclusions the backup walk applies, so a backup folder inside the save
-            // folder is never counted as save data (its fresh archives would otherwise read as
-            // "saves changed since backup" forever). None in the archive-folder layout, as there.
-            IReadOnlyCollection<string>? excludedDirs = backupRoot is null || skipOwnArchives
-                ? null
-                : [PathCompare.Normalize(backupRoot), PathCompare.Normalize(Path.Combine(backupRoot, game.Id))];
+            // The backup walk's own rules (BackupService.ArchiveWalkRules), so a backup folder
+            // inside the save folder and this app's archives at its root are never counted as save
+            // data — their fresh archives would otherwise read as "saves changed since backup".
+            IReadOnlyCollection<string>? excludedDirs = null;
+            var skipOwnArchives = false;
+            if (!string.IsNullOrWhiteSpace(backupRoot))
+                (excludedDirs, skipOwnArchives) = BackupService.ArchiveWalkRules(dir, backupRoot, Path.Combine(backupRoot, game.Id));
 
             DirectoryWalk.ForEachFile(dir, info =>
             {
@@ -68,8 +69,8 @@ public static class SaveStatusScanner
                     && BackupService.IsOwnArchiveFileName(info.Name))
                     return;
 
-                // Read first: a file deleted since it was listed throws here, and the walk then
-                // reports it as skipped — it must not have been counted already.
+                // Read first: a file deleted since it was listed throws here and the walk leaves it
+                // out silently — it must not have been counted already.
                 var length = info.Length;
                 var lastWrite = info.LastWriteTime;
                 fileCount++;
@@ -82,14 +83,17 @@ public static class SaveStatusScanner
                 onExcluded: (path, isBackupFolder) =>
                 {
                     if (!isBackupFolder)
-                        skipped.Add(path);
+                        leftOut.Add(path);
                 });
 
-            if (fileCount == 0)
-                return skipped.Count == 0 ? SaveStatus.NoSaves() : SaveStatus.NoSaves() with { SkippedPaths = skipped };
-
-            var found = SaveStatus.Found(fileCount, totalBytes, newest, IsOversized(fileCount, totalBytes));
-            return skipped.Count == 0 ? found : found with { SkippedPaths = skipped };
+            var status = fileCount == 0
+                ? SaveStatus.NoSaves()
+                : SaveStatus.Found(fileCount, totalBytes, newest, IsOversized(fileCount, totalBytes));
+            if (skipped.Count > 0)
+                status = status with { SkippedPaths = skipped };
+            if (leftOut.Count > 0)
+                status = status with { LeftOutPaths = leftOut };
+            return status;
         }
         catch (Exception ex)
         {
