@@ -43,7 +43,7 @@ created: "2026-11-18"
 | T-01-09 | Information Disclosure | Game cell skipped-path sentence | low | accept | Relative paths of the user's own save folder shown to the same local user; Backup's message already shows the same paths | closed (accepted) |
 | T-01-10 | Tampering | SaveStatusScanner | low | mitigate | Scan stays read-only; the change only adds a collecting delegate — no file opened/created/moved/removed | closed |
 | T-01-11 | Denial of Service | RowActionsCoordinator per-row release | medium | mitigate | IsBusy raised before the first await, released in `finally` (moved verbatim); cancelled-root and failed-write facts prove balanced counters | closed |
-| T-01-12 | Tampering | Restore path (destructive) | high | mitigate | RowActionsCoordinator only calls GameActions.RestoreAsync; `git diff --quiet phase1-baseline -- src/SavegameBunker/Services/RestoreService.cs` exits 0 — restore order byte-identical | closed |
+| T-01-12 | Tampering | Restore path (destructive) | high | mitigate | RowActionsCoordinator only calls GameActions.RestoreAsync; `git diff --quiet phase1-baseline -- src/SavegameBunker/Services/RestoreService.cs` exited 0 at phase close; re-audit 2026-11-25: file since changed by Phase 2 / review passes, order re-checked (safety backup → extract to temp sibling → move old aside → rename in) and pinned by RestoreServiceTests (`A_restore_reports_its_three_steps_in_order_and_exactly_once_each`, safety-backup-abort facts), 772/772 green | closed |
 | T-01-13 | Elevation of Privilege | IRowActionHost on a public type | low | mitigate | MainViewModel implements the internal interface explicitly (9 explicit members, no public member added); GameRowViewModel/IDialogService diff gates hold | closed |
 | T-01-SC | Tampering | NuGet installs | high | mitigate | Zero packages added in the whole phase: shipping csproj = 2 `<PackageReference>`, test csproj = 3 (xUnit); no DI container type anywhere in `src` | closed |
 
@@ -78,3 +78,11 @@ created: "2026-11-18"
 - [x] `status: verified` set in frontmatter
 
 **Approval:** verified 2026-11-18 — secure-phase audit; 14/14 closed (12 mitigated + verified, 2 accepted risks), no blocking threat open.
+
+## Security Audit 2026-11-25
+
+| Metric | Count |
+|---|---|
+| Threats found | 14 |
+| Closed | 14 |
+| Open | 0 |

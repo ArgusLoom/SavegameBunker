@@ -40,7 +40,7 @@ created: "2026-11-17"
 
 | Task ID | Plan | Wave | Requirement | Threat Ref | Secure Behavior | Test Type | Automated Command | File Exists | Status |
 |---------|------|------|-------------|------------|-----------------|-----------|-------------------|-------------|--------|
-| 01-01-T1/T2 | 01 | 1 | REF-01 | — | Full suite passes unchanged after the baseline pin | regression | `dotnet test SavegameBunker.sln` | ✅ | ✅ green (689/689, Windows + CI 44198312249) |
+| 01-01-T1/T2 | 01 | 1 | REF-01 | — | Full suite passes unchanged after the baseline pin | regression | `dotnet test SavegameBunker.sln` | ✅ | ✅ green (689/689, Windows + CI 44198312249; re-run 2026-11-25: 772/772) |
 | 01-02-T1 | 02 | 2 | REF-02 | — | `BulkRunRules` is the single unsecured-verdict definition; 3 sealed coordinators extracted | structural + unit | `wc -l src/SavegameBunker/ViewModels/MainViewModel.cs` (1,556/761 code-only, owner-accepted ceiling) + `dotnet test --filter "FullyQualifiedName~BulkRunRulesTests"` | ✅ | ✅ green |
 | 01-02-T2 | 02 | 2 | REF-05 | — | Every public Services entry point returns failure/warning, never throws | contract | `dotnet test --filter "FullyQualifiedName~ServiceContract"` | ✅ | ✅ green (first real run found the DialogService exemption drift — fixed in 27e47d1) |
 | 01-03-T1/T2 | 03 | 3 | REF-03 | — | Claim/release order and `IsAnyRowChecking` guard preserved across the bulk split | unit | `dotnet test --filter "FullyQualifiedName~BulkBackupCoordinatorTests\|FullyQualifiedName~MainViewModelGuardPinTests"` | ✅ | ✅ green (9 coordinator facts + pins) |
