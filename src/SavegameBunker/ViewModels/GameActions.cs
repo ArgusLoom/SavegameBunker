@@ -76,7 +76,7 @@ internal sealed class GameActions
                 return (false, (IReadOnlyList<BackupArchive>)[]);
             }
 
-            var ok = _backup.TryListBackups(configuredBackupRoot, row.Game.Id, out var found);
+            var ok = _backup.TryListBackups(configuredBackupRoot, row.Game, out var found);
             return (ok, found);
         });
 
@@ -108,7 +108,7 @@ internal sealed class GameActions
         // cancelled pick: this method has no error channel of its own, and the gap is rare enough
         // that reusing the existing null-means-nothing-happened contract beats widening the
         // signature for it.
-        var listable = await Task.Run(() => _backup.TryListBackups(backupRoot, row.Game.Id, out var found) ? found : null);
+        var listable = await Task.Run(() => _backup.TryListBackups(backupRoot, row.Game, out var found) ? found : null);
         if (listable is null)
             return null;
 
@@ -116,7 +116,7 @@ internal sealed class GameActions
         if (picked is null)
             return null;
 
-        var status = await Task.Run(() => SaveStatusScanner.Scan(row.Game));
+        var status = await Task.Run(() => SaveStatusScanner.Scan(row.Game, backupRoot));
         return new RestorePlan(picked, status, backupRoot);
     }
 
@@ -129,8 +129,8 @@ internal sealed class GameActions
     {
         var (listable, backups, status) = await Task.Run(() =>
         {
-            var ok = _backup.TryListBackups(backupRoot, row.Game.Id, out var found);
-            return (ok, found, SaveStatusScanner.Scan(row.Game));
+            var ok = _backup.TryListBackups(backupRoot, row.Game, out var found);
+            return (ok, found, SaveStatusScanner.Scan(row.Game, backupRoot));
         });
 
         if (!listable)

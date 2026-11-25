@@ -91,7 +91,7 @@ internal sealed class StatusSweepCoordinator
                 // raise PropertyChanged, and what hangs off those bindings has WPF thread
                 // affinity — applying them from a worker threw "The calling thread cannot
                 // access this object because a different thread owns it" on a plain Refresh.
-                var status = await Task.Run(() => SaveStatusScanner.Scan(row.Game));
+                var status = await Task.Run(() => SaveStatusScanner.Scan(row.Game, hasRoot ? root : null));
                 // A newer scan of this row (a backup/restore's own post-outcome rescan, say) may
                 // already have moved it past "Checking" by the time this one's result comes
                 // back — applying it here would stomp the newer, more current verdict with a
@@ -112,7 +112,7 @@ internal sealed class StatusSweepCoordinator
                 {
                     (rowReachable, backups) = await Task.Run(() =>
                     {
-                        var listable = _backup.TryListBackups(root, row.Game.Id, out var found);
+                        var listable = _backup.TryListBackups(root, row.Game, out var found);
                         return (listable, found);
                     });
                 }

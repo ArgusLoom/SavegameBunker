@@ -27,7 +27,13 @@ public static class SaveStatusScanner
     internal static bool IsOversized(long files, long bytes) =>
         files > OversizedFiles || bytes > OversizedBytes;
 
-    public static SaveStatus Scan(Game game)
+    /// <param name="backupRoot">
+    /// The configured backup folder, when known. When the save folder IS the game's archive folder
+    /// (<see cref="BackupService.IsSaveFolderTheArchiveFolder"/>), the archives this app writes at
+    /// its root are not save data and are left out — otherwise every fresh archive would read as
+    /// "saves changed since backup", exactly as the backup walk leaves them out.
+    /// </param>
+    public static SaveStatus Scan(Game game, string? backupRoot = null)
     {
         try
         {
@@ -45,8 +51,16 @@ public static class SaveStatusScanner
             // complete while a path it could not read is missing from it.
             var skipped = new List<string>();
 
+            var skipOwnArchives = backupRoot is not null && BackupService.IsSaveFolderTheArchiveFolder(game, backupRoot);
+
             DirectoryWalk.ForEachFile(dir, info =>
             {
+                if (skipOwnArchives
+                    && PathCompare.IsSameOrInside(dir, info.DirectoryName ?? "")
+                    && PathCompare.IsSameOrInside(info.DirectoryName ?? "", dir)
+                    && BackupService.IsOwnArchiveFileName(info.Name))
+                    return;
+
                 fileCount++;
                 totalBytes += info.Length;
                 if (newest is null || info.LastWriteTime > newest)

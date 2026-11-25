@@ -340,7 +340,7 @@ public sealed class BackupService
     /// boundary — an unreachable <paramref name="backupRoot"/>, an absent game folder and a folder
     /// that cannot be listed all report as an empty list, which is "no backups yet" rather than a
     /// failure this method has no channel to report. Callers that need to tell those two apart use
-    /// <see cref="TryListBackups"/> instead.
+    /// <see cref="TryListBackups(string, string, out IReadOnlyList{BackupArchive})"/> instead.
     /// </summary>
     public IReadOnlyList<BackupArchive> ListBackups(string backupRoot, string gameId) =>
         ListBackupsCore(backupRoot, gameId, out _);
@@ -359,7 +359,21 @@ public sealed class BackupService
         return listable;
     }
 
-    private static IReadOnlyList<BackupArchive> ListBackupsCore(string backupRoot, string gameId, out bool listable)
+    /// <summary>
+    /// Same as the id overload, for callers that hold the <see cref="Game"/>: when its save folder
+    /// IS its archive folder, only names this app writes are listed, so a game's own
+    /// <c>slot1.zip</c> is never offered (or deletable) as a backup and never counts as the newest
+    /// one. In every other layout a hand-renamed archive stays listed as before.
+    /// </summary>
+    public bool TryListBackups(string backupRoot, Game game, out IReadOnlyList<BackupArchive> backups)
+    {
+        backups = ListBackupsCore(backupRoot, game.Id, out var listable,
+            onlyOwnNames: IsSaveFolderTheArchiveFolder(game, backupRoot));
+        return listable;
+    }
+
+    private static IReadOnlyList<BackupArchive> ListBackupsCore(
+        string backupRoot, string gameId, out bool listable, bool onlyOwnNames = false)
     {
         listable = true;
         try
@@ -378,6 +392,7 @@ public sealed class BackupService
             // whole folder as unlistable. A file that has vanished simply drops out of the list.
             return Directory.GetFiles(targetDir, "*.zip")
                 .Where(path => path.EndsWith(".zip", StringComparison.OrdinalIgnoreCase))
+                .Where(path => !onlyOwnNames || IsOwnArchiveFileName(Path.GetFileName(path)))
                 .Select(path =>
                 {
                     try
@@ -913,7 +928,37 @@ public sealed class BackupService
     /// </summary>
     internal static bool IsOwnArchiveFileName(string fileName) =>
         IsOwnTempFileName(fileName)
-        || (fileName.EndsWith(".zip", StringComparison.OrdinalIgnoreCase) && HasTimestampPrefix(fileName));
+        || (OwnArchiveName.IsMatch(fileName) && HasTimestampPrefix(fileName));
+
+    /// <summary>
+    /// Exactly the archive names <see cref="MoveStagedArchiveIntoPlace"/> produces: the bare
+    /// timestamp, an optional <c>-pre-restore</c>, an optional <c>-N</c> collision suffix. A game's
+    /// own <c>2026-11-20_183000_slot2.zip</c> does not match.
+    /// </summary>
+    private static readonly System.Text.RegularExpressions.Regex OwnArchiveName = new(
+        @"^\d{4}-\d{2}-\d{2}_\d{6}(-pre-restore)?(-\d+)?\.zip$",
+        System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
+    /// <summary>
+    /// Whether <paramref name="game"/>'s save folder IS its archive folder
+    /// <c>&lt;backupRoot&gt;/&lt;id&gt;</c> — the layout where the folder holds both save data and
+    /// this app's archives, so listing and scanning must tell them apart by name. Never throws.
+    /// </summary>
+    internal static bool IsSaveFolderTheArchiveFolder(Game game, string backupRoot)
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(backupRoot)
+                || !PathResolver.TryResolve(game.SaveDirTemplate, null, out var saveDir, out _))
+                return false;
+            var archiveDir = Path.Combine(backupRoot, game.Id);
+            return PathCompare.IsSameOrInside(saveDir, archiveDir) && PathCompare.IsSameOrInside(archiveDir, saveDir);
+        }
+        catch
+        {
+            return false;
+        }
+    }
 
     /// <summary>
     /// The <c>.zip.tmp</c> names this app writes: <c>.{guid}.zip.tmp</c> staging and

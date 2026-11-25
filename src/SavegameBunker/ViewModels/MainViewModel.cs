@@ -988,17 +988,20 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// MainWindow drop handling after <see cref="DropFolder.TrySingleExistingDirectory"/> accepted
     /// the payload.
     /// </summary>
-    public Task AddGameFromDroppedFolderAsync(string folder) => AddGameCoreAsync(folder);
+    public Task AddGameFromDroppedFolderAsync(string folder)
+    {
+        // The drop route skips AddGameCommand's CanExecute, so it applies the same gate itself.
+        if (!CanEditCatalog())
+        {
+            StatusMessage = Strings.Get("str_addGame_busy");
+            return Task.CompletedTask;
+        }
+
+        return AddGameCoreAsync(folder);
+    }
 
     private async Task AddGameCoreAsync(string? initialSaveFolder)
     {
-        // The drop-a-folder route reaches here without CanExecute; same gate as CanEditCatalog.
-        if (IsCatalogWriteInFlight)
-        {
-            StatusMessage = Strings.Get("str_addGame_busy");
-            return;
-        }
-
         var existingIds = _session.Games.Select(g => g.Id).ToList();
         var result = _dialog.ShowAddGameDialog(existingIds, initialSaveFolder);
         if (result is null)

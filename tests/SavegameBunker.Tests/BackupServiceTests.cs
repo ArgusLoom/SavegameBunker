@@ -1402,6 +1402,32 @@ public sealed class BackupServiceTests : IDisposable
         Assert.True(File.Exists(Path.Combine(saveDir, ".autosave.zip.tmp")));
     }
 
+    // Same layout, listing and scanning: a game's own slot1.zip is never listed as a backup (so the
+    // picker cannot delete it), a timestamp-looking save the app never writes is still archived, and
+    // a fresh archive does not read as changed save data.
+    [Fact]
+    public void An_archive_folder_save_folder_lists_and_scans_only_real_backups_as_backups()
+    {
+        var backupRoot = Path.Combine(_dir, "bunker4");
+        var saveDir = Path.Combine(backupRoot, "lister");
+        Directory.CreateDirectory(saveDir);
+        File.WriteAllText(Path.Combine(saveDir, "slot1.zip"), "game data");
+        File.WriteAllText(Path.Combine(saveDir, "2026-11-20_183000_slot2.zip"), "game data");
+        var game = new Game { Id = "lister", DisplayName = "Lister", SaveDirTemplate = saveDir.Replace('\\', '/') };
+
+        var result = _service.Backup(game, backupRoot, "", out var archivePath);
+        Assert.True(result.Success, result.Message);
+        using (var zip = ZipFile.OpenRead(archivePath!))
+            Assert.Equal(["2026-11-20_183000_slot2.zip", "slot1.zip"],
+                zip.Entries.Select(e => e.FullName).Order(StringComparer.Ordinal).ToList());
+
+        Assert.True(_service.TryListBackups(backupRoot, game, out var listed));
+        Assert.Equal(archivePath, Assert.Single(listed).FilePath);
+
+        var status = SaveStatusScanner.Scan(game, backupRoot);
+        Assert.Equal(2, status.FileCount);
+    }
+
     // An archive-folder save folder holding only earlier backups: the refusal names that, not a
     // backup subfolder that does not exist.
     [Fact]

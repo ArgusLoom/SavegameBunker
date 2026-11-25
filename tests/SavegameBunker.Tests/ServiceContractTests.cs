@@ -227,6 +227,11 @@ public sealed class ServiceContractTests : IDisposable
                 () => _ = _service.TryListBackups(Missing("gone"), "contract-game", out _),
                 () => _ = _service.TryListBackups(notADirectory, "contract-game", out _),
             ],
+            ["BackupService.TryListBackups(String, Game, IReadOnlyList`1&)"] =
+            [
+                () => _ = _service.TryListBackups(Missing("gone"), GameWithTemplate(""), out _),
+                () => _ = _service.TryListBackups(notADirectory, GameWithTemplate("%NOT_A_REAL_VARIABLE%/x"), out _),
+            ],
             ["CrashReport.Describe(Exception, String)"] =
             [
                 () => _ = CrashReport.Describe(
@@ -357,7 +362,7 @@ public sealed class ServiceContractTests : IDisposable
                     Missing("missing-archive.zip"),
                     _ => false).Success),
             ],
-            ["SaveStatusScanner.Scan(Game)"] =
+            ["SaveStatusScanner.Scan(Game, String)"] =
             [
                 () => _ = SaveStatusScanner.Scan(GameWithTemplate("")),
                 () => _ = SaveStatusScanner.Scan(GameWithTemplate("%NOT_A_REAL_VARIABLE%/x")),

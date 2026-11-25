@@ -92,7 +92,16 @@ internal static class DirectoryWalk
                     continue;
                 }
 
-                onFile(info);
+                // The callbacks read Length/LastWriteTime, which throw only now for a file deleted
+                // since it was listed (its attributes read -1 instead of throwing above).
+                try
+                {
+                    onFile(info);
+                }
+                catch (Exception ex) when (FileSystemFault.Is(ex))
+                {
+                    Skip(f);
+                }
             }
 
             IEnumerable<string> subdirs;
