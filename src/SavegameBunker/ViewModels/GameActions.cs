@@ -90,6 +90,15 @@ internal sealed class GameActions
             return OperationResult.Fail(Strings.Format("str_restore_noBackups", row.DisplayName));
         }
 
+        // Layouts restore would refuse anyway — refused here, before the picker opens and the
+        // user picks (or deletes) an archive for nothing.
+        if (PathResolver.TryResolve(row.Game.SaveDirTemplate, null, out var saveDir, out _))
+        {
+            var refusal = await Task.Run(() => RestoreService.DescribeLayoutRefusal(row.Game, saveDir, configuredBackupRoot));
+            if (refusal is not null)
+                return refusal;
+        }
+
         return null;
     }
 

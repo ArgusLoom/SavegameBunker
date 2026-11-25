@@ -112,6 +112,7 @@
     <sys:String x:Key="str_status_upToDate">Up to date</sys:String>
     <sys:String x:Key="str_status_changedSinceBackup">{0} of play not backed up yet</sys:String>
     <sys:String x:Key="str_status_neverBackedUp">Never backed up</sys:String>
+    <sys:String x:Key="str_status_lastBackupPartial">Last backup is missing some files</sys:String>
     <sys:String x:Key="str_status_noSaveDataYet">No save data yet</sys:String>
     <sys:String x:Key="str_status_noSaveDataRestorable">No save data right now — you can still restore</sys:String>
     <sys:String x:Key="str_status_backupFolderUnavailable">Backup folder unavailable</sys:String>

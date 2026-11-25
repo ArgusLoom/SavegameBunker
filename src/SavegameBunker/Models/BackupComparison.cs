@@ -17,6 +17,12 @@ public enum BackupComparisonKind
     /// <summary>There is save data, but no backup exists for this game yet.</summary>
     NeverBackedUp,
 
+    /// <summary>
+    /// The newest backup at or after the save directory's last change is a <c>-partial</c> one —
+    /// it could not read every file — and no complete backup covers the current saves.
+    /// </summary>
+    LastBackupPartial,
+
     /// <summary>The save directory is missing or empty, cannot be resolved, or the scan errored.</summary>
     NoSaveData,
 
@@ -50,6 +56,9 @@ public sealed record BackupComparison(
 
     public static BackupComparison UpToDate(DateTime newestTakenAt) =>
         new(BackupComparisonKind.UpToDate, newestTakenAt, null);
+
+    public static BackupComparison LastBackupPartial(DateTime newestTakenAt) =>
+        new(BackupComparisonKind.LastBackupPartial, newestTakenAt, null);
 
     public static BackupComparison SavesChangedSinceBackup(DateTime newestTakenAt, TimeSpan elapsed) =>
         new(BackupComparisonKind.SavesChangedSinceBackup, newestTakenAt, elapsed);

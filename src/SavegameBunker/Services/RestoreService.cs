@@ -75,21 +75,9 @@ public sealed class RestoreService
             // every backupRoot inside or equal to the save folder too, because it puts the game's
             // archive folder inside the save folder as well.
             var gameArchiveDir = Path.Combine(backupRoot, game.Id);
-            if (PathCompare.IsSameOrInside(gameArchiveDir, saveDir))
-                return OperationResult.Fail(Strings.Format("str_restore_backupFolderInsideSaveFolder", game.DisplayName));
-
-            // The same loss through another game's archive folder: a save folder that is
-            // <backupRoot>/<otherId> holds that game's archives, which restore would delete with
-            // it. A save folder that merely sits inside the backup root (backup folder Documents,
-            // save folder Documents/MyGame) stays restorable, so this refuses only when the folder
-            // directly under the backup root actually holds archives this app wrote.
-            var saveParent = Path.GetDirectoryName(PathCompare.Normalize(saveDir));
-            if (saveParent is not null
-                && PathCompare.IsSameOrInside(saveParent, backupRoot)
-                && PathCompare.IsSameOrInside(backupRoot, saveParent)
-                && Directory.Exists(saveDir)
-                && Directory.EnumerateFiles(saveDir).Any(f => BackupService.IsOwnArchiveFileName(Path.GetFileName(f))))
-                return OperationResult.Fail(Strings.Format("str_restore_saveFolderHoldsOtherBackups", game.DisplayName));
+            var layoutRefusal = DescribeLayoutRefusal(game, saveDir, backupRoot);
+            if (layoutRefusal is not null)
+                return layoutRefusal;
 
             // The archive must live in this game's own backup folder (<backupRoot>/<game.Id>) —
             // the same containment logic the backup walk uses for exclusions, pointed at the
@@ -284,6 +272,40 @@ public sealed class RestoreService
         catch
         {
             return false;
+        }
+    }
+
+    /// <summary>
+    /// Refuses layouts where replacing the save folder would delete archives. Restore renames the
+    /// save folder aside and deletes it. When the game's own archive folder (<c>&lt;backupRoot&gt;/&lt;id&gt;</c>)
+    /// is that folder or lies inside it — which covers every backupRoot inside or equal to the
+    /// save folder — every archive of the game, including the safety backup about to be written,
+    /// would go with it. The same loss happens through another game's archive folder: a save
+    /// folder directly in the backup root that holds archives this app wrote. A save folder that
+    /// merely sits inside the backup root and holds none stays restorable. Shared with the restore
+    /// pre-flight so the refusal comes before the picker, not after it.
+    /// </summary>
+    internal static OperationResult? DescribeLayoutRefusal(Game game, string saveDir, string backupRoot)
+    {
+        try
+        {
+            if (PathCompare.IsSameOrInside(Path.Combine(backupRoot, game.Id), saveDir))
+                return OperationResult.Fail(Strings.Format("str_restore_backupFolderInsideSaveFolder", game.DisplayName));
+
+            var saveParent = Path.GetDirectoryName(PathCompare.Normalize(saveDir));
+            if (saveParent is not null
+                && PathCompare.IsSameOrInside(saveParent, backupRoot)
+                && PathCompare.IsSameOrInside(backupRoot, saveParent)
+                && Directory.Exists(saveDir)
+                && Directory.EnumerateFiles(saveDir).Any(f => BackupService.IsOwnArchiveFileName(Path.GetFileName(f))))
+                return OperationResult.Fail(Strings.Format("str_restore_saveFolderHoldsOtherBackups", game.DisplayName));
+
+            return null;
+        }
+        catch (Exception ex) when (FileSystemFault.Is(ex))
+        {
+            // Unreadable here means Restore itself will report the fault; the pre-flight must not.
+            return null;
         }
     }
 

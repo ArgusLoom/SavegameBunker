@@ -28,7 +28,8 @@ internal static class BulkRunRules
     /// <see cref="BackupComparisonKind.BackupFolderNotAvailable"/> cannot be judged at all.
     /// </summary>
     public static bool NeedsBackup(BackupComparisonKind kind) =>
-        kind is BackupComparisonKind.SavesChangedSinceBackup or BackupComparisonKind.NeverBackedUp;
+        kind is BackupComparisonKind.SavesChangedSinceBackup or BackupComparisonKind.NeverBackedUp
+            or BackupComparisonKind.LastBackupPartial;
 
     /// <summary>
     /// The bulk-backup target list: every row whose verdict needs a backup and that is not

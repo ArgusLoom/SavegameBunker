@@ -54,14 +54,17 @@ public static class BackupComparer
             return BackupComparison.SavesChangedSinceBackup(newestTakenAt.Value, newestTakenAt.Value - restoredAt);
 
         // At-or-after counts as up to date — but only for a complete archive: a -partial one is
-        // missing files, so it never makes a game "up to date". The row still names the newest
-        // archive of either kind, which is what the restore picker lists first.
+        // missing files, so it never makes a game "up to date". When only a partial archive is at
+        // or after the last change, the saves did not change since a backup, but that backup is
+        // missing files: its own verdict, never a "changed since" with a zero or negative span.
         var newestComplete = backups.FirstOrDefault(archive => !archive.IsPartial)?.TakenAt;
         if (newestComplete is { } complete && complete >= lastModified)
             return BackupComparison.UpToDate(complete);
+        if (newestTakenAt!.Value >= lastModified)
+            return BackupComparison.LastBackupPartial(newestTakenAt.Value);
 
-        var since = newestComplete ?? newestTakenAt!.Value;
-        var elapsed = lastModified - since;
-        return BackupComparison.SavesChangedSinceBackup(since, elapsed < TimeSpan.Zero ? TimeSpan.Zero : elapsed);
+        // The elapsed play is measured from the newest archive of either kind (the one the
+        // picker lists first), which here is older than the last change, so it is positive.
+        return BackupComparison.SavesChangedSinceBackup(newestTakenAt.Value, lastModified - newestTakenAt.Value);
     }
 }

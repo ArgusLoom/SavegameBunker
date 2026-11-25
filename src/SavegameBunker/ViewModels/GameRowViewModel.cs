@@ -253,6 +253,11 @@ public sealed partial class GameRowViewModel : CommunityToolkitObservableObject
                 VerdictText = Strings.Format("str_status_changedSinceBackup", ElapsedFormat.Describe(comparison.Elapsed!.Value));
                 break;
 
+            case BackupComparisonKind.LastBackupPartial:
+                StatusSeverity = RowSeverity.Warning;
+                VerdictText = Strings.Get("str_status_lastBackupPartial");
+                break;
+
             case BackupComparisonKind.NeverBackedUp:
                 // Save data with no backup at all is the state most at risk, so it carries the
                 // same weight as saves that changed since their last one.

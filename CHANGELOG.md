@@ -89,7 +89,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Saves in OneDrive cloud folders are backed up.** Folders that OneDrive keeps online-only were
   skipped without a word, so they were in no backup, and a restore then replaced them.
 - **A backup that could not read every file is marked as partial.** Its name ends in "-partial";
-  it no longer makes a game read "up to date", and "Restore selected" never picks it on its own.
+  it no longer makes a game read "up to date" (the row says "Last backup is missing some files"),
+  and "Restore selected" never picks it on its own.
   A backup that could read no file at all now fails instead of saving an empty archive.
 - **After choosing the first backup folder, every game is checked again.** The other rows used to
   keep showing "no backup folder" until you clicked Refresh.

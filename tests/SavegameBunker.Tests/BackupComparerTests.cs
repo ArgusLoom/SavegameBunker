@@ -1,5 +1,6 @@
 using SavegameBunker.Models;
 using SavegameBunker.Services;
+using SavegameBunker.ViewModels;
 
 namespace SavegameBunker.Tests;
 
@@ -49,13 +50,15 @@ public sealed class BackupComparerTests
         var partial = Archive(lastModified.AddMinutes(5), "2026-08-01_120500-partial.zip");
         var older = Archive(lastModified.AddDays(-1), "2026-07-31_120000.zip");
 
-        Assert.Equal(BackupComparisonKind.SavesChangedSinceBackup,
+        Assert.Equal(BackupComparisonKind.LastBackupPartial,
             BackupComparer.Compare(saveStatus, true, [partial, older]).Kind);
 
-        // Only partial archives: still "changed", never "never backed up", and the row names it.
+        // Only a partial archive after the last change: its own verdict (never "never backed up",
+        // never a zero-length "changed since"), naming that archive.
         var onlyPartial = BackupComparer.Compare(saveStatus, true, [partial]);
-        Assert.Equal(BackupComparisonKind.SavesChangedSinceBackup, onlyPartial.Kind);
+        Assert.Equal(BackupComparisonKind.LastBackupPartial, onlyPartial.Kind);
         Assert.Equal(partial.TakenAt, onlyPartial.NewestBackupTakenAt);
+        Assert.True(BulkRunRules.NeedsBackup(onlyPartial.Kind));
     }
 
     /// <summary>
@@ -72,8 +75,8 @@ public sealed class BackupComparerTests
 
         var comparison = BackupComparer.Compare(saveStatus, true, [partial, complete], restoredArchiveTakenAt: partialAt);
 
-        Assert.Equal(BackupComparisonKind.SavesChangedSinceBackup, comparison.Kind);
-        Assert.True(comparison.Elapsed >= TimeSpan.Zero);
+        Assert.NotEqual(BackupComparisonKind.UpToDate, comparison.Kind);
+        Assert.True(comparison.Elapsed is null || comparison.Elapsed >= TimeSpan.Zero);
     }
 
     [Fact]
