@@ -530,7 +530,7 @@ public sealed class RestoreServiceTests : IDisposable
     }
 
     [Fact]
-    public void A_locked_save_folder_fails_the_remove_old_step_leaves_the_save_dir_intact_and_preserves_the_verified_temp_dir()
+    public void A_locked_save_folder_fails_the_remove_old_step_leaves_the_save_dir_intact_and_removes_the_temp_dir()
     {
         var game = GameWithNestedSaves();
         var backupRoot = Path.Combine(_dir, "backups");
@@ -557,9 +557,9 @@ public sealed class RestoreServiceTests : IDisposable
         Assert.StartsWith($"Restore failed for {game.DisplayName}: the save folder is in use (", result.Message);
         Assert.Equal(snapshot, Snapshot(saveDir));
 
-        // The already-verified temp dir is deliberately left in place rather than deleted.
-        var tmpSiblings = Directory.GetDirectories(_dir, "saves.savegamebunker-restore-tmp-*");
-        Assert.Single(tmpSiblings);
+        // The extracted temp copy is removed: a retry's CleanStaleRestoreTemp would delete and
+        // re-extract it anyway, and without a retry it would only waste space beside the save.
+        Assert.Empty(Directory.GetDirectories(_dir, "saves.savegamebunker-restore-tmp-*"));
     }
 
     [Fact]

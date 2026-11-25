@@ -14,9 +14,9 @@ namespace SavegameBunker.Services;
 /// <see cref="Directory.EnumerateFiles(string)"/>/
 /// <see cref="Directory.EnumerateDirectories(string)"/> rather than the recursive search option:
 /// that lazy recursive enumerator throws from <c>MoveNext</c> partway through a locked subtree and
-/// would abort the whole walk instead of skipping just that subtree. A directory reparse point
-/// (junction or symbolic link) is never followed into, so a self-referencing link cannot make the
-/// walk run forever; a file reparse point is skipped only when
+/// would abort the whole walk instead of skipping just that subtree. A junction or directory
+/// symbolic link is never followed into, so a self-referencing link cannot make the walk run
+/// forever, while a reparse-flagged OneDrive cloud folder is walked like any folder; a file reparse point is skipped only when
 /// <see cref="FileSystemInfo.LinkTarget"/> proves it is an actual symbolic link, rather than, say,
 /// a OneDrive Files On-Demand placeholder.
 /// </remarks>
@@ -124,10 +124,13 @@ internal static class DirectoryWalk
 
             foreach (var sub in subdirs)
             {
-                FileAttributes attributes;
+                bool isLink;
                 try
                 {
-                    attributes = File.GetAttributes(sub);
+                    // A junction or symbolic link back up the tree would otherwise make this
+                    // recursion run forever; a OneDrive cloud folder (also reparse-flagged) is save
+                    // data and is walked (see ReparseFile.IsLinkDirectory).
+                    isLink = ReparseFile.IsLinkDirectory(sub, File.GetAttributes(sub));
                 }
                 catch (Exception ex) when (FileSystemFault.Is(ex))
                 {
@@ -135,9 +138,7 @@ internal static class DirectoryWalk
                     continue;
                 }
 
-                // A junction or symbolic link back up the tree would otherwise make this
-                // recursion run forever.
-                if (attributes.HasFlag(FileAttributes.ReparsePoint))
+                if (isLink)
                     continue;
 
                 // The three layouts this prune decides between:

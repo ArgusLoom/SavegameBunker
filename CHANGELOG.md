@@ -86,6 +86,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Restore no longer deletes files its safety backup could not read.** When a file in the save
   folder was locked or unreadable, the safety backup left it out with a warning, and the restore
   then deleted it. Restore now stops and says why, and the save folder stays as it was.
+- **Saves in OneDrive cloud folders are backed up.** Folders that OneDrive keeps online-only were
+  skipped without a word, so they were in no backup, and a restore then replaced them.
+- **A backup that could not read every file is marked as partial.** Its name ends in "-partial";
+  it no longer makes a game read "up to date", and "Restore selected" never picks it on its own.
+  A backup that could read no file at all now fails instead of saving an empty archive.
+- **After choosing the first backup folder, every game is checked again.** The other rows used to
+  keep showing "no backup folder" until you clicked Refresh.
+- **A restore that stops because the save folder is in use no longer leaves its unpacked copy
+  behind** next to the save folder.
 - **Find Games says "1 file" instead of "1 files".**
 - **The "safety backup" tag in the restore list stays readable when its row is selected.**
 

@@ -218,6 +218,11 @@ and silently replacing a broken catalog would destroy the user's own configurati
   or interrupted backup leaves no partial `.zip` behind.
 - After writing, the archive is reopened and its entries checked against the source before success
   is reported. An archive nobody can read is not a backup.
+- A file the backup cannot read (locked by a running game, access denied) is left out with a
+  warning naming it, and the archive's name carries `-partial`. A partial archive stays listed and
+  restorable by hand, but it never makes a game "up to date" and bulk restore never picks it
+  automatically. When no file at all could be read, the backup fails and writes nothing: an empty
+  archive would otherwise become the newest backup.
 - A `backupRoot` inside the game's own save directory, or equal to it, is honoured for Backup —
   the archive walk leaves out exactly the folders that hold backups: the subfolder that is
   `backupRoot` or the game's archive folder `<backupRoot>\<id>`, and, when the save directory is
@@ -362,8 +367,11 @@ backup destination. The safety backup is what makes "exactly the archive content
   clock change, can therefore compare wrongly. The comparison informs a decision; it never gates one,
   and every restore is preceded by a safety backup regardless of what it says.
 - A save folder that contains a reparse point (a junction or symlink) is not followed into: the
-  empty-check, the status scanner and the archive writer all skip a directory reparse point, and a
-  *file* reparse point only when `FileSystemInfo.LinkTarget` proves it is an actual symbolic link.
+  empty-check, the status scanner and the archive writer all skip a directory reparse point only
+  when `FileSystemInfo.LinkTarget` proves it is a junction or directory symlink, and a *file*
+  reparse point only when it proves it is an actual symbolic link. A OneDrive cloud folder is
+  reparse-flagged too but resolves no link target, so it is walked and backed up like any folder —
+  skipping it would leave it out of every backup while restore still replaces it.
   An all-junction save folder reads as empty and is refused. A mixed folder is backed up without
   the junction's target — so a link sitting next to the saves cannot silently pack Documents or SSH
   keys into the zip. A OneDrive Files On-Demand placeholder file also sets the reparse-point

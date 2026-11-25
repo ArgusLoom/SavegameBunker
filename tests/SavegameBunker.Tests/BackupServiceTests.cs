@@ -211,6 +211,7 @@ public sealed class BackupServiceTests : IDisposable
         var game = TestGames.WithSaveFile(_dir);
         var backupRoot = Path.Combine(_dir, "backups");
         var savePath = Path.Combine(_dir, "saves", "save.dat");
+        File.WriteAllText(Path.Combine(_dir, "saves", "other.dat"), "readable");
 
         using (new FileStream(savePath, FileMode.Open, FileAccess.Read, FileShare.None))
         {
@@ -222,9 +223,31 @@ public sealed class BackupServiceTests : IDisposable
             Assert.Contains("save.dat", result.Message);
         }
 
+        // Named -partial, so it never makes the game "up to date" or gets picked by bulk restore.
         var targetDir = BackupDirFor(backupRoot, game);
-        Assert.NotEmpty(Directory.GetFiles(targetDir, "*.zip"));
+        var archive = Assert.Single(Directory.GetFiles(targetDir, "*.zip"));
+        Assert.EndsWith("-partial.zip", archive);
+        Assert.True(Assert.Single(_service.ListBackups(backupRoot, game.Id)).IsPartial);
         Assert.Empty(Directory.GetFiles(targetDir, "*.zip.tmp"));
+    }
+
+    // Every file locked: an empty archive would become the newest backup and could be restored
+    // over the real saves, so the backup fails and writes nothing.
+    [Fact]
+    public void Backup_with_every_file_locked_fails_and_writes_no_archive()
+    {
+        var game = TestGames.WithSaveFile(_dir);
+        var backupRoot = Path.Combine(_dir, "backups");
+        var savePath = Path.Combine(_dir, "saves", "save.dat");
+
+        OperationResult result;
+        using (new FileStream(savePath, FileMode.Open, FileAccess.Read, FileShare.None))
+            result = _service.Backup(game, backupRoot);
+
+        Assert.False(result.Success);
+        Assert.Contains("save.dat", result.Message);
+        var targetDir = BackupDirFor(backupRoot, game);
+        Assert.Empty(Directory.Exists(targetDir) ? Directory.GetFiles(targetDir, "*.zip*") : []);
     }
 
     [Fact]

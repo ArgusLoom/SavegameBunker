@@ -37,6 +37,24 @@ public sealed class BackupComparerTests
         Assert.Equal(takenAt, comparison.NewestBackupTakenAt);
     }
 
+    /// <summary>
+    /// A -partial archive (its backup skipped unreadable files) never makes the game up to date:
+    /// the verdict comes from the newest complete archive, or NeverBackedUp when there is none.
+    /// </summary>
+    [Fact]
+    public void A_newer_partial_archive_does_not_make_the_game_up_to_date()
+    {
+        var lastModified = new DateTime(2026, 8, 1, 12, 0, 0);
+        var saveStatus = SaveStatus.Found(1, 10, lastModified, oversized: false);
+        var partial = Archive(lastModified.AddMinutes(5), "2026-08-01_120500-partial.zip");
+        var older = Archive(lastModified.AddDays(-1), "2026-07-31_120000.zip");
+
+        Assert.Equal(BackupComparisonKind.SavesChangedSinceBackup,
+            BackupComparer.Compare(saveStatus, true, [partial, older]).Kind);
+        Assert.Equal(BackupComparisonKind.NeverBackedUp,
+            BackupComparer.Compare(saveStatus, true, [partial]).Kind);
+    }
+
     [Fact]
     public void Found_saves_with_a_backup_taken_at_exactly_LastModified_returns_UpToDate()
     {

@@ -320,6 +320,7 @@
         a path is exactly what helps when something has actually gone wrong.
     -->
     <sys:String x:Key="str_backup_created">Backed up {0}.</sys:String>
+    <sys:String x:Key="str_backup_nothingReadable">Backup failed for {0}: no file in the save folder could be read, so nothing was backed up. Close the game or anything else using these and try again: {1}</sys:String>
     <sys:String x:Key="str_backup_exceedsRestoreCap">This archive is larger than SavegameBunker can restore.</sys:String>
     <sys:String x:Key="str_restore_done">Restored {0} from the backup you picked.</sys:String>
     <sys:String x:Key="str_status_checkingSaveFolders">Checking save folders…</sys:String>

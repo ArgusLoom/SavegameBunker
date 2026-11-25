@@ -139,7 +139,9 @@ internal sealed class GameActions
                 Strings.Format("str_restore_folderUnreachable", row.DisplayName, backupRoot)));
         }
 
-        var ordinary = backups.FirstOrDefault(archive => !archive.IsSafetyBackup);
+        // Never a safety backup and never a -partial one: bulk restore picks without a human
+        // looking, so it takes only the newest complete ordinary archive.
+        var ordinary = backups.FirstOrDefault(archive => !archive.IsSafetyBackup && !archive.IsPartial);
         if (ordinary is null)
         {
             return (null, OperationResult.Fail(

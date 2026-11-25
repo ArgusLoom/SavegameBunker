@@ -37,6 +37,25 @@ public sealed record BackupArchive(string FilePath, DateTime TakenAt, long SizeB
         }
     }
 
+    /// <summary>
+    /// True when the backup that wrote this archive could not read every file (its name carries
+    /// <c>-partial</c>, optionally followed by the collision suffix). Such an archive is still
+    /// listed and restorable by hand, but never counts as the copy that makes a game "up to date"
+    /// and is never picked automatically by bulk restore.
+    /// </summary>
+    public bool IsPartial
+    {
+        get
+        {
+            var name = Path.GetFileNameWithoutExtension(FilePath);
+            return name.EndsWith("-partial", StringComparison.Ordinal) || PartialWithCollisionSuffix.IsMatch(name);
+        }
+    }
+
+    private static readonly System.Text.RegularExpressions.Regex PartialWithCollisionSuffix = new(
+        @"^\d{4}-\d{2}-\d{2}_\d{6}(-pre-restore)?-partial-\d+$",
+        System.Text.RegularExpressions.RegexOptions.CultureInvariant);
+
     private static readonly System.Text.RegularExpressions.Regex SafetyWithCollisionSuffix = new(
         @"^\d{4}-\d{2}-\d{2}_\d{6}-pre-restore-\d+$",
         System.Text.RegularExpressions.RegexOptions.CultureInvariant);

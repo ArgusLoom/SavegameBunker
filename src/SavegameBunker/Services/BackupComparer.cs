@@ -30,8 +30,10 @@ public static class BackupComparer
         if (!backupRootReachable)
             return BackupComparison.FolderNotAvailable();
 
-        // ListBackups already guarantees newest-first; reading position 0 is the only
-        // ordering rule this method needs — re-sorting here would be a second, drifting rule.
+        // Only complete archives count: a -partial one is missing files, so it never makes a game
+        // "up to date". ListBackups already guarantees newest-first; the filter keeps that order,
+        // and reading the first complete one is the only ordering rule this method needs.
+        backups = backups.Where(archive => !archive.IsPartial).ToList();
         var newestTakenAt = backups.Count > 0 ? backups[0].TakenAt : (DateTime?)null;
 
         if (saveStatus.Kind == SaveStatusKind.Checking)

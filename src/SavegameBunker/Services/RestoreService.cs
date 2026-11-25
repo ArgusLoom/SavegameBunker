@@ -193,7 +193,10 @@ public sealed class RestoreService
                 }
                 catch (Exception ex)
                 {
-                    // tempDir, already verified, is left in place for the next attempt.
+                    // The next attempt's CleanStaleRestoreTemp would delete this copy and extract
+                    // again anyway, and without a retry it would sit beside the save folder for
+                    // good; the archive it came from is still there.
+                    TryDeleteDirectory(tempDir);
                     return OperationResult.Fail($"Restore failed for {game.DisplayName}: the save folder is in use ({ex.Message}).");
                 }
             }

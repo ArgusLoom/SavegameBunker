@@ -766,9 +766,9 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// for the tens of seconds a scan can run against a stalled network share would take away the
     /// user's only way to see the catalog for no protection they actually need. Carries
     /// <see cref="global::CommunityToolkit.Mvvm.ComponentModel.NotifyCanExecuteChangedForAttribute"/>
-    /// naming <see cref="FindGamesCommand"/> directly — this is not an operation gate (
-    /// <see cref="CanFindGames"/> reads only this flag), so it stays its own narrow notification
-    /// rather than going through <see cref="RequeryOperationGates"/>.
+    /// naming <see cref="FindGamesCommand"/> directly. <see cref="CanFindGames"/> reads this flag
+    /// and <see cref="CanEditCatalog"/>; the latter's changes arrive through
+    /// <see cref="RequeryOperationGates"/>, which also requeries <see cref="FindGamesCommand"/>.
     /// </summary>
     [ObservableProperty]
     [NotifyCanExecuteChangedFor(nameof(FindGamesCommand))]
@@ -1761,6 +1761,16 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
 
         OnPropertyChanged(nameof(BackupRootDisplay));
         OnPropertyChanged(nameof(BackupRootFullPath));
+
+        // Every other row's verdict was computed with no backup folder at all — stale now, the
+        // same reason ChangeBackupRootAsync re-sweeps. The row(s) the calling backup is about to
+        // write are left to that backup's own closing rescan; the sweep tokens keep an overlap
+        // harmless anyway.
+        ScheduleSpaceAdvisoryRecompute();
+        var others = Games.Where(row => !row.IsBusy).ToList();
+        if (others.Count > 0)
+            StartStatusScan(only: others);
+
         return picked;
     }
 

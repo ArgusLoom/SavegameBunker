@@ -36,6 +36,9 @@ public sealed class BackupService
     /// </summary>
     private const int MaxRenameRetries = 100;
 
+    /// <summary>Name marker for an archive whose walk skipped unreadable paths.</summary>
+    internal const string PartialSuffix = "-partial";
+
     /// <param name="backupRoot">
     /// Absolute path of the configured backup folder, already resolved by the caller. Created if
     /// it does not exist yet.
@@ -172,6 +175,16 @@ public sealed class BackupService
                                 : $"Save folder is empty: {saveDir}");
             }
 
+            // Every file was skipped (all locked by a running game, say): an empty archive would
+            // become the newest backup, read as "up to date" and could be restored over the real
+            // saves, so nothing is written.
+            if (entryHashes.Count == 0)
+            {
+                TryDelete(tempPath);
+                return OperationResult.Fail(Strings.Format("str_backup_nothingReadable",
+                    game.DisplayName, DirectoryWalk.FormatSkippedList(skippedPathsFound)));
+            }
+
             // Success is reported only after the archive is reopened and its entries matched
             // against a fresh walk of the save directory.
             var verificationFailure = DescribeVerificationFailure(
@@ -186,10 +199,15 @@ public sealed class BackupService
             // calendar (th-TH, fa-IR, ar-SA) and would name the archive in that calendar's year.
             var timestamp = DateTime.Now.ToString("yyyy-MM-dd_HHmmss", CultureInfo.InvariantCulture);
 
+            // An archive that could not read every file carries "-partial" in its name (after any
+            // caller suffix), so the status verdict and bulk restore's automatic pick never treat
+            // it as a complete copy of the save folder (BackupArchive.IsPartial).
+            var finalSuffix = skippedPathsFound.Count > 0 ? suffix + PartialSuffix : suffix;
+
             string finalPath;
             try
             {
-                var limitFailure = MoveStagedArchiveIntoPlace(tempPath, targetDir, timestamp, suffix, game.DisplayName, out finalPath);
+                var limitFailure = MoveStagedArchiveIntoPlace(tempPath, targetDir, timestamp, finalSuffix, game.DisplayName, out finalPath);
                 if (limitFailure is not null)
                     return limitFailure;
             }
@@ -983,11 +1001,12 @@ public sealed class BackupService
 
     /// <summary>
     /// Exactly the archive names <see cref="MoveStagedArchiveIntoPlace"/> produces: the bare
-    /// timestamp, an optional <c>-pre-restore</c>, an optional <c>-N</c> collision suffix. A game's
+    /// timestamp, an optional <c>-pre-restore</c>, an optional <c>-partial</c>, an optional
+    /// <c>-N</c> collision suffix. A game's
     /// own <c>2026-11-20_183000_slot2.zip</c> does not match.
     /// </summary>
     private static readonly System.Text.RegularExpressions.Regex OwnArchiveName = new(
-        @"^\d{4}-\d{2}-\d{2}_\d{6}(-pre-restore)?(-\d+)?\.zip$",
+        @"^\d{4}-\d{2}-\d{2}_\d{6}(-pre-restore)?(-partial)?(-\d+)?\.zip$",
         System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
     /// <summary>

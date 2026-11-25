@@ -315,6 +315,35 @@ public sealed class MainViewModelTests : MainViewModelTestBase
         Assert.True(vm.AddGameCommand.CanExecute(null));
     }
 
+    /// <summary>
+    /// The first backup folder chosen from a row's Back up makes every other row's "no backup
+    /// folder" verdict stale; they are re-checked without a manual Refresh.
+    /// </summary>
+    [Fact]
+    public async Task Choosing_the_first_backup_folder_rechecks_the_other_rows()
+    {
+        var games = new List<Game>();
+        for (var i = 0; i < 2; i++)
+        {
+            var saveDir = Path.Combine(_dir, $"first-root-{i}");
+            Directory.CreateDirectory(saveDir);
+            File.WriteAllBytes(Path.Combine(saveDir, "save.dat"), [1, 2, 3]);
+            games.Add(new Game { Id = $"first-root-{i}", DisplayName = $"First Root {i}", SaveDirTemplate = saveDir.Replace('\\', '/') });
+        }
+
+        var dialog = new RecordingDialogService { FolderToReturn = Path.Combine(_dir, "picked-backups") };
+        Directory.CreateDirectory(dialog.FolderToReturn);
+        var load = new CatalogLoad(Path.Combine(_dir, "first-root.json"), new Catalog { BackupRoot = "", Games = games }, [], false, null);
+        var vm = new MainViewModel(load, dialog, () => _suggestedStartFolder);
+
+        await WaitForAsync(() => vm.Games.All(row => row.ComparisonKind == BackupComparisonKind.BackupFolderNotAvailable));
+
+        vm.BackupCommand.Execute(vm.Games[0]);
+
+        await WaitForAsync(() => !vm.IsAnyOperationRunning
+            && vm.Games[1].ComparisonKind == BackupComparisonKind.NeverBackedUp);
+    }
+
     [Fact]
     public async Task A_whitespace_backup_root_opens_the_picker_like_an_absent_one()
     {
