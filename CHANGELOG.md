@@ -21,6 +21,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **An unexpected failure during "Restore" on several games no longer leaves rows stuck.** Rows
+  stayed on "Checking" with the toolbar buttons disabled until Refresh, and the game that failed kept
+  a frozen restore bar; the rows are now re-checked and the bar cleared whatever happens.
 - **A folder that fails partway through being listed is now skipped on its own.** If a network
   share dropped or a drive was pulled while a save folder was being read, the whole backup, scan or
   size check failed; now only that folder is left out and named in the warning, like any other

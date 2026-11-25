@@ -1702,12 +1702,14 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
             stepProgress,
             (total, first) => BeginBulkProgress(total, first, isRestore: true),
             SetBulkProgress,
-            EndBulkProgress);
+            () =>
+            {
+                EndBulkProgress();
+                StartStatusScan(only: targets);
+            });
 
         if (run is null)
             return;
-
-        StartStatusScan(only: targets);
 
         // The details list is safe to pass on every branch: it gains an entry exactly when failed
         // does, Report ignores an empty list, and it returns early for a Cancel result.

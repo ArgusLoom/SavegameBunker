@@ -183,8 +183,9 @@ internal sealed class BulkBackupCoordinator
     /// </param>
     /// <param name="onFinished">
     /// Called exactly once from the finally, after every target has been released — the caller
-    /// clears its counters there. The restore finally does not touch the byte counters: a
-    /// restore never writes them.
+    /// clears its counters and re-scans the targets there, so a loop that threw cannot leave rows
+    /// on Checking. The restore finally does not touch the byte counters: a restore never writes
+    /// them.
     /// </param>
     public async Task<BulkRestoreRun?> RestoreAsync(
         IReadOnlyList<GameRowViewModel> targets,
@@ -259,9 +260,14 @@ internal sealed class BulkBackupCoordinator
         finally
         {
             // Release before the caller's onFinished, as in the backup path. No byte counters to
-            // clear: a restore never writes them.
+            // clear: a restore never writes them. The step display is cleared here too, so a row
+            // the loop threw on does not keep a frozen restore bar.
             foreach (var row in targets)
+            {
                 row.IsBusy = false;
+                row.RestoreStep = 0;
+                row.RestoreStepText = "";
+            }
 
             onFinished();
         }

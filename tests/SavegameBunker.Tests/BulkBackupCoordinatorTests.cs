@@ -351,6 +351,39 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
         Assert.All(rows, row => Assert.False(row.IsBusy));
     }
 
+    [Fact]
+    public async Task RestoreAsync_still_clears_step_display_and_calls_onFinished_when_the_loop_throws()
+    {
+        var backup = new BackupService();
+        var backupRoot = Path.Combine(_dir, "backups");
+        var first = TestGames.WithNamedSaves(_dir, "game-first", "First Game");
+        var second = TestGames.WithNamedSaves(_dir, "game-second", "Second Game");
+        await WriteOrdinaryBackupAsync(backup, first, backupRoot);
+        await WriteOrdinaryBackupAsync(backup, second, backupRoot);
+        Directory.CreateDirectory(Path.Combine(_dir, "saves-game-first"));
+        File.WriteAllText(Path.Combine(_dir, "saves-game-first", "save.dat"), "content-first");
+
+        var rows = Rows(first, second);
+        // The second row is mid-restore (a step shown) when the loop throws on it: a step reporter
+        // missing from the map makes the loop throw once it reaches that row, the same shape of
+        // unexpected mid-loop failure the backup test above uses.
+        rows[1].RestoreStep = 2;
+        rows[1].RestoreStepText = "Extracting";
+        var stepProgress = StepProgressFor([rows[0]]);
+        var finishCount = 0;
+
+        var coordinator = new BulkBackupCoordinator(
+            backup, new GameActions(backup, new RecordingDialogService { ConfirmToReturn = true }), _ => { });
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => coordinator.RestoreAsync(
+            rows, backupRoot, stepProgress, (_, _) => { }, (_, _) => { }, () => finishCount++));
+
+        Assert.Equal(1, finishCount);
+        Assert.All(rows, row => Assert.False(row.IsBusy));
+        Assert.All(rows, row => Assert.Equal(0, row.RestoreStep));
+        Assert.All(rows, row => Assert.Equal("", row.RestoreStepText));
+    }
+
     private static Dictionary<GameRowViewModel, IProgress<int>> StepProgressFor(
         IEnumerable<GameRowViewModel> rows)
     {
