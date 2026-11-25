@@ -176,8 +176,9 @@ internal static class DirectoryWalk
         var bytes = 0L;
         ForEachFile(rootDir, info =>
         {
+            var length = info.Length; // read first: a vanished file throws here and is skipped uncounted
             count++;
-            bytes += info.Length;
+            bytes += length;
         });
         return (count, bytes);
     }

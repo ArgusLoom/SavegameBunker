@@ -115,6 +115,16 @@ internal sealed class CatalogSession
         if (FatalError is not null)
             return OperationResult.Fail(Strings.Get("str_write_blockedByFatalError"));
 
+        // Re-checked here, under the write lock: a caller's id snapshot can be stale (Add Game
+        // takes it before its dialog, and Find Games may add the same id meanwhile). Two entries
+        // with one id would share one archive folder.
+        var taken = games
+            .Where(g => _load.Catalog.Games.Any(existing => string.Equals(existing.Id, g.Id, StringComparison.OrdinalIgnoreCase)))
+            .Select(g => g.DisplayName)
+            .ToList();
+        if (taken.Count > 0)
+            return OperationResult.Fail(Strings.Format("str_write_idTaken", string.Join(", ", taken)));
+
         _load.Catalog.Games.AddRange(games);
         var saveResult = await SaveAsync();
         if (!saveResult.Success)

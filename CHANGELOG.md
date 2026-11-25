@@ -83,6 +83,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   slow backup folder it could count zero unsecured games while the list was still being checked.
 - **A game whose backup folder sits inside its save folder no longer always reads "saves changed
   since backup".** The status check counted the backups themselves as save files.
+- **Restore no longer deletes files its safety backup could not read.** When a file in the save
+  folder was locked or unreadable, the safety backup left it out with a warning, and the restore
+  then deleted it. Restore now stops and says why, and the save folder stays as it was.
 - **Find Games says "1 file" instead of "1 files".**
 - **The "safety backup" tag in the restore list stays readable when its row is selected.**
 

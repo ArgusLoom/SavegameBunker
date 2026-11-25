@@ -116,9 +116,22 @@ public sealed class RestoreService
             string? safetyPath = null;
             if (Directory.Exists(saveDir) && ReparseFile.HasAnyFile(saveDir))
             {
-                var safetyResult = _backup.Backup(game, backupRoot, "-pre-restore", out safetyPath);
+                var safetyResult = _backup.Backup(game, backupRoot, "-pre-restore", out safetyPath, out var safetySkipped);
                 if (!safetyResult.Success)
                     return safetyResult;
+
+                // A safety backup that could not read every file does not cover what the swap is
+                // about to delete — the deletion is only defensible because the step before it
+                // captured the whole save set. The incomplete archive protects nothing, so it goes.
+                if (safetySkipped > 0)
+                {
+                    if (safetyPath is not null)
+                    {
+                        try { File.Delete(safetyPath); } catch { /* best effort — an extra archive is harmless */ }
+                    }
+
+                    return OperationResult.Fail(Strings.Format("str_restore_safetyBackupIncomplete", game.DisplayName, safetyResult.Message));
+                }
             }
 
             if (!confirm(new RestorePrompt(saveDir, safetyPath)))

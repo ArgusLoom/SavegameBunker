@@ -68,10 +68,14 @@ public static class SaveStatusScanner
                     && BackupService.IsOwnArchiveFileName(info.Name))
                     return;
 
+                // Read first: a file deleted since it was listed throws here, and the walk then
+                // reports it as skipped — it must not have been counted already.
+                var length = info.Length;
+                var lastWrite = info.LastWriteTime;
                 fileCount++;
-                totalBytes += info.Length;
-                if (newest is null || info.LastWriteTime > newest)
-                    newest = info.LastWriteTime;
+                totalBytes += length;
+                if (newest is null || lastWrite > newest)
+                    newest = lastWrite;
             }, excludedDirs, onSkipped: skipped.Add);
 
             if (fileCount == 0)

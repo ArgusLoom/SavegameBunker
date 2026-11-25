@@ -64,9 +64,19 @@ public sealed class BackupService
     /// from inside <see cref="ArchiveSaveDir"/>, never before a save-directory check has already
     /// passed and never across the service boundary as an exception; reporting is display only.
     /// </param>
-    public OperationResult Backup(Game game, string backupRoot, string suffix, out string? archivePath, IProgress<long>? progress = null)
+    public OperationResult Backup(Game game, string backupRoot, string suffix, out string? archivePath, IProgress<long>? progress = null) =>
+        Backup(game, backupRoot, suffix, out archivePath, out _, progress);
+
+    /// <param name="skippedCount">
+    /// How many paths the walk could not read and left out of the archive. Restore needs this as a
+    /// number, not only as the warning in the message: a safety backup with gaps does not cover
+    /// what the restore is about to delete.
+    /// </param>
+    internal OperationResult Backup(Game game, string backupRoot, string suffix, out string? archivePath,
+        out int skippedCount, IProgress<long>? progress = null)
     {
         archivePath = null;
+        skippedCount = 0;
 
         try
         {
@@ -206,6 +216,7 @@ public sealed class BackupService
             }
 
             archivePath = finalPath;
+            skippedCount = skippedPaths.Count;
 
             var createdMessage = Strings.Format("str_backup_created", game.DisplayName);
             if (skippedPaths.Count > 0)
@@ -930,16 +941,16 @@ public sealed class BackupService
         IsOwnTempFileName(fileName)
         || (OwnArchiveName.IsMatch(fileName) && HasTimestampPrefix(fileName));
 
-    /// <summary>
-    /// Exactly the archive names <see cref="MoveStagedArchiveIntoPlace"/> produces: the bare
-    /// timestamp, an optional <c>-pre-restore</c>, an optional <c>-N</c> collision suffix. A game's
-    /// own <c>2026-11-20_183000_slot2.zip</c> does not match.
-    /// </summary>
     /// <summary>The staging name earlier versions wrote: the archive's own name plus <c>.tmp</c>.</summary>
     private static readonly System.Text.RegularExpressions.Regex OwnLegacyTempName = new(
         @"^\d{4}-\d{2}-\d{2}_\d{6}(-pre-restore)?\.zip\.tmp$",
         System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);
 
+    /// <summary>
+    /// Exactly the archive names <see cref="MoveStagedArchiveIntoPlace"/> produces: the bare
+    /// timestamp, an optional <c>-pre-restore</c>, an optional <c>-N</c> collision suffix. A game's
+    /// own <c>2026-11-20_183000_slot2.zip</c> does not match.
+    /// </summary>
     private static readonly System.Text.RegularExpressions.Regex OwnArchiveName = new(
         @"^\d{4}-\d{2}-\d{2}_\d{6}(-pre-restore)?(-\d+)?\.zip$",
         System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant);

@@ -95,6 +95,35 @@ public sealed class RestoreServiceTests : IDisposable
         Assert.Equal("nested-payload", File.ReadAllText(Path.Combine(saveDir, "nested", "inner.dat")));
     }
 
+    /// <summary>
+    /// A safety backup that could not read a file (locked by the game, say) does not cover what
+    /// the swap would delete: restore aborts, removes the incomplete safety archive and leaves the
+    /// save folder exactly as it was.
+    /// </summary>
+    [Fact]
+    public void Restore_aborts_when_the_safety_backup_could_not_read_every_file()
+    {
+        var game = TestGames.WithSaveFile(_dir);
+        var backupRoot = Path.Combine(_dir, "backups");
+        Assert.True(_backupService.Backup(game, backupRoot).Success);
+        var archive = Assert.Single(Directory.GetFiles(BackupDirFor(backupRoot, game), "*.zip"));
+
+        var saveDir = SaveDirIn(_dir);
+        var locked = Path.Combine(saveDir, "locked.dat");
+        File.WriteAllText(locked, "only copy");
+
+        OperationResult result;
+        var confirmCalls = 0;
+        using (new FileStream(locked, FileMode.Open, FileAccess.Read, FileShare.None))
+            result = _service.Restore(game, backupRoot, archive, _ => { confirmCalls++; return true; });
+
+        Assert.False(result.Success);
+        Assert.StartsWith(Strings.Format("str_restore_safetyBackupIncomplete", game.DisplayName, "").TrimEnd(), result.Message);
+        Assert.Equal(0, confirmCalls);
+        Assert.Empty(Directory.GetFiles(BackupDirFor(backupRoot, game), "*-pre-restore*.zip"));
+        Assert.Equal("only copy", File.ReadAllText(locked));
+    }
+
     [Fact]
     public void Restore_writes_a_pre_restore_safety_backup_before_swapping_in_the_restored_contents()
     {

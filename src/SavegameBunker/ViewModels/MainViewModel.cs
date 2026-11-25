@@ -985,6 +985,11 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// <summary>The toolbar passes no folder, the drop route passes the dropped one; same gate.</summary>
     private bool CanAddGame(string? initialSaveFolder) => CanEditCatalog();
 
+    /// <summary>Why a row edit was refused: the row's own backup/restore, or a catalog update.</summary>
+    private static string BusyMessage(GameRowViewModel row) => row.IsBusy
+        ? Strings.Format("str_row_busy", row.DisplayName)
+        : Strings.Get("str_catalog_busy");
+
     /// <summary>
     /// Add Game and Find Games write the catalog; while another catalog write or reload is in
     /// flight (<see cref="IsCatalogWriteInFlight"/>, or another edit command) two writers would
@@ -1062,7 +1067,10 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         try
         {
             StatusMessage = Strings.Get("str_findGames_scanning");
-            var result = await Task.Run(() => _knownGamesScanner.Scan(KnownGamesCatalog.All, _session.Games));
+            // A snapshot taken here on the UI thread: Remove/Change save folder/Add game may
+            // change the live list while the scan enumerates it on a pool thread.
+            var currentGames = _session.Games.ToList();
+            var result = await Task.Run(() => _knownGamesScanner.Scan(KnownGamesCatalog.All, currentGames));
 
             var picked = _dialog.ShowFindGamesDialog(result);
             if (picked is null)
@@ -1335,7 +1343,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// </summary>
     private bool CanBackupRow(GameRowViewModel? row) =>
         row is not null && !row.IsBusy && !IsBulkBackupRunning && !IsBulkPreparing
-        && !RefreshCommand.IsRunning && !ChangeBackupRootCommand.IsRunning;
+        && !RefreshCommand.IsRunning && !ChangeBackupRootCommand.IsRunning && !IsChoosingBackupRoot;
 
     /// <summary>
     /// One-line forward: the flow lives in <see cref="RowActionsCoordinator.RestoreAsync"/>,
@@ -1353,7 +1361,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// </summary>
     private bool CanRestoreRow(GameRowViewModel? row) =>
         row is not null && !row.IsBusy && !IsBulkBackupRunning && !IsBulkPreparing
-        && !RefreshCommand.IsRunning && !ChangeBackupRootCommand.IsRunning;
+        && !RefreshCommand.IsRunning && !ChangeBackupRootCommand.IsRunning && !IsChoosingBackupRoot;
 
     /// <summary>
     /// One-line forward: the flow lives in <see cref="RowActionsCoordinator.OpenSaveFolderAsync"/>.
@@ -1383,7 +1391,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
             return;
         if (row.IsBusy || IsCatalogWriteInFlight)
         {
-            StatusMessage = Strings.Get("str_catalog_busy");
+            StatusMessage = BusyMessage(row);
             return;
         }
 
@@ -1395,7 +1403,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         // have started meanwhile (same re-check RemoveGameAsync makes after its confirmation).
         if (row.IsBusy || IsCatalogWriteInFlight)
         {
-            StatusMessage = Strings.Get("str_catalog_busy");
+            StatusMessage = BusyMessage(row);
             return;
         }
 
@@ -1453,7 +1461,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
             return;
         if (row.IsBusy || IsCatalogWriteInFlight)
         {
-            StatusMessage = Strings.Get("str_catalog_busy");
+            StatusMessage = BusyMessage(row);
             return;
         }
 
@@ -1471,7 +1479,7 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         // busy meanwhile must not be dropped under its running operation.
         if (row.IsBusy || IsCatalogWriteInFlight)
         {
-            StatusMessage = Strings.Get("str_catalog_busy");
+            StatusMessage = BusyMessage(row);
             return;
         }
 

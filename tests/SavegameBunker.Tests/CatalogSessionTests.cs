@@ -56,6 +56,31 @@ public sealed class CatalogSessionTests : IDisposable
         Assert.Equal("added", Assert.Single(reloaded.Catalog.Games).Id);
     }
 
+    /// <summary>
+    /// A caller's id snapshot can be stale (Add Game takes it before its dialog), so the session
+    /// re-checks under its write lock: an id already in the catalog is refused, never duplicated.
+    /// </summary>
+    [Fact]
+    public async Task Adding_an_id_already_in_the_catalog_is_refused_and_writes_nothing()
+    {
+        var path = Write("""
+            {
+              "games": [
+                { "id": "existing", "displayName": "Existing", "saveDirTemplate": "%APPDATA%/Existing" }
+              ]
+            }
+            """);
+        var session = new CatalogSession(await GameCatalog.LoadAsync(path));
+        var before = File.ReadAllText(path);
+
+        var result = await session.AddGamesAsync([new Game { Id = "EXISTING", DisplayName = "Dup", SaveDirTemplate = "%APPDATA%/Dup" }]);
+
+        Assert.False(result.Success);
+        Assert.Contains("Dup", result.Message);
+        Assert.Single(session.Games);
+        Assert.Equal(before, File.ReadAllText(path));
+    }
+
     [Fact]
     public async Task Reload_of_a_malformed_file_keeps_the_previously_loaded_catalog()
     {

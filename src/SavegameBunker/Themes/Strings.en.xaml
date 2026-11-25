@@ -66,6 +66,8 @@
     <!--  Offline user guide outcomes — same shape as the PCGamingWiki ones below.  -->
     <sys:String x:Key="str_help_opened">Opened the user guide.</sys:String>
     <sys:String x:Key="str_help_opened_online">Opened the online user guide — no offline copy was found next to the SavegameBunker executable.</sys:String>
+    <sys:String x:Key="str_write_idTaken">Not added — already in your list under the same save-folder name: {0}.</sys:String>
+    <sys:String x:Key="str_row_busy">{0} is busy with a backup or restore — try again when it finishes.</sys:String>
     <sys:String x:Key="str_catalog_busy">The games list is being updated — try again in a moment.</sys:String>
     <sys:String x:Key="str_help_failed">Could not open the user guide: {0}</sys:String>
 
@@ -280,6 +282,7 @@
     <sys:String x:Key="str_restore_noBackupFolder">Can't restore {0} — no backup folder is set yet. Use Backup folder to point SavegameBunker at one.</sys:String>
     <sys:String x:Key="str_restore_folderUnreachable">Can't restore {0} — the backup folder isn't available right now ({1}).</sys:String>
     <sys:String x:Key="str_restore_noBackups">No backups found for {0}. Back it up before you can restore.</sys:String>
+    <sys:String x:Key="str_restore_safetyBackupIncomplete">Can't restore {0} — the safety backup could not read every file in the save folder, and restoring would delete files that are in no backup. Close the game or anything else using those files and try again. {1}</sys:String>
     <sys:String x:Key="str_restore_saveFolderHoldsOtherBackups">Can't restore {0} — its save folder holds backups this app made, and restoring replaces that whole folder, which would delete them. Point the save folder somewhere else first (Change save folder).</sys:String>
     <sys:String x:Key="str_restore_backupFolderInsideSaveFolder">Can't restore {0} — backups are stored in this game's save folder, and restoring replaces that whole folder. Move the backup folder somewhere else first (Backup folder).</sys:String>
     <sys:String x:Key="str_restore_archiveTooLarge">Can't restore {0} — this backup is too large to extract safely.</sys:String>

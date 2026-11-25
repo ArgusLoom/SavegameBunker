@@ -278,6 +278,9 @@ pick a sensible starting folder in the picker.
 - **Before anything is written, the current save directory is backed up automatically.** This is an
   ordinary backup written to the backup folder with a `-pre-restore` suffix, so it appears in the
   restore list like any other. If that safety backup fails, the restore aborts and nothing changes.
+  The same holds when the safety backup succeeded but could not read every file (a locked or
+  access-denied path): it would not cover what the restore is about to delete, so it is removed
+  again, the restore aborts and nothing changes.
 - The user confirms an explicit prompt naming the save directory, the safety backup that was just
   taken, and **the direction of the change**: when the current save data is newer than the selected
   backup, the prompt says so with the elapsed time ("your saves have changed in the last 2 days —
