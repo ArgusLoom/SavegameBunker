@@ -67,16 +67,16 @@ public sealed class BackupService
     public OperationResult Backup(Game game, string backupRoot, string suffix, out string? archivePath, IProgress<long>? progress = null) =>
         Backup(game, backupRoot, suffix, out archivePath, out _, progress);
 
-    /// <param name="skippedCount">
-    /// How many paths the walk could not read and left out of the archive. Restore needs this as a
-    /// number, not only as the warning in the message: a safety backup with gaps does not cover
-    /// what the restore is about to delete.
+    /// <param name="skippedPaths">
+    /// The paths the walk could not read and left out of the archive (empty on failure). Restore
+    /// needs these as data, not only as the warning in the message: a safety backup with gaps does
+    /// not cover what the restore is about to delete.
     /// </param>
     internal OperationResult Backup(Game game, string backupRoot, string suffix, out string? archivePath,
-        out int skippedCount, IProgress<long>? progress = null)
+        out IReadOnlyList<string> skippedPaths, IProgress<long>? progress = null)
     {
         archivePath = null;
-        skippedCount = 0;
+        skippedPaths = [];
 
         try
         {
@@ -117,7 +117,7 @@ public sealed class BackupService
             // — so without this list an incomplete archive would verify clean. Reported on the
             // result below; a hard failure on any unreadable path would turn a locked junk file
             // into a refused backup, so incompleteness is surfaced as a warning instead.
-            var skippedPaths = new List<string>();
+            var skippedPathsFound = new List<string>();
 
             // Folders the walk leaves out BY RULE (the backup folder inside the save folder), not
             // skips — kept in their own list so the note that names them never reuses the
@@ -155,7 +155,7 @@ public sealed class BackupService
                 // Own walk, not ZipFile.CreateFromDirectory: that API follows directory junctions
                 // and would archive whatever they point at (Documents, SSH keys, …). The empty-check
                 // and the scanner already skip reparse points; the zip must skip them too.
-                entryHashes = ArchiveSaveDir(saveDir, tempPath, progress, excludedDirs, skippedPaths,
+                entryHashes = ArchiveSaveDir(saveDir, tempPath, progress, excludedDirs, skippedPathsFound,
                     (path, isBackupFolder) => (isBackupFolder ? leftOut : notBackedUp).Add(path), skipRootArchives);
             }
             catch (Exception ex)
@@ -173,7 +173,7 @@ public sealed class BackupService
             // warning-carrying success it already is. The backup-folder wording applies only when
             // the walk actually left something out; a folder emptied between the empty check and
             // the walk gets the plain empty-folder message.
-            if (entryHashes.Count == 0 && skippedPaths.Count == 0)
+            if (entryHashes.Count == 0 && skippedPathsFound.Count == 0)
             {
                 TryDelete(tempPath);
                 return OperationResult.Fail(
@@ -189,7 +189,7 @@ public sealed class BackupService
             // Success is reported only after the archive is reopened and its entries matched
             // against a fresh walk of the save directory.
             var verificationFailure = DescribeVerificationFailure(
-                tempPath, saveDir, excludedDirs, skippedPaths, entryHashes, skipRootArchives);
+                tempPath, saveDir, excludedDirs, skippedPathsFound, entryHashes, skipRootArchives);
             if (verificationFailure is not null)
             {
                 TryDelete(tempPath);
@@ -216,7 +216,7 @@ public sealed class BackupService
             }
 
             archivePath = finalPath;
-            skippedCount = skippedPaths.Count;
+            skippedPaths = skippedPathsFound;
 
             var createdMessage = Strings.Format("str_backup_created", game.DisplayName);
             if (skippedPaths.Count > 0)

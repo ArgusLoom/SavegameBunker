@@ -123,14 +123,14 @@ public sealed class RestoreService
                 // A safety backup that could not read every file does not cover what the swap is
                 // about to delete — the deletion is only defensible because the step before it
                 // captured the whole save set. The incomplete archive protects nothing, so it goes.
-                if (safetySkipped > 0)
+                if (safetySkipped.Count > 0)
                 {
                     if (safetyPath is not null)
                     {
                         try { File.Delete(safetyPath); } catch { /* best effort — an extra archive is harmless */ }
                     }
 
-                    return OperationResult.Fail(Strings.Format("str_restore_safetyBackupIncomplete", game.DisplayName, safetyResult.Message));
+                    return OperationResult.Fail(Strings.Format("str_restore_safetyBackupIncomplete", game.DisplayName, DirectoryWalk.FormatSkippedList(safetySkipped)));
                 }
             }
 

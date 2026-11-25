@@ -1483,7 +1483,19 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
             return;
         }
 
-        var saveResult = await _session.RemoveGameAsync(row.Game);
+        // Busy across the write, the same guard ChangeSaveFolderAsync raises: the row's own
+        // Backup/Restore must not start on a row that is about to be dropped from the list.
+        OperationResult saveResult;
+        row.IsBusy = true;
+        try
+        {
+            saveResult = await _session.RemoveGameAsync(row.Game);
+        }
+        finally
+        {
+            row.IsBusy = false;
+        }
+
         if (!saveResult.Success)
         {
             Report(saveResult);
