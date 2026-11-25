@@ -29,6 +29,33 @@ public sealed class CatalogSessionTests : IDisposable
         return path;
     }
 
+    /// <summary>
+    /// Two in-app writes started back to back (say Find Games' add while a removal's save is still
+    /// in flight) must both land: the session serializes them, so the second saves with the stamp
+    /// the first one left instead of being refused as "changed on disk".
+    /// </summary>
+    [Fact]
+    public async Task Overlapping_writes_from_one_session_both_succeed()
+    {
+        var path = Write("""
+            {
+              "games": [
+                { "id": "existing", "displayName": "Existing", "saveDirTemplate": "%APPDATA%/Existing" }
+              ]
+            }
+            """);
+        var session = new CatalogSession(await GameCatalog.LoadAsync(path));
+        var existing = session.Games[0];
+
+        var add = session.AddGamesAsync([new Game { Id = "added", DisplayName = "Added", SaveDirTemplate = "%APPDATA%/Added" }]);
+        var remove = session.RemoveGameAsync(existing);
+        var results = await Task.WhenAll(add, remove);
+
+        Assert.All(results, r => Assert.True(r.Success, r.Message));
+        var reloaded = await GameCatalog.LoadAsync(path);
+        Assert.Equal("added", Assert.Single(reloaded.Catalog.Games).Id);
+    }
+
     [Fact]
     public async Task Reload_of_a_malformed_file_keeps_the_previously_loaded_catalog()
     {

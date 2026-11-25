@@ -22,6 +22,28 @@ internal sealed class CatalogSession
     // than mutating its own Catalog reference.
     private CatalogLoad _load;
 
+    /// <summary>
+    /// Serializes every mutate-save-rollback sequence and the reload. Each one changes the held
+    /// record, awaits the file write, then commits or rolls back; two interleaving would save with
+    /// the same last-seen stamp (one is then refused as "changed on disk") or roll back the other's
+    /// change. Command-level gates in the view model keep rows consistent; this guarantees the
+    /// file writes themselves never overlap, whichever commands happen to race.
+    /// </summary>
+    private readonly SemaphoreSlim _writeLock = new(1, 1);
+
+    private async Task<T> ExclusiveAsync<T>(Func<Task<T>> body)
+    {
+        await _writeLock.WaitAsync();
+        try
+        {
+            return await body();
+        }
+        finally
+        {
+            _writeLock.Release();
+        }
+    }
+
     public CatalogSession(CatalogLoad load)
     {
         _load = load;
@@ -86,7 +108,9 @@ internal sealed class CatalogSession
     /// Serves both add-game and find-games, so the append-and-rollback exists once; both callers
     /// report the returned result themselves.
     /// </summary>
-    public async Task<OperationResult> AddGamesAsync(IReadOnlyList<Game> games)
+    public Task<OperationResult> AddGamesAsync(IReadOnlyList<Game> games) => ExclusiveAsync(() => AddGamesCoreAsync(games));
+
+    private async Task<OperationResult> AddGamesCoreAsync(IReadOnlyList<Game> games)
     {
         if (FatalError is not null)
             return OperationResult.Fail(Strings.Get("str_write_blockedByFatalError"));
@@ -107,7 +131,9 @@ internal sealed class CatalogSession
     /// own separator form, and saves — restoring the previous record on failure. The caller
     /// reports the failure and raises the header's change notification on success.
     /// </summary>
-    public async Task<OperationResult> SetBackupRootAsync(string picked)
+    public Task<OperationResult> SetBackupRootAsync(string picked) => ExclusiveAsync(() => SetBackupRootCoreAsync(picked));
+
+    private async Task<OperationResult> SetBackupRootCoreAsync(string picked)
     {
         if (FatalError is not null)
             return OperationResult.Fail(Strings.Get("str_write_blockedByFatalError"));
@@ -137,17 +163,18 @@ internal sealed class CatalogSession
     /// returns on failure would make every later write (add game, change backup folder) save that
     /// empty catalog over the real one still on disk.
     /// </summary>
-    public async Task ReloadAsync()
+    public Task ReloadAsync() => ExclusiveAsync(async () =>
     {
         var reloaded = await GameCatalog.LoadAsync(_load.Path);
         if (reloaded.FatalError is not null)
         {
             _load = _load with { FatalError = reloaded.FatalError };
-            return;
+            return true;
         }
 
         _load = reloaded;
-    }
+        return true;
+    });
 
     /// <summary>
     /// Replaces one game's stored save-folder template and saves — restoring the previous entry at
@@ -157,7 +184,10 @@ internal sealed class CatalogSession
     /// holding that game's backups. Looked up by reference rather than by index: the caller (the
     /// repair route) only has the row's <see cref="Game"/>, not its position in this list.
     /// </summary>
-    public async Task<OperationResult> SetSaveFolderAsync(Game game, string newSaveDirTemplate)
+    public Task<OperationResult> SetSaveFolderAsync(Game game, string newSaveDirTemplate) =>
+        ExclusiveAsync(() => SetSaveFolderCoreAsync(game, newSaveDirTemplate));
+
+    private async Task<OperationResult> SetSaveFolderCoreAsync(Game game, string newSaveDirTemplate)
     {
         if (FatalError is not null)
             return OperationResult.Fail(Strings.Get("str_write_blockedByFatalError"));
@@ -187,7 +217,9 @@ internal sealed class CatalogSession
     /// user's files, and removing a list entry is not a delete. Looked up by reference, matching
     /// <see cref="SetSaveFolderAsync"/>, because the caller only has the row's <see cref="Game"/>.
     /// </summary>
-    public async Task<OperationResult> RemoveGameAsync(Game game)
+    public Task<OperationResult> RemoveGameAsync(Game game) => ExclusiveAsync(() => RemoveGameCoreAsync(game));
+
+    private async Task<OperationResult> RemoveGameCoreAsync(Game game)
     {
         if (FatalError is not null)
             return OperationResult.Fail(Strings.Get("str_write_blockedByFatalError"));

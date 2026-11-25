@@ -1000,8 +1000,8 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// </summary>
     public Task AddGameFromDroppedFolderAsync(string folder)
     {
-        // Routed through AddGameCommand, so its IsRunning gates Refresh, backups and closing
-        // exactly as the toolbar route does.
+        // Routed through AddGameCommand, so its IsRunning gates Refresh and backups exactly as
+        // the toolbar route does.
         if (!AddGameCommand.CanExecute(folder))
         {
             StatusMessage = Strings.Get("str_catalog_busy");
@@ -1334,7 +1334,8 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// staging file.
     /// </summary>
     private bool CanBackupRow(GameRowViewModel? row) =>
-        row is not null && !row.IsBusy && !IsBulkBackupRunning && !IsBulkPreparing;
+        row is not null && !row.IsBusy && !IsBulkBackupRunning && !IsBulkPreparing
+        && !RefreshCommand.IsRunning && !ChangeBackupRootCommand.IsRunning;
 
     /// <summary>
     /// One-line forward: the flow lives in <see cref="RowActionsCoordinator.RestoreAsync"/>,
@@ -1351,7 +1352,8 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// (<see cref="IsBulkPreparing"/>) — the same gap <see cref="CanBackupRow"/> closes for backups.
     /// </summary>
     private bool CanRestoreRow(GameRowViewModel? row) =>
-        row is not null && !row.IsBusy && !IsBulkBackupRunning && !IsBulkPreparing;
+        row is not null && !row.IsBusy && !IsBulkBackupRunning && !IsBulkPreparing
+        && !RefreshCommand.IsRunning && !ChangeBackupRootCommand.IsRunning;
 
     /// <summary>
     /// One-line forward: the flow lives in <see cref="RowActionsCoordinator.OpenSaveFolderAsync"/>.
@@ -1377,12 +1379,25 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         // busy (it is still resolving the backup folder), so replacing this row now would let the
         // run back up the old Game with its old save path. The overflow menu calls Execute
         // directly, which skips CanExecute, so the guard lives here.
-        if (row is null || row.IsBusy || IsCatalogWriteInFlight)
+        if (row is null)
             return;
+        if (row.IsBusy || IsCatalogWriteInFlight)
+        {
+            StatusMessage = Strings.Get("str_catalog_busy");
+            return;
+        }
 
         var newTemplate = _dialog.ShowChangeSaveFolderDialog(row.DisplayName, row.Game.SaveDirTemplate);
         if (newTemplate is null)
             return;
+
+        // The dialog is modal but pumps messages; a backup on this row or a catalog reload may
+        // have started meanwhile (same re-check RemoveGameAsync makes after its confirmation).
+        if (row.IsBusy || IsCatalogWriteInFlight)
+        {
+            StatusMessage = Strings.Get("str_catalog_busy");
+            return;
+        }
 
         // Raised before the await — the same re-entrancy guard BackupAsync/RestoreAsync use —
         // so a concurrent Refresh (CanRefreshOrChangeBackupRoot gates on IsAnyRowBusy) or
@@ -1434,8 +1449,13 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     {
         // IsBulkPreparing: same window as ChangeSaveFolderAsync — the bulk run's targets are
         // captured but not yet busy, so a removal now would still be backed up afterwards.
-        if (row is null || row.IsBusy || IsCatalogWriteInFlight)
+        if (row is null)
             return;
+        if (row.IsBusy || IsCatalogWriteInFlight)
+        {
+            StatusMessage = Strings.Get("str_catalog_busy");
+            return;
+        }
 
         var confirmed = await Task.Run(() =>
             _dialog.Confirm(
