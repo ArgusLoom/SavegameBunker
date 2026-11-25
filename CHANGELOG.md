@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A bulk backup no longer hides that a game's backup is incomplete.** "Back up all changed",
+  "Back up selected" and the startup reminder's "Yes" reported "Backed up all N games" even when a
+  game's locked files were left out or its archive is too large to restore; the closing message now
+  lists each such game's warning, as a single backup always did.
 - **An unexpected failure during "Restore" on several games no longer leaves rows stuck.** Rows
   stayed on "Checking" with the toolbar buttons disabled until Refresh, and the game that failed kept
   a frozen restore bar; the rows are now re-checked and the bar cleared whatever happens.

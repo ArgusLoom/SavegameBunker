@@ -231,6 +231,33 @@ public sealed class BackupServiceTests : IDisposable
         Assert.Empty(Directory.GetFiles(targetDir, "*.zip.tmp"));
     }
 
+    [Fact]
+    public void A_backup_that_skipped_a_path_is_flagged_as_carrying_a_warning()
+    {
+        var game = TestGames.WithSaveFile(_dir);
+        var backupRoot = Path.Combine(_dir, "backups");
+        File.WriteAllText(Path.Combine(_dir, "saves", "other.dat"), "readable");
+
+        using (new FileStream(Path.Combine(_dir, "saves", "save.dat"), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            var result = _service.Backup(game, backupRoot);
+
+            Assert.True(result.Success, result.Message);
+            Assert.True(result.HasWarning);
+        }
+    }
+
+    [Fact]
+    public void A_clean_backup_is_not_flagged_as_carrying_a_warning()
+    {
+        var game = TestGames.WithSaveFile(_dir);
+
+        var result = _service.Backup(game, Path.Combine(_dir, "backups"));
+
+        Assert.True(result.Success, result.Message);
+        Assert.False(result.HasWarning);
+    }
+
     // Every file locked: an empty archive would become the newest backup and could be restored
     // over the real saves, so the backup fails and writes nothing.
     [Fact]
@@ -1316,6 +1343,8 @@ public sealed class BackupServiceTests : IDisposable
         Assert.Single(Regex.Matches(second.Message, "Left out:"));
         Assert.Contains("Left out: backups (backup folder).", second.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("NOT in this backup", second.Message, StringComparison.Ordinal);
+        // A chosen layout is honoured without comment, so the note is never a warning flag.
+        Assert.False(second.HasWarning);
         using var zip = ZipFile.OpenRead(secondPath!);
         Assert.Equal("save.dat", Assert.Single(zip.Entries).FullName);
     }
@@ -1357,6 +1386,7 @@ public sealed class BackupServiceTests : IDisposable
 
         Assert.True(result.Success, result.Message);
         Assert.Contains("NOT in this backup: profiles", result.Message, StringComparison.Ordinal);
+        Assert.True(result.HasWarning);
         Assert.DoesNotContain("profiles (backup folder", result.Message, StringComparison.Ordinal);
     }
 

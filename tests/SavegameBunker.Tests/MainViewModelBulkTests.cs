@@ -589,6 +589,28 @@ public sealed class MainViewModelBulkTests : MainViewModelTestBase
     }
 
     [Fact]
+    public async Task Bulk_backup_success_dialog_carries_each_games_incompleteness_warning()
+    {
+        var (vm, dialog, _) = await CreateMultiGameViewModelAsync(2);
+        File.WriteAllText(Path.Combine(_dir, "saves-0", "other.dat"), "readable");
+
+        vm.Games[0].IsSelected = true;
+        vm.Games[1].IsSelected = true;
+        using (new FileStream(Path.Combine(_dir, "saves-0", "save.dat"), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            vm.BackupSelectedCommand.Execute(null);
+            await WaitForAsync(() => dialog.InfoMessages.Count == 1, timeoutMs: RealIoTimeoutMs);
+        }
+
+        // The status line stays the one-line summary; the dialog says what the archive lacks.
+        var info = Assert.Single(dialog.InfoMessages);
+        Assert.StartsWith("Backed up all 2 selected games.", info, StringComparison.Ordinal);
+        Assert.Contains("NOT in this backup", info, StringComparison.Ordinal);
+        Assert.Contains("save.dat", info, StringComparison.Ordinal);
+        Assert.DoesNotContain("NOT in this backup", vm.StatusMessage, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void About_command_opens_the_about_dialog()
     {
         var (vm, dialog, _) = CreateViewModel(Path.Combine(_dir, "backups"));

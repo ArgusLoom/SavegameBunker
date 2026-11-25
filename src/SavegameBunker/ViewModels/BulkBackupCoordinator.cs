@@ -101,6 +101,7 @@ internal sealed class BulkBackupCoordinator
 
         var failed = new List<string>();
         var failureDetails = new List<string>();
+        var warnings = new List<string>();
 
         try
         {
@@ -129,6 +130,11 @@ internal sealed class BulkBackupCoordinator
                     }
                     else
                     {
+                        // A success can still carry what the archive lacks (-partial, an archive
+                        // restore refuses); the single-row path shows that message, so this one keeps it.
+                        if (result.HasWarning)
+                            warnings.Add(result.Message);
+
                         // Wrapped like every other row write in this loop, since the bound row
                         // property must not be touched off the UI thread.
                         _onUi(() => row.RestoredArchiveTakenAt = null);
@@ -160,7 +166,7 @@ internal sealed class BulkBackupCoordinator
             onFinished();
         }
 
-        return new BulkBackupRun(failed, failureDetails);
+        return new BulkBackupRun(failed, failureDetails, warnings);
     }
 
     /// <summary>
@@ -278,9 +284,11 @@ internal sealed class BulkBackupCoordinator
 
 /// <summary>
 /// What one bulk backup run produced: the display names of the games whose backup failed, and
-/// one failure sentence per failed game for the blocking dialog.
+/// one failure sentence per failed game for the blocking dialog, and the message of every game
+/// whose backup succeeded but is incomplete or will not restore (<see cref="OperationResult.HasWarning"/>).
 /// </summary>
-internal sealed record BulkBackupRun(IReadOnlyList<string> Failed, IReadOnlyList<string> FailureDetails);
+internal sealed record BulkBackupRun(
+    IReadOnlyList<string> Failed, IReadOnlyList<string> FailureDetails, IReadOnlyList<string> Warnings);
 
 /// <summary>
 /// What one bulk restore run produced: how many games were actually restored, the display names

@@ -222,7 +222,10 @@ and silently replacing a broken catalog would destroy the user's own configurati
   warning naming it, and the archive's name carries `-partial`. A partial archive stays listed and
   restorable by hand, but it never makes a game "up to date" and bulk restore never picks it
   automatically. When no file at all could be read, the backup fails and writes nothing: an empty
-  archive would otherwise become the newest backup.
+  archive would otherwise become the newest backup. A bulk backup keeps those warnings, and the
+  one for an archive larger than restore accepts: its closing message lists each affected game's
+  warning, so "Backed up all N games" is never the whole story for a game that was only partly
+  captured.
 - A `backupRoot` inside the game's own save directory, or equal to it, is honoured for Backup —
   the archive walk leaves out exactly the folders that hold backups: the subfolder that is
   `backupRoot` or the game's archive folder `<backupRoot>\<id>`, and, when the save directory is

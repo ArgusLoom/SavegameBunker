@@ -230,9 +230,13 @@ public sealed class BackupService
             if (leftOut.Count > 0)
                 createdMessage += DescribeLeftOutNote(leftOut);
             var oversizedWarning = DescribeOversizedArchiveWarning(finalPath);
-            return OperationResult.Ok(oversizedWarning is null
-                ? createdMessage
-                : $"{createdMessage} {oversizedWarning}");
+
+            // The left-out note is not a warning (the backup folder is the user's chosen layout), so
+            // it never raises the flag — only unreadable paths, pruned subfolders and an archive
+            // restore will refuse do.
+            var hasWarning = skippedPaths.Count > 0 || notBackedUp.Count > 0 || oversizedWarning is not null;
+            var message = oversizedWarning is null ? createdMessage : $"{createdMessage} {oversizedWarning}";
+            return hasWarning ? OperationResult.OkWithWarning(message) : OperationResult.Ok(message);
         }
         catch (Exception ex)
         {

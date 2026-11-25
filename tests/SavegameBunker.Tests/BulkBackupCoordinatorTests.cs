@@ -187,6 +187,35 @@ public sealed class BulkBackupCoordinatorTests : IDisposable
     }
 
     [Fact]
+    public async Task BackupAsync_collects_the_message_of_a_game_whose_backup_succeeded_with_a_warning()
+    {
+        var backup = new BackupService();
+        var backupRoot = Path.Combine(_dir, "backups");
+        var locked = TestGames.WithNamedSaves(_dir, "game-locked", "Locked Game");
+        var clean = TestGames.WithNamedSaves(_dir, "game-clean", "Clean Game");
+        File.WriteAllText(Path.Combine(_dir, "saves-game-locked", "other.dat"), "readable");
+        var rows = Rows(locked, clean);
+
+        var coordinator = new BulkBackupCoordinator(
+            backup, new GameActions(backup, new RecordingDialogService()), action => action());
+
+        BulkBackupRun? run;
+        using (new FileStream(Path.Combine(_dir, "saves-game-locked", "save.dat"), FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            run = await coordinator.BackupAsync(
+                rows, backupRoot, (_, _) => { }, ByteProgressFor(rows), (_, _) => { }, () => { });
+        }
+
+        // Both archives were written, so nothing failed — but the locked game's archive is
+        // incomplete, and its message is the only place that says so.
+        Assert.NotNull(run);
+        Assert.Empty(run.Failed);
+        var warning = Assert.Single(run.Warnings);
+        Assert.Contains("Locked Game", warning, StringComparison.Ordinal);
+        Assert.Contains("NOT in this backup", warning, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task BackupAsync_routes_every_loop_row_write_through_onUi()
     {
         var backup = new BackupService();

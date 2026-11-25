@@ -1630,7 +1630,11 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
         if (run is null)
             return;
 
-        Report(BulkRunRules.BackupOutcome(targets, run.Failed, allSucceededKey, partialFailureKey), run.FailureDetails);
+        // Failures first, then the warnings of the games that did succeed: a partial failure must
+        // not hide that another game's archive is incomplete.
+        Report(
+            BulkRunRules.BackupOutcome(targets, run.Failed, allSucceededKey, partialFailureKey),
+            [.. run.FailureDetails, .. run.Warnings]);
     }
 
     /// <summary>
@@ -1802,21 +1806,24 @@ public sealed partial class MainViewModel : CommunityToolkitObservableObject, IR
     /// <see cref="IDialogService.Error"/> (blocking <c>ContentDialog</c>).
     /// The calls and their meaning are the same on every surface; only the routing differs.
     /// </summary>
-    /// <param name="failureDetails">
-    /// One sentence per failed game of a bulk run, appended to the blocking dialog only. The status
-    /// line stays the one-line summary; the dialog is where there is room for why each game failed,
-    /// which is the part the user can act on.
+    /// <param name="details">
+    /// One sentence per game of a bulk run, appended to the dialog only: why each game failed, or,
+    /// on a success, which games' archives are incomplete or will not restore. The status line
+    /// stays the one-line summary; the dialog is where there is room for the part the user can
+    /// act on.
     /// </param>
-    private void Report(OperationResult result, IReadOnlyList<string>? failureDetails = null)
+    private void Report(OperationResult result, IReadOnlyList<string>? details = null)
     {
         StatusMessage = result.Message;
         if (result.Cancelled)
             return;
 
         if (result.Success)
-            _dialog.Info(result.Message);
-        else if (failureDetails is { Count: > 0 })
-            _dialog.Error(result.Message + "\n\n- " + string.Join("\n- ", failureDetails));
+            _dialog.Info(details is { Count: > 0 }
+                ? result.Message + "\n\n- " + string.Join("\n- ", details)
+                : result.Message);
+        else if (details is { Count: > 0 })
+            _dialog.Error(result.Message + "\n\n- " + string.Join("\n- ", details));
         else
             _dialog.Error(result.Message);
     }
