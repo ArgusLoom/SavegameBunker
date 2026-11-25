@@ -21,6 +21,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **A folder that fails partway through being listed is now skipped on its own.** If a network
+  share dropped or a drive was pulled while a save folder was being read, the whole backup, scan or
+  size check failed; now only that folder is left out and named in the warning, like any other
+  unreadable folder.
 - **Each row's overflow ("more actions") button no longer renders cut off at the window's right
   edge.** The Actions column was 104px — just enough for the three 32px icon buttons in theory, but
   too tight at the window's minimum width once real padding was accounted for. It is now 128px,

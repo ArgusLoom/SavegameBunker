@@ -14,7 +14,9 @@ namespace SavegameBunker.Services;
 /// <see cref="Directory.EnumerateFiles(string)"/>/
 /// <see cref="Directory.EnumerateDirectories(string)"/> rather than the recursive search option:
 /// that lazy recursive enumerator throws from <c>MoveNext</c> partway through a locked subtree and
-/// would abort the whole walk instead of skipping just that subtree. A junction or directory
+/// would abort the whole walk instead of skipping just that subtree. The one-level listings can
+/// still throw from <c>MoveNext</c> after they were opened, so each is read through
+/// <see cref="GuardListing"/>, which ends that listing and reports its folder as skipped. A junction or directory
 /// symbolic link is never followed into, so a self-referencing link cannot make the walk run
 /// forever, while a reparse-flagged OneDrive cloud folder is walked like any folder; a file reparse point is skipped only when
 /// <see cref="FileSystemInfo.LinkTarget"/> proves it is an actual symbolic link, rather than, say,
@@ -79,7 +81,18 @@ internal static class DirectoryWalk
                 return;
             }
 
-            foreach (var f in files)
+            // A listing that fails partway reports its folder as skipped once, whichever of the two
+            // listings (files, subfolders) hit it, then the walk carries on with what it has.
+            var listingFaulted = false;
+            void ListingFaulted()
+            {
+                if (listingFaulted)
+                    return;
+                listingFaulted = true;
+                Skip(current);
+            }
+
+            foreach (var f in GuardListing(files, ListingFaulted))
             {
                 FileInfo info;
                 try
@@ -122,7 +135,7 @@ internal static class DirectoryWalk
                 return;
             }
 
-            foreach (var sub in subdirs)
+            foreach (var sub in GuardListing(subdirs, ListingFaulted))
             {
                 bool isLink;
                 try
@@ -172,6 +185,51 @@ internal static class DirectoryWalk
         }
 
         Walk(rootDir);
+    }
+
+    /// <summary>
+    /// Yields <paramref name="listing"/> item by item, and turns a filesystem fault thrown by
+    /// <c>MoveNext</c> after the listing was opened into "this listing ends here": it calls
+    /// <paramref name="onFault"/> once and stops, instead of letting the exception unwind the whole
+    /// walk. The enumerators opened by <see cref="Directory.EnumerateFiles(string)"/> and
+    /// <see cref="Directory.EnumerateDirectories(string)"/> are lazy, so a share that drops or a
+    /// volume that is pulled mid-listing fails inside the <c>foreach</c>, not at the call that
+    /// opened it. The consumer's own exceptions are not caught: they surface outside the guarded
+    /// <c>MoveNext</c> call.
+    /// </summary>
+    internal static IEnumerable<string> GuardListing(IEnumerable<string> listing, Action onFault)
+    {
+        IEnumerator<string> enumerator;
+        try
+        {
+            enumerator = listing.GetEnumerator();
+        }
+        catch (Exception ex) when (FileSystemFault.Is(ex))
+        {
+            onFault();
+            yield break;
+        }
+
+        using (enumerator)
+        {
+            while (true)
+            {
+                string item;
+                try
+                {
+                    if (!enumerator.MoveNext())
+                        yield break;
+                    item = enumerator.Current;
+                }
+                catch (Exception ex) when (FileSystemFault.Is(ex))
+                {
+                    onFault();
+                    yield break;
+                }
+
+                yield return item;
+            }
+        }
     }
 
     /// <summary>
